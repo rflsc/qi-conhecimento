@@ -1,0 +1,19 @@
+{
+  "brand": "Qi Conhecimento",
+  "tagline": "Multimodal technical knowledge hub for engineering",
+  "pillars": {
+    "hub": "Multimodal Input Hub",
+    "brain": "Standardization Pipeline and RAG Engine",
+    "field": "Field Assistant via Messaging"
+  },
+  "actions": {
+    "accessAdmin": "Open admin panel",
+    "learnMore": "Learn more"
+  },
+  "specialties": {
+    "civil": "Civil",
+    "hidraulica": "Hydraulic",
+    "eletrica": "Electrical",
+    "seguranca_trabalho": "Work Safety"
+  }
+}

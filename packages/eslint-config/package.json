@@ -1,0 +1,11 @@
+{
+  "name": "@qi-conhecimento/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.js",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.34.1",
+    "@typescript-eslint/parser": "^8.34.1",
+    "eslint": "^9.29.0"
+  }
+}

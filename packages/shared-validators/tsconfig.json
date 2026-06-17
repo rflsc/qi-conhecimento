@@ -1,0 +1,8 @@
+{
+  "extends": "@qi-conhecimento/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src"]
+}

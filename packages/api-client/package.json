@@ -1,0 +1,21 @@
+{
+  "name": "@qi-conhecimento/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@qi-conhecimento/shared-types": "workspace:*",
+    "@qi-conhecimento/shared-validators": "workspace:*"
+  },
+  "devDependencies": {
+    "@qi-conhecimento/eslint-config": "workspace:*",
+    "@qi-conhecimento/typescript-config": "workspace:*",
+    "typescript": "^5.8.3"
+  }
+}

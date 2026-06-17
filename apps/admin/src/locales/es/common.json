@@ -1,0 +1,25 @@
+{
+  "brand": "Qi Conhecimento Admin",
+  "auth": {
+    "login": "Iniciar sesión",
+    "email": "Correo",
+    "password": "Contraseña",
+    "welcome": "Hub de conocimiento técnico"
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "documents": "Documentos",
+    "manualContent": "CMS interno",
+    "specialties": "Especialidades",
+    "queries": "Consultas de campo"
+  },
+  "hub": {
+    "title": "Hub de entrada multimodal",
+    "importPdf": "Importar PDF / norma",
+    "importImage": "Lector de imágenes",
+    "importLink": "Importar enlace/HTML",
+    "manualEditor": "Editor de procedimientos"
+  },
+  "actions": { "save": "Guardar", "logout": "Salir" },
+  "errors": { "generic": "Ocurrió un error. Inténtalo de nuevo." }
+}

@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@modules/*": ["src/modules/*"],
+      "@common/*": ["src/common/*"],
+      "@events/*": ["src/events/*"],
+      "@queues/*": ["src/queues/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist"]
+}

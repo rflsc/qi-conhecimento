@@ -1,0 +1,25 @@
+{
+  "brand": "Qi Conhecimento Admin",
+  "auth": {
+    "login": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "welcome": "Technical knowledge hub"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "documents": "Documents",
+    "manualContent": "Internal CMS",
+    "specialties": "Specialties",
+    "queries": "Field queries"
+  },
+  "hub": {
+    "title": "Multimodal Input Hub",
+    "importPdf": "Import PDF / standard",
+    "importImage": "Image reader",
+    "importLink": "Import link/HTML",
+    "manualEditor": "Procedure editor"
+  },
+  "actions": { "save": "Save", "logout": "Logout" },
+  "errors": { "generic": "Something went wrong. Please try again." }
+}

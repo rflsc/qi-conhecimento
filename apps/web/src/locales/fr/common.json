@@ -1,0 +1,19 @@
+{
+  "brand": "Qi Conhecimento",
+  "tagline": "Hub multimodal de connaissances techniques pour l'ingénierie",
+  "pillars": {
+    "hub": "Hub d'entrée multimodal",
+    "brain": "Pipeline de standardisation et moteur RAG",
+    "field": "Assistant de chantier via messagerie"
+  },
+  "actions": {
+    "accessAdmin": "Accéder au panneau",
+    "learnMore": "En savoir plus"
+  },
+  "specialties": {
+    "civil": "Génie civil",
+    "hidraulica": "Hydraulique",
+    "eletrica": "Électrique",
+    "seguranca_trabalho": "Sécurité au travail"
+  }
+}

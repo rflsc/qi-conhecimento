@@ -1,0 +1,14 @@
+dist
+.next
+.turbo
+.env
+.env.local
+*.log
+coverage
+storage/
+infra/data/
+apps/api/src/**/*.js
+apps/api/src/**/*.js.map
+apps/api/src/**/*.d.ts
+apps/api/src/**/*.d.ts.map
+node_modules
