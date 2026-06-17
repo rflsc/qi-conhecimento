@@ -24,6 +24,43 @@ export enum IngestionStatus {
   PROCESSING = 'processing',
   COMPLETED = 'completed',
   FAILED = 'failed',
+  CANCELLED = 'cancelled',
+}
+
+export type IngestionPhase =
+  | 'queued'
+  | 'loading_source'
+  | 'parsing'
+  | 'chunking'
+  | 'embedding'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
+export type IngestionLogLevel = 'info' | 'warn' | 'error' | 'success';
+
+export interface IngestionLogEntry {
+  id: string;
+  timestamp: string;
+  level: IngestionLogLevel;
+  phase: IngestionPhase;
+  message: string;
+}
+
+export interface IngestionProgress {
+  documentId: string;
+  phase: IngestionPhase;
+  percent: number;
+  totalChunks: number;
+  chunksCreated: number;
+  embeddingsDone: number;
+  embeddingsQueued: number;
+  startedAt: string | null;
+  updatedAt: string;
+  estimatedSecondsRemaining: number | null;
+  ingestionStatus: IngestionStatus;
+  parserEngine?: string;
+  logs: IngestionLogEntry[];
 }
 
 export enum MessagingChannel {
@@ -67,6 +104,7 @@ export interface KnowledgeDocument {
   normReference?: string;
   author?: string;
   ingestionStatus: IngestionStatus;
+  ingestionError?: string;
   createdAt: string;
   updatedAt: string;
 }

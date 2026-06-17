@@ -1,16 +1,54 @@
 import type {
   AuthTokens,
+  EngineeringSpecialty,
   FieldQuery,
   KnowledgeDocument,
   PaginatedResponse,
   User,
 } from '@qi-conhecimento/shared-types';
 import type {
+  CreateCmsEntryInput,
   CreateKnowledgeDocumentInput,
   FieldQueryInput,
+  ImportLinkDocumentInput,
   LoginInput,
   RegisterInput,
+  SearchKnowledgeInput,
+  UploadDocumentInput,
 } from '@qi-conhecimento/shared-validators';
+
+export interface KnowledgeStats {
+  documents: number;
+  chunks: number;
+}
+
+export interface KnowledgeChunkRow {
+  id: string;
+  documentId: string;
+  documentTitle?: string;
+  normReference?: string;
+  markdownContent: string;
+  specialty: EngineeringSpecialty;
+  chapter?: string;
+  tags: string[];
+  createdAt: string;
+}
+
+export interface KnowledgeSearchResult {
+  chunkId: string;
+  documentId: string;
+  documentTitle: string;
+  normReference?: string;
+  normItem?: string;
+  specialty: EngineeringSpecialty;
+  excerpt: string;
+  tags: string[];
+}
+
+export interface CmsEntryResponse {
+  document: KnowledgeDocument;
+  chunk: KnowledgeChunkRow;
+}
 
 export interface QiConhecimentoClientOptions {
   baseUrl: string;
@@ -22,7 +60,8 @@ export class QiConhecimentoClient {
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
     const headers = new Headers(init?.headers);
-    headers.set('Content-Type', 'application/json');
+    const isFormData = init?.body instanceof FormData;
+    if (!isFormData) headers.set('Content-Type', 'application/json');
 
     const token = this.options.getAccessToken?.();
     if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -66,6 +105,49 @@ export class QiConhecimentoClient {
 
   createDocument(input: CreateKnowledgeDocumentInput) {
     return this.request<KnowledgeDocument>('/knowledge/documents', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  getStats() {
+    return this.request<KnowledgeStats>('/knowledge/stats');
+  }
+
+  listChunks(page = 1, limit = 20, documentId?: string) {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (documentId) params.set('documentId', documentId);
+    return this.request<PaginatedResponse<KnowledgeChunkRow>>(`/knowledge/chunks?${params.toString()}`);
+  }
+
+  createCmsEntry(input: CreateCmsEntryInput) {
+    return this.request<CmsEntryResponse>('/knowledge/cms', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  searchKnowledge(input: SearchKnowledgeInput) {
+    return this.request<{ query: string; results: KnowledgeSearchResult[] }>('/knowledge/search', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  uploadDocument(input: UploadDocumentInput & { file: Blob | File }) {
+    const formData = new FormData();
+    formData.append('file', input.file);
+    Object.entries(input).forEach(([key, value]) => {
+      if (key !== 'file' && value != null && value !== '') formData.append(key, String(value));
+    });
+    return this.request<KnowledgeDocument>('/knowledge/documents/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  importLink(input: ImportLinkDocumentInput) {
+    return this.request<KnowledgeDocument>('/knowledge/documents/import-link', {
       method: 'POST',
       body: JSON.stringify(input),
     });

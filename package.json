@@ -5,12 +5,18 @@
   "scripts": {
     "predev": "node scripts/kill-dev-ports.mjs",
     "dev": "turbo dev",
+    "dev:all": "node scripts/kill-dev-ports.mjs && concurrently -k -n api,admin,web,parser -c blue,magenta,green,yellow \"pnpm --filter @qi-conhecimento/api dev\" \"pnpm --filter @qi-conhecimento/admin dev\" \"pnpm --filter @qi-conhecimento/web dev\" \"pnpm parser:dev\"",
+    "parser:setup": "node scripts/setup-parser.mjs",
+    "parser:dev": "node scripts/dev-parser.mjs",
+    "parser:docker": "docker compose -f infra/docker-compose.dev.yml --profile parser up -d --build parser",
+    "infra:up": "docker compose -f infra/docker-compose.dev.yml up -d mongodb redis",
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "test": "turbo test"
   },
   "devDependencies": {
+    "concurrently": "^9.2.0",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3"
   },

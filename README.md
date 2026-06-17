@@ -7,31 +7,39 @@ Ecossistema de Conhecimento Técnico para Engenharia Civil e Instalações — H
 ## Pilares
 
 1. **Hub de Entrada Multimodal** — backoffice admin para ingestão (PDF, imagem, link, CMS)
-2. **Motor RAG** — padronização Markdown, chunking, metadados, busca híbrida
-3. **Assistente de Obra** — WhatsApp/Telegram com respostas citadas
+2. **Motor RAG** — padronização Markdown, chunking, embeddings, busca híbrida + LLM
+3. **Assistente de Obra** — WhatsApp/Telegram com respostas citadas *(parcial)*
 
 ## Stack
 
 | App | Tecnologia | Porta |
 | --- | --- | --- |
-| `apps/api` | NestJS 11, MongoDB, Redis, BullMQ | 3100 |
+| `apps/api` | NestJS 11, MongoDB, Redis, BullMQ, OpenAI/Ollama | 3100 |
 | `apps/web` | Next.js 15 | 3101 |
-| `apps/admin` | Next.js 15 (painel) | 3102 |
+| `apps/admin` | Next.js 15, RTK Query | 3102 |
+| `apps/parser` | Python, FastAPI, Docling *(opcional)* | 8000 |
 
 ## Pré-requisitos
 
 - Node.js 20+
 - pnpm 9+
 - Docker Desktop (MongoDB + Redis)
+- Python 3.12 *(opcional — parser Docling local)*
+- [Ollama](https://ollama.com) *(opcional — embeddings locais gratuitos)*
+- Chave OpenAI *(opcional — LLM e OCR sem Docling)*
 
 ## Setup rápido
 
 ```bash
 pnpm install
 copy .env.example .env          # Windows
-docker compose -f infra/docker-compose.dev.yml up -d
+pnpm infra:up                     # MongoDB + Redis
+pnpm parser:setup && pnpm parser:dev   # Docling — terminal separado (opcional)
+# Ollama: instale e rode `ollama pull nomic-embed-text` (embeddings grátis)
 pnpm dev
 ```
+
+Para subir **API + admin + web + parser** juntos: `pnpm dev:all`.
 
 O `predev` libera as portas 3100–3102 automaticamente antes de subir os apps.
 
@@ -53,18 +61,24 @@ Criado automaticamente pelo seed (`SEED_ADMIN_ENABLED=true`). Detalhes em [docs/
 | Health | http://localhost:3100/health |
 | Web | http://localhost:3101 |
 | Admin | http://localhost:3102/login |
+| Importar | http://localhost:3102/import |
+
+| Parser (Docling) | http://localhost:8000/docs |
 
 ## Comandos
 
 ```bash
-pnpm dev                                          # todos os apps
-pnpm --filter @qi-conhecimento/api dev            # só API
-pnpm --filter @qi-conhecimento/web dev            # só web
-pnpm --filter @qi-conhecimento/admin dev          # só admin
+pnpm infra:up                                     # MongoDB + Redis (Docker)
+pnpm dev                                          # API + web + admin
+pnpm dev:all                                      # + parser Docling
+pnpm parser:setup                                 # venv Python + Docling (1ª vez)
+pnpm parser:dev                                   # parser na porta 8000
+pnpm parser:docker                                # parser via Docker (profile)
+pnpm --filter @qi-conhecimento/shared-types build # após alterar shared-types
 pnpm build                                        # build completo
-pnpm lint                                         # lint
-pnpm typecheck                                    # typecheck
-pnpm test                                         # testes
+pnpm lint
+pnpm typecheck
+pnpm test
 ```
 
 ## Documentação
@@ -74,9 +88,14 @@ Mapa completo: [docs/index.md](./docs/index.md)
 | Tópico | Arquivo |
 | --- | --- |
 | Setup local e troubleshooting | [docs/development/local-setup.md](./docs/development/local-setup.md) |
+| Fase 1 — admin + CMS + busca | [docs/development/phase-1.md](./docs/development/phase-1.md) |
+| Fase 2 — ingestão + RAG + LLM | [docs/development/phase-2.md](./docs/development/phase-2.md) |
 | Visão de produto | [docs/scope/product-vision.md](./docs/scope/product-vision.md) |
+| Conhecimento e RAG | [docs/architecture/knowledge-rag.md](./docs/architecture/knowledge-rag.md) |
+| API (módulos e endpoints) | [docs/architecture/api.md](./docs/architecture/api.md) |
 | Autenticação e seed | [docs/architecture/auth.md](./docs/architecture/auth.md) |
 | Frontends | [docs/architecture/frontend.md](./docs/architecture/frontend.md) |
+| Mensageria / campo | [docs/architecture/messaging.md](./docs/architecture/messaging.md) |
 
 ## Estrutura do monorepo
 
@@ -87,14 +106,23 @@ qi-conhecimento/
 │   ├── web/       → Landing pública
 │   └── admin/     → Hub de entrada multimodal
 ├── packages/      → Tipos, validators, utils, api-client
-├── scripts/       → kill-dev-ports.mjs (predev)
+├── scripts/       → kill-dev-ports, setup/dev parser
 ├── infra/         → docker-compose (Mongo + Redis)
+├── storage/       → uploads multimodais (gitignored)
 └── docs/          → Arquitetura e escopo de negócio
 ```
 
-## Próximos passos
+## Estado das fases
 
-- Implementar parsers PDF/HTML e OCR
-- Integrar embeddings e vector store
-- Conectar WhatsApp Cloud API e transcrição de áudio
-- Popular base com NBRs e procedimentos internos
+| Fase | Entrega | Status |
+| --- | --- | --- |
+| 1 | Admin conectado à API — CMS, listagem, busca texto | Concluída |
+| 2 | Upload PDF/imagem/link, parsers, embeddings, RAG + LLM | Concluída |
+| 3 | WhatsApp completo, Whisper, Telegram | Planejada |
+
+## Próximos passos (Fase 3)
+
+- Integração Meta WhatsApp Cloud API completa
+- Transcrição de áudio (Whisper)
+- Bot Telegram
+- Histórico de consultas de campo no admin

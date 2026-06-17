@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { EngineeringSpecialty } from '@qi-conhecimento/shared-types';
+import { Model, Types } from 'mongoose';
+import { EngineeringSpecialty, IngestionStatus } from '@qi-conhecimento/shared-types';
 import {
   KnowledgeDocumentEntity,
   KnowledgeDocumentModel,
@@ -40,11 +40,133 @@ export class KnowledgeRepository {
     return this.documentModel.findOne({ _id: id, deletedAt: null }).exec();
   }
 
+  updateDocumentStatus(
+    id: string,
+    status: string,
+    ingestionError?: string | null,
+  ): Promise<KnowledgeDocumentEntity | null> {
+    const update: Record<string, unknown> = { ingestionStatus: status };
+    if (ingestionError !== undefined) {
+      update['ingestionError'] = ingestionError;
+    }
+    return this.documentModel
+      .findOneAndUpdate({ _id: id, deletedAt: null }, update, { new: true })
+      .exec();
+  }
+
+  findChunks(
+    page: number,
+    limit: number,
+    documentId?: string,
+  ): Promise<[KnowledgeChunkDocument[], number]> {
+    const filter: Record<string, unknown> = { deletedAt: null };
+    if (documentId) filter['documentId'] = documentId;
+
+    return Promise.all([
+      this.chunkModel
+        .find(filter)
+        .populate('documentId')
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec(),
+      this.chunkModel.countDocuments(filter).exec(),
+    ]);
+  }
+
+  findChunksByIds(ids: string[]): Promise<KnowledgeChunkDocument[]> {
+    if (ids.length === 0) return Promise.resolve([]);
+    return this.chunkModel
+      .find({ _id: { $in: ids }, deletedAt: null })
+      .populate('documentId')
+      .exec();
+  }
+
+  findChunksWithEmbeddings(specialty?: EngineeringSpecialty): Promise<KnowledgeChunkDocument[]> {
+    const filter: Record<string, unknown> = {
+      deletedAt: null,
+      embedding: { $exists: true, $not: { $size: 0 } },
+    };
+    if (specialty) filter['specialty'] = specialty;
+
+    return this.chunkModel.find(filter).populate('documentId').select('+embedding').exec();
+  }
+
+  countDocuments(): Promise<number> {
+    return this.documentModel.countDocuments({ deletedAt: null }).exec();
+  }
+
+  countChunks(): Promise<number> {
+    return this.chunkModel.countDocuments({ deletedAt: null }).exec();
+  }
+
+  countChunksWithEmbeddings(): Promise<number> {
+    return this.chunkModel
+      .countDocuments({
+        deletedAt: null,
+        embeddingId: { $exists: true, $ne: null },
+      })
+      .exec();
+  }
+
+  countChunkEmbeddingsByDocument(
+    documentId: string,
+  ): Promise<{ total: number; withEmbedding: number }> {
+    const filter = { documentId, deletedAt: null };
+    return Promise.all([
+      this.chunkModel.countDocuments(filter).exec(),
+      this.chunkModel
+        .countDocuments({ ...filter, embeddingId: { $exists: true, $ne: null } })
+        .exec(),
+    ]).then(([total, withEmbedding]) => ({ total, withEmbedding }));
+  }
+
+  findChunkIdsByDocument(documentId: string): Promise<string[]> {
+    return this.chunkModel
+      .find({ documentId, deletedAt: null })
+      .select('_id')
+      .exec()
+      .then((chunks) => chunks.map((chunk) => chunk._id.toString()));
+  }
+
   createChunk(data: Partial<KnowledgeChunkModel>): Promise<KnowledgeChunkDocument> {
     return this.chunkModel.create(data);
   }
 
-  searchHybrid(query: string, specialty?: EngineeringSpecialty, limit = 5) {
+  findChunkById(id: string): Promise<KnowledgeChunkDocument | null> {
+    return this.chunkModel.findOne({ _id: id, deletedAt: null }).exec();
+  }
+
+  isDocumentCancelled(documentId: string): Promise<boolean> {
+    return this.documentModel
+      .findOne({ _id: documentId, deletedAt: null })
+      .select('ingestionStatus')
+      .exec()
+      .then((doc) => doc?.ingestionStatus === IngestionStatus.CANCELLED);
+  }
+
+  softDeleteChunksByDocument(documentId: string): Promise<number> {
+    return this.chunkModel
+      .updateMany({ documentId, deletedAt: null }, { deletedAt: new Date() })
+      .exec()
+      .then((result) => result.modifiedCount);
+  }
+
+  updateChunkEmbedding(
+    id: string,
+    embedding: number[],
+    embeddingId?: string,
+  ): Promise<KnowledgeChunkDocument | null> {
+    return this.chunkModel
+      .findOneAndUpdate(
+        { _id: id, deletedAt: null },
+        { embedding, embeddingId: embeddingId ?? id },
+        { new: true },
+      )
+      .exec();
+  }
+
+  searchByText(query: string, specialty?: EngineeringSpecialty, limit = 5) {
     const filter: Record<string, unknown> = { deletedAt: null, $text: { $search: query } };
     if (specialty) filter['specialty'] = specialty;
 
@@ -54,5 +176,10 @@ export class KnowledgeRepository {
       .limit(limit)
       .populate('documentId')
       .exec();
+  }
+
+  /** @deprecated Use RagService.hybridSearch */
+  searchHybrid(query: string, specialty?: EngineeringSpecialty, limit = 5) {
+    return this.searchByText(query, specialty, limit);
   }
 }

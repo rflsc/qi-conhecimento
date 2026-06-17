@@ -37,6 +37,9 @@ export class KnowledgeChunkModel {
   @Prop({ trim: true, index: true })
   embeddingId?: string;
 
+  @Prop({ type: [Number], select: false })
+  embedding?: number[];
+
   @Prop({ type: Date, default: null, index: true })
   deletedAt!: Date | null;
 }

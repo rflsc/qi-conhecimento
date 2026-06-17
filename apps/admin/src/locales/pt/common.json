@@ -9,8 +9,10 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "import": "Importar",
     "documents": "Documentos",
     "manualContent": "CMS interno",
+    "search": "Busca",
     "specialties": "Especialidades",
     "queries": "Consultas de campo"
   },
@@ -21,9 +23,98 @@
     "importLink": "Importar link/HTML",
     "manualEditor": "Editor de procedimentos"
   },
+  "dashboard": {
+    "documents": "documentos",
+    "chunks": "pílulas",
+    "pillar1": "Pilar 1",
+    "quickSearch": "Busca de conhecimento",
+    "quickSearchHint": "Teste a recuperação de conteúdo técnico antes do assistente de campo."
+  },
+  "documents": {
+    "title": "Documentos técnicos",
+    "newProcedure": "Novo procedimento",
+    "import": "Importar fonte",
+    "empty": "Nenhum documento ingerido ainda",
+    "chunksEmpty": "Nenhuma pílula de conhecimento ainda",
+    "tabs": {
+      "documents": "Documentos",
+      "chunks": "Pílulas"
+    },
+    "columns": {
+      "title": "Título",
+      "specialty": "Especialidade",
+      "source": "Fonte",
+      "norm": "Norma",
+      "status": "Status",
+      "actions": "Ações"
+    },
+    "cancel": "Cancelar",
+    "cancelling": "Cancelando...",
+    "cancelConfirm": "Cancelar a ingestão de \"{{title}}\"? Jobs na fila serão removidos e pílulas parciais apagadas."
+  },
+  "cms": {
+    "title": "CMS interno",
+    "subtitle": "Procedimentos, notas de campo e boas práticas em Markdown",
+    "saved": "Procedimento salvo com sucesso",
+    "saving": "Salvando...",
+    "fields": {
+      "title": "Título",
+      "specialty": "Especialidade",
+      "normReference": "Referência de norma",
+      "tags": "Tags",
+      "tagsPlaceholder": "esgoto, recuo, instalação",
+      "content": "Conteúdo (Markdown)",
+      "contentPlaceholder": "# Título\n\nDescreva o procedimento..."
+    }
+  },
+  "search": {
+    "title": "Busca de conhecimento",
+    "subtitle": "Busca híbrida por palavra-chave nos chunks indexados",
+    "query": "Consulta",
+    "queryPlaceholder": "Qual o recuo do tubo de esgoto?",
+    "specialtyFilter": "Filtrar especialidade",
+    "allSpecialties": "Todas as especialidades",
+    "submit": "Buscar",
+    "searching": "Buscando...",
+    "noResults": "Nenhum resultado encontrado para esta consulta",
+    "resultsCount": "{{count}} resultado(s) para \"{{query}}\""
+  },
+  "import": {
+    "title": "Importar conhecimento",
+    "subtitle": "PDF, imagem (OCR) ou link/HTML — processamento automático em fila",
+    "tabs": { "pdf": "PDF / NBR", "image": "Imagem (OCR)", "link": "Link / HTML" },
+    "fields": {
+      "file": "Arquivo",
+      "title": "Título",
+      "url": "URL",
+      "specialty": "Especialidade",
+      "normReference": "Referência de norma"
+    },
+    "fileRequired": "Selecione um arquivo",
+    "queued": "Fonte enfileirada para processamento",
+    "failed": "Falha ao importar fonte",
+    "submitting": "Enviando...",
+    "submitFile": "Enviar arquivo",
+    "submitLink": "Importar link"
+  },
+  "specialties": {
+    "civil": "Civil",
+    "hidraulica": "Hidráulica",
+    "eletrica": "Elétrica",
+    "seguranca_trabalho": "Segurança do Trabalho"
+  },
+  "common": {
+    "loading": "Carregando...",
+    "previous": "Anterior",
+    "next": "Próximo",
+    "page": "Página"
+  },
   "actions": { "save": "Salvar", "logout": "Sair" },
   "errors": {
     "generic": "E-mail ou senha inválidos.",
-    "apiUnreachable": "Não foi possível conectar à API. Verifique se ela está rodando na porta 3100."
+    "apiUnreachable": "Não foi possível conectar à API. Verifique se ela está rodando na porta 3100.",
+    "loadFailed": "Falha ao carregar dados da API.",
+    "saveFailed": "Falha ao salvar procedimento.",
+    "searchFailed": "Falha na busca. Verifique se há conteúdo indexado."
   }
 }

@@ -7,6 +7,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
+  app.enableShutdownHooks();
 
   app.enableCors({
     origin: ['http://localhost:3101', 'http://localhost:3102'],

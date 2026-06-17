@@ -4,28 +4,115 @@
 
 ### KnowledgeDocument
 
-Metadados da fonte ingerida: título, especialidade, tipo (PDF/imagem/link/texto), referência de norma, status de ingestão.
+Metadados da fonte ingerida:
+
+| Campo | Descrição |
+| --- | --- |
+| `title` | Título do documento |
+| `specialty` | Especialidade (`civil`, `hidraulica`, `eletrica`, `seguranca_trabalho`) |
+| `sourceType` | `pdf`, `image`, `html`, `link`, `manual_text` |
+| `sourceReference` | Caminho relativo em `STORAGE_PATH` ou URL |
+| `normReference` | Ex.: `NBR 8160` |
+| `ingestionStatus` | `pending` → `processing` → `completed` / `failed` / `cancelled` |
+| `ingestionError` | Mensagem de erro ou motivo do cancelamento |
 
 ### KnowledgeChunk
 
-Pílula de conhecimento pós-chunking: conteúdo plain + Markdown, tags, capítulo, item de norma, `embeddingId`.
+Pílula de conhecimento pós-chunking:
 
-## Pipeline (Pilar 2)
+| Campo | Descrição |
+| --- | --- |
+| `content` | Texto plain (para busca `$text` e embeddings) |
+| `markdownContent` | Conteúdo estruturado |
+| `chapter`, `section`, `normItem` | Metadados de localização |
+| `tags` | Tags manuais ou automáticas (ex.: norma) |
+| `embedding` | Vetor numérico (`select: false`) |
+| `embeddingId` | Preenchido quando embedding foi gerado |
 
-1. **Padronização** — qualquer entrada → Markdown
-2. **Chunking** — divisão por tópico/subcapítulo
-3. **Enriquecimento** — tags automáticas (tipo, norma, capítulo, área, autor)
-4. **Indexação** — embeddings + text index MongoDB (MVP) → vector store (futuro)
-5. **Busca híbrida** — `$text` + filtros de especialidade + embeddings (futuro)
+A listagem HTTP expõe `hasEmbedding: boolean` derivado de `embeddingId`.
+
+## Pipeline de ingestão
+
+```mermaid
+flowchart TD
+  A[Admin: upload / link / CMS] --> B[KnowledgeDocument criado]
+  B --> C{BullMQ process-document}
+  C --> D[Parser por sourceType]
+  D --> E[Markdown padronizado]
+  E --> F[ChunkingService]
+  F --> G[KnowledgeChunk × N]
+  G --> H{BullMQ generate-embeddings}
+  H --> I[embedding[] persistido]
+  I --> J[ingestionStatus: completed]
+  B --> K[Cancelar no admin]
+  K --> L[status: cancelled + jobs removidos]
+```
+
+### Parsers (`apps/api/src/modules/ingestion/parsers/`)
+
+| Tipo | Parser | Dependência |
+| --- | --- | --- |
+| `pdf` | `PdfParser` | **Docling** via `DoclingClient` se `PARSER_SERVICE_URL`; fallback `pdf-parse` |
+| `image` | `ImageParser` | **Docling** se disponível; fallback OpenAI Vision |
+| `link` / `html` | `HtmlParser` | `cheerio` — fetch URL + extração de conteúdo |
+| `manual_text` | — | CMS grava Markdown direto (sem fila de parse) |
+
+Parser service: [parser-service.md](./parser-service.md)
+
+### Chunking
+
+- Divisão por headings `##`
+- Limite de **2000 caracteres** por chunk (split por parágrafos)
+- Extração automática de `normItem` via regex
+
+### Cancelamento
+
+- Admin → Documentos → **Cancelar** (status `pending` ou `processing`)
+- API remove jobs BullMQ pendentes, soft-delete de pílulas parciais
+- Workers em execução checam `ingestionStatus === cancelled` e abortam
+
+## Embeddings (`EmbeddingService`)
+
+| Provedor | Config | Custo |
+| --- | --- | --- |
+| **Ollama** | `EMBEDDING_PROVIDER=ollama`, `EMBEDDING_MODEL=nomic-embed-text` | Grátis (local) |
+| **OpenAI** | `EMBEDDING_PROVIDER=openai`, `OPENAI_API_KEY`, `EMBEDDING_MODEL=text-embedding-3-small` | Pago |
+
+Auto-detecção: sem `EMBEDDING_PROVIDER`, usa OpenAI se houver chave; senão Ollama.
+
+Reindexar documento existente: `POST /knowledge/documents/{id}/reindex-embeddings`
+
+## Busca híbrida (`RagService`)
+
+1. **Texto** — MongoDB `$text` em `content`, `markdownContent`, `tags`
+2. **Vetorial** — cosine similarity entre query embedding e `chunk.embedding[]`
+3. **Fusão** — Reciprocal Rank Fusion (RRF, k=60)
+4. **Filtro** — opcional por `specialty`
+
+### Fallbacks sem provedor de embedding
+
+| Recurso | Comportamento |
+| --- | --- |
+| Embeddings | Ignorados — busca só por `$text` |
+| OCR (imagem) | Docling se parser ativo; senão exige `OPENAI_API_KEY` |
+| LLM (resposta) | Template com citação do chunk principal |
 
 ## API
 
 | Método | Path | Descrição |
 | --- | --- | --- |
-| GET | `/knowledge/documents` | Lista documentos |
-| POST | `/knowledge/documents` | Registra nova fonte |
-| POST | `/knowledge/documents/manual-content` | CMS interno |
-| POST | `/knowledge/search` | Busca híbrida |
+| GET | `/knowledge/stats` | Totais + `chunksWithEmbeddings` |
+| GET | `/knowledge/documents` | Lista documentos (paginada) |
+| GET | `/knowledge/chunks` | Lista pílulas (`?documentId=` opcional) |
+| POST | `/knowledge/documents/upload` | Upload PDF/imagem (multipart) |
+| POST | `/knowledge/documents/import-link` | Importação de URL |
+| POST | `/knowledge/documents/{id}/cancel-ingestion` | Cancela ingestão |
+| POST | `/knowledge/documents/{id}/reindex-embeddings` | Reenfileira embeddings |
+| POST | `/knowledge/cms` | CMS — documento + Markdown |
+| POST | `/knowledge/documents/manual-content` | Chunk em documento existente |
+| POST | `/knowledge/search` | Busca híbrida (RRF + filtro especialidade) |
+
+Roles: ingestão exige `admin` ou `editor`; busca também aceita `user`.
 
 ## Especialidades (`EngineeringSpecialty`)
 
@@ -33,3 +120,19 @@ Pílula de conhecimento pós-chunking: conteúdo plain + Markdown, tags, capítu
 - `hidraulica`
 - `eletrica`
 - `seguranca_trabalho`
+
+## Variáveis de ambiente
+
+```env
+PARSER_SERVICE_URL=http://localhost:8000
+EMBEDDING_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+EMBEDDING_MODEL=nomic-embed-text
+OPENAI_API_KEY=                 # LLM; embeddings se provider=openai
+LLM_MODEL=gpt-4o-mini
+STORAGE_PATH=./storage
+MAX_UPLOAD_SIZE_MB=50
+SEED_KNOWLEDGE_ENABLED=true     # 3 procedimentos piloto (dev)
+```
+
+Guia de teste: [development/phase-2.md](../development/phase-2.md)

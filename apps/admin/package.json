@@ -12,6 +12,8 @@
   "dependencies": {
     "@qi-conhecimento/api-client": "workspace:*",
     "@qi-conhecimento/shared-types": "workspace:*",
+    "@qi-conhecimento/shared-utils": "workspace:*",
+    "@qi-conhecimento/shared-validators": "workspace:*",
     "@hookform/resolvers": "^5.1.1",
     "@reduxjs/toolkit": "^2.8.2",
     "i18next": "^25.2.1",

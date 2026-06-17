@@ -35,6 +35,9 @@ export class KnowledgeDocumentModel {
   @Prop({ required: true, enum: IngestionStatus, default: IngestionStatus.PENDING })
   ingestionStatus!: IngestionStatus;
 
+  @Prop({ trim: true })
+  ingestionError?: string;
+
   @Prop({ type: Date, default: null, index: true })
   deletedAt!: Date | null;
 }

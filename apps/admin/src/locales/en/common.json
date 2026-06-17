@@ -9,8 +9,10 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "import": "Import",
     "documents": "Documents",
     "manualContent": "Internal CMS",
+    "search": "Search",
     "specialties": "Specialties",
     "queries": "Field queries"
   },
@@ -21,9 +23,95 @@
     "importLink": "Import link/HTML",
     "manualEditor": "Procedure editor"
   },
+  "dashboard": {
+    "documents": "documents",
+    "chunks": "chunks",
+    "pillar1": "Pillar 1",
+    "quickSearch": "Knowledge search",
+    "quickSearchHint": "Test content retrieval before the field assistant."
+  },
+  "documents": {
+    "title": "Technical documents",
+    "newProcedure": "New procedure",
+    "import": "Import source",
+    "empty": "No documents ingested yet",
+    "chunksEmpty": "No knowledge chunks yet",
+    "tabs": { "documents": "Documents", "chunks": "Chunks" },
+    "columns": {
+      "title": "Title",
+      "specialty": "Specialty",
+      "source": "Source",
+      "norm": "Standard",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "cancel": "Cancel",
+    "cancelling": "Cancelling...",
+    "cancelConfirm": "Cancel ingestion of \"{{title}}\"? Queued jobs will be removed and partial chunks deleted."
+  },
+  "cms": {
+    "title": "Internal CMS",
+    "subtitle": "Procedures, field notes and best practices in Markdown",
+    "saved": "Procedure saved successfully",
+    "saving": "Saving...",
+    "fields": {
+      "title": "Title",
+      "specialty": "Specialty",
+      "normReference": "Standard reference",
+      "tags": "Tags",
+      "tagsPlaceholder": "sewer, setback, installation",
+      "content": "Content (Markdown)",
+      "contentPlaceholder": "# Title\n\nDescribe the procedure..."
+    }
+  },
+  "search": {
+    "title": "Knowledge search",
+    "subtitle": "Hybrid keyword search over indexed chunks",
+    "query": "Query",
+    "queryPlaceholder": "What is the minimum sewer pipe setback?",
+    "specialtyFilter": "Filter specialty",
+    "allSpecialties": "All specialties",
+    "submit": "Search",
+    "searching": "Searching...",
+    "noResults": "No results found for this query",
+    "resultsCount": "{{count}} result(s) for \"{{query}}\""
+  },
+  "import": {
+    "title": "Import knowledge",
+    "subtitle": "PDF, image (OCR) or link/HTML — automatic queue processing",
+    "tabs": { "pdf": "PDF / standard", "image": "Image (OCR)", "link": "Link / HTML" },
+    "fields": {
+      "file": "File",
+      "title": "Title",
+      "url": "URL",
+      "specialty": "Specialty",
+      "normReference": "Standard reference"
+    },
+    "fileRequired": "Select a file",
+    "queued": "Source queued for processing",
+    "failed": "Failed to import source",
+    "submitting": "Uploading...",
+    "submitFile": "Upload file",
+    "submitLink": "Import link"
+  },
+  "specialties": {
+    "civil": "Civil",
+    "hidraulica": "Hydraulic",
+    "eletrica": "Electrical",
+    "seguranca_trabalho": "Work safety"
+  },
+  "common": {
+    "loading": "Loading...",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page"
+  },
   "actions": { "save": "Save", "logout": "Logout" },
   "errors": {
     "generic": "Invalid email or password.",
-    "apiUnreachable": "Could not connect to the API. Make sure it is running on port 3100."
+    "apiUnreachable": "Could not connect to the API. Make sure it is running on port 3100.",
+    "loadFailed": "Failed to load data from the API.",
+    "saveFailed": "Failed to save procedure.",
+    "searchFailed": "Search failed. Check if content is indexed."
   }
 }

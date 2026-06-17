@@ -12,17 +12,40 @@
 - `.env` da raiz carregado via `ConfigModule` com path absoluto a partir de `dist/`
 - CORS habilitado para frontends locais (3101, 3102)
 
-## Seed admin
+## Ingestão assíncrona
 
-- `SEED_ADMIN_ENABLED=true` cria usuário admin na primeira subida (`AdminSeedService`)
-- Idempotente — não sobrescreve usuário existente
-- Desative em produção: `SEED_ADMIN_ENABLED=false`
+- Upload síncrono → documento `pending` → job BullMQ `process-document`
+- Parser por `DocumentSourceType` via `ParserFactory` (Docling opcional via HTTP)
+- Chunks criados → job `generate-embeddings` por chunk
+- Status: `pending` → `processing` → `completed` / `failed` / `cancelled` (+ `ingestionError`)
+- Cancelamento: remove jobs da fila, soft-delete de pílulas parciais, workers respeitam flag
+- Arquivos em `STORAGE_PATH/{documentId}/source.{ext}` — diretório gitignored
+
+## RAG
+
+- Plain text derivado de Markdown via `stripMarkdownToPlain()` (`shared-utils`)
+- Busca híbrida: RRF entre `$text` MongoDB e cosine similarity em `embedding[]`
+- Embeddings: Ollama (`nomic-embed-text`) ou OpenAI — ver `EmbeddingService`
+- LLM com fallback template quando `OPENAI_API_KEY` ausente
+- Mapper `_id` → `id` em todas as respostas HTTP
+
+## Seeds (dev)
+
+| Seed | Variável | Comportamento |
+| --- | --- | --- |
+| Admin | `SEED_ADMIN_ENABLED=true` | Usuário admin idempotente |
+| Conhecimento | `SEED_KNOWLEDGE_ENABLED=true` | 3 procedimentos NBR se chunks vazios |
+
+Desative em produção: `SEED_ADMIN_ENABLED=false`, `SEED_KNOWLEDGE_ENABLED=false`
 
 ## Monorepo / Dev
 
 - Gerenciador: pnpm workspaces + Turborepo
 - **`pnpm dev`** executa `predev` antes de subir os apps
 - `scripts/kill-dev-ports.mjs` libera portas 3100–3102 (evita `EADDRINUSE`)
+- `pnpm parser:setup` / `pnpm parser:dev` — parser Docling local (Python 3.12)
+- `pnpm dev:all` — API + admin + web + parser
+- Após alterar `packages/shared-types`: `pnpm --filter @qi-conhecimento/shared-types build`
 - Variáveis compartilhadas no `.env` da raiz — não duplicar por app
 - Next.js apps carregam root `.env` via `loadEnvConfig` no `next.config.js`
 - Artefatos `.js` compilados em `apps/api/src/` são ignorados no git e não devem existir (quebram `nest start --watch`)
@@ -32,6 +55,8 @@
 - Tema escuro slate/emerald — ver [design-system.md](./design-system.md)
 - i18n obrigatório — 4 idiomas (pt, en, fr, es)
 - Texto visível sempre via `t()` — nunca hardcoded no JSX
+- RTK Query em `apps/admin/src/store/api.ts` — JWT via cookie `access_token`
+- Upload multipart via `FormData` (sem `Content-Type` manual)
 
 ## Git
 

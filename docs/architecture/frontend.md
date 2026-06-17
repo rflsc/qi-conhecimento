@@ -32,8 +32,10 @@ apps/admin/src/app/
 ├── (auth)/login/          → tela de login (pública)
 ├── (panel)/
 │   ├── dashboard/         → hub multimodal (cards Pilar 1)
+│   ├── import/            → upload PDF, imagem, link
 │   ├── documents/         → listagem de documentos técnicos
 │   ├── manual-content/    → CMS interno (Markdown)
+│   ├── search/            → busca híbrida de conhecimento
 │   ├── specialties/       → módulos de especialidade
 │   └── queries/           → histórico de consultas de campo
 └── middleware.ts          → proteção JWT via cookie
@@ -67,6 +69,21 @@ Idioma padrão: `pt`
 
 Tema escuro slate/emerald — ver [design-system.md](./design-system.md)
 
-## Estado (futuro)
+## Estado (Fase 2 — concluída)
 
-Redux Toolkit + RTK Query conforme scaffold — estrutura base pronta nos `package.json`, integração com API pendente nas telas de ingestão.
+Redux Toolkit + RTK Query em `src/store/api.ts`, com JWT via cookie `access_token`.
+
+| Tela | Endpoint(s) | Notas |
+| --- | --- | --- |
+| Dashboard | `GET /knowledge/stats` | Inclui contagem de embeddings |
+| Importar | `POST /knowledge/documents/upload`, `POST /knowledge/documents/import-link` | |
+| Documentos | `GET /knowledge/documents`, `GET /knowledge/chunks` | Badge `embedding ✓`; botão **Cancelar** |
+| Documentos (ação) | `POST /knowledge/documents/{id}/cancel-ingestion` | Pendente / processando |
+| CMS interno | `POST /knowledge/cms` | |
+| Busca | `POST /knowledge/search` | Híbrida com Ollama ou OpenAI |
+
+Detalhes: [development/phase-1.md](../development/phase-1.md), [development/phase-2.md](../development/phase-2.md)
+
+## Próximas entregas (Fase 3+)
+
+WhatsApp, transcrição de áudio, bot Telegram — ver [scope/product-vision.md](../scope/product-vision.md).

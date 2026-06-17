@@ -2,14 +2,17 @@
   "brand": "Qi Conhecimento Admin",
   "auth": {
     "login": "Iniciar sesión",
+    "loggingIn": "Entrando...",
     "email": "Correo",
     "password": "Contraseña",
     "welcome": "Hub de conocimiento técnico"
   },
   "nav": {
     "dashboard": "Panel",
+    "import": "Importar",
     "documents": "Documentos",
     "manualContent": "CMS interno",
+    "search": "Búsqueda",
     "specialties": "Especialidades",
     "queries": "Consultas de campo"
   },
@@ -20,6 +23,95 @@
     "importLink": "Importar enlace/HTML",
     "manualEditor": "Editor de procedimientos"
   },
+  "dashboard": {
+    "documents": "documentos",
+    "chunks": "píldoras",
+    "pillar1": "Pilar 1",
+    "quickSearch": "Búsqueda de conocimiento",
+    "quickSearchHint": "Pruebe la recuperación antes del asistente de campo."
+  },
+  "documents": {
+    "title": "Documentos técnicos",
+    "newProcedure": "Nuevo procedimiento",
+    "import": "Importar fuente",
+    "empty": "Ningún documento ingerido",
+    "chunksEmpty": "Ninguna píldora de conocimiento",
+    "tabs": { "documents": "Documentos", "chunks": "Píldoras" },
+    "columns": {
+      "title": "Título",
+      "specialty": "Especialidad",
+      "source": "Fuente",
+      "norm": "Norma",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "cancel": "Cancelar",
+    "cancelling": "Cancelando...",
+    "cancelConfirm": "¿Cancelar la ingestión de \"{{title}}\"? Se eliminarán jobs en cola y píldoras parciales."
+  },
+  "cms": {
+    "title": "CMS interno",
+    "subtitle": "Procedimientos y buenas prácticas en Markdown",
+    "saved": "Procedimiento guardado",
+    "saving": "Guardando...",
+    "fields": {
+      "title": "Título",
+      "specialty": "Especialidad",
+      "normReference": "Referencia de norma",
+      "tags": "Etiquetas",
+      "tagsPlaceholder": "alcantarillado, recuo, instalación",
+      "content": "Contenido (Markdown)",
+      "contentPlaceholder": "# Título\n\nDescriba el procedimiento..."
+    }
+  },
+  "search": {
+    "title": "Búsqueda de conocimiento",
+    "subtitle": "Búsqueda híbrida por palabra clave",
+    "query": "Consulta",
+    "queryPlaceholder": "¿Cuál es el recuo del tubo de alcantarillado?",
+    "specialtyFilter": "Filtrar especialidad",
+    "allSpecialties": "Todas las especialidades",
+    "submit": "Buscar",
+    "searching": "Buscando...",
+    "noResults": "No se encontraron resultados",
+    "resultsCount": "{{count}} resultado(s) para \"{{query}}\""
+  },
+  "import": {
+    "title": "Importar conocimiento",
+    "subtitle": "PDF, imagen (OCR) o enlace/HTML — procesamiento automático en cola",
+    "tabs": { "pdf": "PDF / norma", "image": "Imagen (OCR)", "link": "Enlace / HTML" },
+    "fields": {
+      "file": "Archivo",
+      "title": "Título",
+      "url": "URL",
+      "specialty": "Especialidad",
+      "normReference": "Referencia de norma"
+    },
+    "fileRequired": "Seleccione un archivo",
+    "queued": "Fuente en cola de procesamiento",
+    "failed": "Error al importar fuente",
+    "submitting": "Enviando...",
+    "submitFile": "Enviar archivo",
+    "submitLink": "Importar enlace"
+  },
+  "specialties": {
+    "civil": "Civil",
+    "hidraulica": "Hidráulica",
+    "eletrica": "Eléctrica",
+    "seguranca_trabalho": "Seguridad laboral"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "page": "Página"
+  },
   "actions": { "save": "Guardar", "logout": "Salir" },
-  "errors": { "generic": "Ocurrió un error. Inténtalo de nuevo." }
+  "errors": {
+    "generic": "Correo o contraseña inválidos.",
+    "apiUnreachable": "No se pudo conectar a la API (puerto 3100).",
+    "loadFailed": "Error al cargar datos.",
+    "saveFailed": "Error al guardar procedimiento.",
+    "searchFailed": "Error en la búsqueda."
+  }
 }

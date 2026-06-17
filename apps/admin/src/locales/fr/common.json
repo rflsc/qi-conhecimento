@@ -2,14 +2,17 @@
   "brand": "Qi Conhecimento Admin",
   "auth": {
     "login": "Connexion",
+    "loggingIn": "Connexion...",
     "email": "E-mail",
     "password": "Mot de passe",
     "welcome": "Hub de connaissances techniques"
   },
   "nav": {
     "dashboard": "Tableau de bord",
+    "import": "Importer",
     "documents": "Documents",
     "manualContent": "CMS interne",
+    "search": "Recherche",
     "specialties": "Spécialités",
     "queries": "Requêtes terrain"
   },
@@ -20,6 +23,95 @@
     "importLink": "Importer lien/HTML",
     "manualEditor": "Éditeur de procédures"
   },
+  "dashboard": {
+    "documents": "documents",
+    "chunks": "pilules",
+    "pillar1": "Pilier 1",
+    "quickSearch": "Recherche de connaissances",
+    "quickSearchHint": "Testez la récupération avant l'assistant terrain."
+  },
+  "documents": {
+    "title": "Documents techniques",
+    "newProcedure": "Nouvelle procédure",
+    "import": "Importer source",
+    "empty": "Aucun document ingéré",
+    "chunksEmpty": "Aucune pilule de connaissance",
+    "tabs": { "documents": "Documents", "chunks": "Pilules" },
+    "columns": {
+      "title": "Titre",
+      "specialty": "Spécialité",
+      "source": "Source",
+      "norm": "Norme",
+      "status": "Statut",
+      "actions": "Actions"
+    },
+    "cancel": "Annuler",
+    "cancelling": "Annulation...",
+    "cancelConfirm": "Annuler l'ingestion de \"{{title}}\" ? Les jobs en file et les pilules partielles seront supprimés."
+  },
+  "cms": {
+    "title": "CMS interne",
+    "subtitle": "Procédures et bonnes pratiques en Markdown",
+    "saved": "Procédure enregistrée",
+    "saving": "Enregistrement...",
+    "fields": {
+      "title": "Titre",
+      "specialty": "Spécialité",
+      "normReference": "Référence norme",
+      "tags": "Tags",
+      "tagsPlaceholder": "egout, recul, installation",
+      "content": "Contenu (Markdown)",
+      "contentPlaceholder": "# Titre\n\nDécrivez la procédure..."
+    }
+  },
+  "search": {
+    "title": "Recherche de connaissances",
+    "subtitle": "Recherche hybride par mot-clé",
+    "query": "Requête",
+    "queryPlaceholder": "Quel est le recul du tuyau d'égout ?",
+    "specialtyFilter": "Filtrer spécialité",
+    "allSpecialties": "Toutes les spécialités",
+    "submit": "Rechercher",
+    "searching": "Recherche...",
+    "noResults": "Aucun résultat trouvé",
+    "resultsCount": "{{count}} résultat(s) pour \"{{query}}\""
+  },
+  "import": {
+    "title": "Importer connaissance",
+    "subtitle": "PDF, image (OCR) ou lien/HTML — traitement automatique en file",
+    "tabs": { "pdf": "PDF / norme", "image": "Image (OCR)", "link": "Lien / HTML" },
+    "fields": {
+      "file": "Fichier",
+      "title": "Titre",
+      "url": "URL",
+      "specialty": "Spécialité",
+      "normReference": "Référence norme"
+    },
+    "fileRequired": "Sélectionnez un fichier",
+    "queued": "Source en file de traitement",
+    "failed": "Échec de l'import",
+    "submitting": "Envoi...",
+    "submitFile": "Envoyer fichier",
+    "submitLink": "Importer lien"
+  },
+  "specialties": {
+    "civil": "Génie civil",
+    "hidraulica": "Hydraulique",
+    "eletrica": "Électrique",
+    "seguranca_trabalho": "Sécurité au travail"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "page": "Page"
+  },
   "actions": { "save": "Enregistrer", "logout": "Déconnexion" },
-  "errors": { "generic": "Une erreur s'est produite. Réessayez." }
+  "errors": {
+    "generic": "E-mail ou mot de passe invalide.",
+    "apiUnreachable": "Impossible de se connecter à l'API (port 3100).",
+    "loadFailed": "Échec du chargement des données.",
+    "saveFailed": "Échec de l'enregistrement.",
+    "searchFailed": "Échec de la recherche."
+  }
 }

@@ -1,0 +1,10 @@
+{
+  "watch": ["src"],
+  "ext": "ts",
+  "ignore": ["src/**/*.spec.ts", "dist"],
+  "exec": "nest build && node dist/main.js",
+  "events": {
+    "restart": "node ../../scripts/kill-port.mjs 3100"
+  },
+  "delay": 500
+}

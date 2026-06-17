@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { buildCitationLabel } from '@qi-conhecimento/shared-utils';
 import { DomainEvents } from '@events/domain-events';
+import { RagService } from '@modules/knowledge/services/rag.service';
 import { KnowledgeRepository } from '@modules/knowledge/repositories/knowledge.repository';
 import { FieldQueryDto } from '../dtos/messaging.dto';
 import { MessagingRepository } from '../repositories/messaging.repository';
@@ -13,18 +13,26 @@ export class MessagingService {
   constructor(
     private readonly messagingRepository: MessagingRepository,
     private readonly knowledgeRepository: KnowledgeRepository,
+    private readonly ragService: RagService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async handleFieldQuery(dto: FieldQueryDto) {
-    const chunks = await this.knowledgeRepository.searchHybrid(
+    const hybridResults = await this.ragService.hybridSearch(
       dto.queryText,
       dto.specialtyFilter,
-      3,
+      5,
     );
 
+    let chunks: KnowledgeChunkDocument[] = [];
+    if (hybridResults.length > 0) {
+      chunks = await this.knowledgeRepository.findChunksByIds(
+        hybridResults.map((r) => r.chunkId),
+      );
+    }
+
     const citations = chunks.map((chunk) => this.toCitation(chunk));
-    const answer = this.buildAnswer(dto.queryText, citations);
+    const answer = await this.ragService.generateAnswer(dto.queryText, chunks);
 
     const record = await this.messagingRepository.create({
       channel: dto.channel,
@@ -48,19 +56,6 @@ export class MessagingService {
   verifyWhatsApp(mode: string, token: string, challenge: string, verifyToken: string) {
     if (mode === 'subscribe' && token === verifyToken) return challenge;
     return null;
-  }
-
-  private buildAnswer(
-    query: string,
-    citations: Array<{ normReference?: string; normItem?: string; excerpt: string }>,
-  ): string {
-    if (!citations.length) {
-      return `Não encontrei referência técnica para "${query}". Verifique a especialidade ou consulte o administrador.`;
-    }
-
-    const primary = citations[0];
-    const label = buildCitationLabel(primary?.normReference, primary?.normItem);
-    return `Conforme ${label}: ${primary?.excerpt ?? 'consulte a fonte original para validação.'}`;
   }
 
   private toCitation(chunk: KnowledgeChunkDocument) {

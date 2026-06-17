@@ -38,6 +38,10 @@ Com `SEED_ADMIN_ENABLED=true` no `.env` da raiz, a API cria automaticamente um a
 - Idempotente: se o e-mail já existir, o seed é ignorado
 - **Produção:** `SEED_ADMIN_ENABLED=false`
 
+## Seed conhecimento (dev)
+
+Com `SEED_KNOWLEDGE_ENABLED=true`, a API cria 3 procedimentos piloto (NBR 8160, NBR 5410) na primeira subida se não houver chunks. Idempotente.
+
 ## Login no admin (`apps/admin`)
 
 ### Fluxo
@@ -71,8 +75,8 @@ A tela de login exibe mensagens para:
 
 | Role | Acesso |
 | --- | --- |
-| `admin` | CRUD usuários, ingestão, CMS, busca |
+| `admin` | CRUD usuários, ingestão (upload/link/CMS), busca |
 | `editor` | Ingestão, CMS, busca |
-| `user` | Busca |
+| `user` | Busca, consultas de campo (`/messaging/query`) |
 
 Endpoints de conhecimento exigem `admin` ou `editor` para ingestão; busca permite `user`.

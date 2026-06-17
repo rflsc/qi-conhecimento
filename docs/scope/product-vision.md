@@ -16,16 +16,26 @@ Responsável pela ingestão, categorização e preparação de dados:
 - **Editor de Texto Nativo (CMS):** Procedimentos internos, notas de campo, boas práticas
 - **Importador de Links/HTML:** Artigos técnicos com extração de conteúdo útil
 
-**Implementação atual:** telas admin + endpoints `POST /knowledge/documents` e `POST /knowledge/documents/manual-content`
+**Implementação atual (Fase 1 + 2):**
+
+- Admin: `/import` (PDF, imagem, link), `/manual-content` (CMS), `/documents`, `/search`
+- API: `POST /knowledge/documents/upload`, `POST /knowledge/documents/import-link`, `POST /knowledge/cms`
+- Parsers: PDF (`pdf-parse`), imagem (OpenAI Vision), HTML (Cheerio)
+- Storage local em `STORAGE_PATH`
 
 ### Pilar 2: Esteira de Padronização e Motor RAG (API — invisível ao usuário)
 
 - Padronização universal → Markdown estruturado
 - Chunking inteligente por tópico/subcapítulo
 - Metadados: tipo, norma/fonte, capítulo, área, autor
-- Indexação semântica (embeddings) + busca híbrida (texto + sentido)
+- Indexação semântica (embeddings) + busca híbrida (texto + vetorial)
 
-**Implementação atual:** schemas `KnowledgeDocument` + `KnowledgeChunk`, fila `ingestion`, `POST /knowledge/search`
+**Implementação atual (Fase 2):**
+
+- BullMQ: `process-document`, `generate-embeddings`
+- `EmbeddingService` (OpenAI) + `RagService` (RRF + LLM)
+- Busca: `POST /knowledge/search`
+- Embeddings em `chunk.embedding[]` (cosine similarity in-app)
 
 ### Pilar 3: Interface de Campo (Assistente de Obra)
 
@@ -34,7 +44,12 @@ Responsável pela ingestão, categorização e preparação de dados:
 - Respostas curtas com citação obrigatória (ex: "Conforme NBR 5410, item 6.2.1...")
 - Link/imagem da fonte original quando relevante
 
-**Implementação atual:** `POST /messaging/query`, webhooks WhatsApp (stub), schema `FieldQuery`
+**Implementação atual (parcial):**
+
+- `POST /messaging/query` — RAG completo (busca híbrida + LLM)
+- Webhook WhatsApp GET (verificação Meta) — POST ainda stub
+- Schema `FieldQuery` com `citations[]`
+- Pendente: envio real, áudio, Telegram
 
 ## 3. Fluxo de Valor do Dado
 
@@ -51,15 +66,30 @@ flowchart LR
 1. Administrador insere norma PDF, foto de tabela e procedimento interno
 2. Esteira extrai, fatia e gera metadados
 3. Conteúdo e embeddings são persistidos no MongoDB
-4. Engenheiro pergunta via áudio no WhatsApp
+4. Engenheiro pergunta via áudio no WhatsApp *(Fase 3)*
 5. Motor recupera chunks, filtra por especialidade e responde com item da norma
 
-## 4. Roadmap técnico (próximas entregas)
+## 4. Roadmap técnico
 
-- [ ] Parser PDF + preservação de tabelas
-- [ ] OCR / visão computacional para imagens
-- [ ] Extractor HTML (Readability / similar)
-- [ ] Embeddings OpenAI + índice vetorial
+### Fase 1 (concluída)
+
+- [x] Admin conectado à API (RTK Query, JWT, CMS, listagem, busca texto)
+- [x] Seed piloto NBR (3 procedimentos)
+
+### Fase 2 (concluída)
+
+- [x] Parser PDF + heurística de tabelas → Markdown
+- [x] OCR / visão computacional para imagens (OpenAI Vision)
+- [x] Extractor HTML (Cheerio)
+- [x] Embeddings OpenAI + busca vetorial (cosine in-app)
+- [x] RAG com LLM (`RagService`)
+- [x] Upload admin PDF/imagem/link
+
+### Fase 3 (próxima)
+
 - [ ] Integração Meta WhatsApp Cloud API completa
 - [ ] Transcrição de áudio (Whisper ou equivalente)
 - [ ] Bot Telegram
+- [ ] Histórico de consultas de campo no admin
+
+Guias: [phase-1.md](../development/phase-1.md) · [phase-2.md](../development/phase-2.md)

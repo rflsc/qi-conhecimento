@@ -10,3 +10,21 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+
+  parser:
+    profiles: ["parser"]
+    build:
+      context: ../apps/parser
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      PARSER_MAX_UPLOAD_MB: "50"
+      PARSER_DO_OCR: "false"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 180s
+      retries: 5
+    restart: unless-stopped

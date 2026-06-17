@@ -4,11 +4,14 @@ import '@/lib/i18n';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import { clearAccessToken } from '@/lib/auth';
 
 const NAV_ITEMS = [
   { href: '/dashboard', key: 'dashboard' },
+  { href: '/import', key: 'import' },
   { href: '/documents', key: 'documents' },
   { href: '/manual-content', key: 'manualContent' },
+  { href: '/search', key: 'search' },
   { href: '/specialties', key: 'specialties' },
   { href: '/queries', key: 'queries' },
 ] as const;
@@ -24,7 +27,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           onClick={() => {
-            document.cookie = 'access_token=; path=/; max-age=0';
+            clearAccessToken();
             window.location.href = '/login';
           }}
           className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg px-3 py-1 text-sm"

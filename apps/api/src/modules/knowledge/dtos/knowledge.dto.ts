@@ -1,4 +1,4 @@
-import { IsArray, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsArray, IsEnum, IsOptional, IsString, IsUrl, MinLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   DocumentSourceType,
@@ -61,6 +61,56 @@ export class CreateManualContentDto {
   tags?: string[];
 }
 
+export class UploadDocumentDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(3)
+  title!: string;
+
+  @ApiProperty({ enum: EngineeringSpecialty })
+  @IsEnum(EngineeringSpecialty)
+  specialty!: EngineeringSpecialty;
+
+  @ApiProperty({ enum: [DocumentSourceType.PDF, DocumentSourceType.IMAGE] })
+  @IsEnum(DocumentSourceType)
+  sourceType!: DocumentSourceType;
+
+  @ApiPropertyOptional({ example: 'NBR 8160' })
+  @IsOptional()
+  @IsString()
+  normReference?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  author?: string;
+}
+
+export class ImportLinkDocumentDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(3)
+  title!: string;
+
+  @ApiProperty({ enum: EngineeringSpecialty })
+  @IsEnum(EngineeringSpecialty)
+  specialty!: EngineeringSpecialty;
+
+  @ApiProperty({ example: 'https://example.com/artigo-tecnico' })
+  @IsUrl()
+  sourceReference!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  normReference?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  author?: string;
+}
+
 export class SearchKnowledgeDto {
   @ApiProperty()
   @IsString()
@@ -71,4 +121,31 @@ export class SearchKnowledgeDto {
   @IsOptional()
   @IsEnum(EngineeringSpecialty)
   specialty?: EngineeringSpecialty;
+}
+
+export class CreateCmsEntryDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(3)
+  title!: string;
+
+  @ApiProperty({ description: 'Conteúdo em Markdown' })
+  @IsString()
+  @MinLength(10)
+  markdownContent!: string;
+
+  @ApiProperty({ enum: EngineeringSpecialty })
+  @IsEnum(EngineeringSpecialty)
+  specialty!: EngineeringSpecialty;
+
+  @ApiPropertyOptional({ example: 'NBR 8160' })
+  @IsOptional()
+  @IsString()
+  normReference?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
 }
