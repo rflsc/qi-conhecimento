@@ -12,7 +12,8 @@
 
 | Situação | Onde ir |
 | --- | --- |
-| **Deploy em produção (Atlas + Render + Vercel)** | [deployment/production.md](./deployment/production.md) |
+| **Deploy produção (Atlas + Render + Vercel)** | [deployment/production.md](./deployment/production.md) |
+| **Deploy 100% grátis (sem cartão)** | [deployment/free-tier.md](./deployment/free-tier.md) |
 | **Subir o projeto localmente** | [development/local-setup.md](./development/local-setup.md) |
 | **Fluxo completo Docling + Ollama** | [development/phase-2.md](./development/phase-2.md) |
 | **Fase 1 — admin conectado à API** | [development/phase-1.md](./development/phase-1.md) |

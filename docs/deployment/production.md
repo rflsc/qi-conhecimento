@@ -1,5 +1,7 @@
 # Deploy em produção — Atlas + Render + Vercel
 
+> **Sem cartão de crédito?** Siga o guia **[Deploy 100% gratuito](./free-tier.md)** — Render Free + Upstash + Atlas M0 + Vercel.
+
 Guia para colocar o Qi Conhecimento no ar com:
 
 | Componente | Plataforma |
@@ -65,33 +67,38 @@ MONGODB_URI="mongodb+srv://..." pnpm restore:atlas
 
 ---
 
-## 2. Render — API + Redis
+## 2. Render — API
 
-O repositório inclui [`render.yaml`](../../render.yaml) (Blueprint).
+> **Tier gratuito:** não use Blueprint se pedir cartão. Veja [free-tier.md](./free-tier.md).
 
-### Opção A — Blueprint (recomendado)
+O repositório inclui:
+- [`render.yaml`](../../render.yaml) — **grátis** (API only; Redis via Upstash externo)
+- [`render.paid.yaml`](../../render.paid.yaml) — pago (Redis Render + disco persistente)
+
+### Opção A — Blueprint gratuito (`render.yaml`)
 
 1. [dashboard.render.com](https://dashboard.render.com) → **New** → **Blueprint**.
 2. Conecte o repositório GitHub/GitLab.
-3. Render cria automaticamente:
-   - **qi-conhecimento-redis** (Redis)
-   - **qi-conhecimento-api** (Web Service Node.js + disco 1 GB em `/var/data/storage`)
-4. No deploy, preencha as variáveis marcadas como **sync: false**:
+3. Render cria **qi-conhecimento-api** (Web Service Free).
+4. Preencha variáveis **sync: false**:
 
 | Variável | Valor |
 | --- | --- |
 | `MONGODB_URI` | Connection string do Atlas |
-| `OPENAI_API_KEY` | Para embeddings (`EMBEDDING_PROVIDER=openai`) |
+| `REDIS_URL` | URL **Upstash** ([upstash.com](https://upstash.com) — grátis) |
+| `OPENAI_API_KEY` | Para embeddings |
 | `ANTHROPIC_API_KEY` | Para respostas RAG |
-| `CORS_ORIGINS` | URLs Vercel, ex: `https://qi-web.vercel.app,https://qi-admin.vercel.app` |
-| `PARSER_SERVICE_URL` | *(opcional)* URL do parser se deployado |
+| `CORS_ORIGINS` | URLs Vercel |
 
-`JWT_SECRET` é gerado automaticamente pelo Blueprint. `REDIS_URL` vem do serviço Redis.
+`JWT_SECRET` é gerado automaticamente.
 
-### Opção B — Manual
+> Se o Blueprint pedir cartão, cancele e use a **Opção B** ou [free-tier.md](./free-tier.md).
 
-1. **New → Redis** → copie a **Internal Redis URL**.
-2. **New → Web Service** → conecte o repo:
+### Opção B — Web Service manual (recomendado no free tier)
+
+1. **New → Web Service** → conecte o repo (não precisa de Redis no Render).
+2. **Instance Type: Free**
+3. Configuração:
    - **Root Directory:** *(vazio — raiz do monorepo)*
    - **Build Command:**
      ```bash
@@ -102,12 +109,11 @@ O repositório inclui [`render.yaml`](../../render.yaml) (Blueprint).
      pnpm --filter @qi-conhecimento/api start
      ```
    - **Health Check Path:** `/health`
-3. **Disks** → adicione 1 GB em `/var/data/storage` e defina `STORAGE_PATH=/var/data/storage`.
-4. Configure todas as variáveis de [`.env.production.example`](../../.env.production.example).
+4. **Redis:** use [Upstash](https://upstash.com) grátis → cole `REDIS_URL`.
+5. **Sem disco** no free tier — `STORAGE_PATH=./storage` (uploads efêmeros).
+6. Configure variáveis de [`.env.production.example`](../../.env.production.example).
 
-### Redis alternativo (Upstash)
-
-Se preferir Upstash em vez do Redis do Render:
+### Redis — Upstash (grátis, recomendado no free tier)
 
 1. Crie database em [upstash.com](https://upstash.com).
 2. Use a URL `rediss://...` em `REDIS_URL` no serviço da API.

@@ -14,11 +14,13 @@ import { HealthModule } from '@modules/health/health.module';
 import { KnowledgeModule } from '@modules/knowledge/knowledge.module';
 import { MessagingModule } from '@modules/messaging/messaging.module';
 import { IngestionModule } from '@modules/ingestion/ingestion.module';
+import { createBullRedisConnection } from './config/redis.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      ignoreEnvFile: process.env.NODE_ENV === 'production',
       envFilePath: [join(__dirname, '../../../.env'), '.env'],
     }),
     LoggerModule.forRoot({
@@ -35,7 +37,7 @@ import { IngestionModule } from '@modules/ingestion/ingestion.module';
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        connection: { url: config.getOrThrow<string>('REDIS_URL') },
+        connection: createBullRedisConnection(config.getOrThrow<string>('REDIS_URL')),
       }),
     }),
     EventEmitterModule.forRoot(),

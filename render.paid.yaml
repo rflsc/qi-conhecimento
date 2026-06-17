@@ -1,29 +1,33 @@
-# Blueprint Render — tier GRATUITO (sem cartão)
-# https://render.com/docs/blueprint-spec
-#
-# NÃO usa Redis nem disco do Render (exigem pagamento).
-# Redis: crie grátis em https://upstash.com e preencha REDIS_URL manualmente.
-# MongoDB: Atlas M0 grátis.
-#
-# Deploy: Render → New → Blueprint → selecione ESTE arquivo se pedir,
-#         ou prefira "Web Service" manual (seção abaixo na doc).
+# Blueprint Render — tier PAGO (Redis + disco persistente)
+# Requer cartão no Render. Use render.yaml para deploy gratuito.
 
 services:
+  - type: redis
+    name: qi-conhecimento-redis
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
   - type: web
     name: qi-conhecimento-api
     runtime: node
-    plan: free
+    region: oregon
+    plan: starter
     buildCommand: >-
       pnpm install --frozen-lockfile &&
       pnpm --filter @qi-conhecimento/api... build
-    startCommand: node apps/api/dist/main.js
+    startCommand: pnpm --filter @qi-conhecimento/api start
     healthCheckPath: /health
     autoDeploy: true
+    disk:
+      name: qi-storage
+      mountPath: /var/data/storage
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
       - key: STORAGE_PATH
-        value: ./storage
+        value: /var/data/storage
       - key: SEED_ADMIN_ENABLED
         value: "false"
       - key: SEED_KNOWLEDGE_ENABLED
@@ -43,7 +47,10 @@ services:
       - key: MONGODB_URI
         sync: false
       - key: REDIS_URL
-        sync: false
+        fromService:
+          type: redis
+          name: qi-conhecimento-redis
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: OPENAI_API_KEY
@@ -51,4 +58,6 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: CORS_ORIGINS
+        sync: false
+      - key: PARSER_SERVICE_URL
         sync: false
