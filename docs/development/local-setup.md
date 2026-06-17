@@ -225,6 +225,21 @@ Com `PARSER_SERVICE_URL` e o parser rodando, imagens passam pelo Docling. Caso c
 3. Docker: `pnpm parser:docker` — exige Docker Desktop com espaço em disco suficiente.
 4. Health: `curl http://localhost:8000/health` — retorna `{"status":"ok"}` quando o serviço está pronto.
 
+4. Health: `curl http://localhost:8000/health` — retorna `{"status":"ok"}` quando o serviço está pronto.
+
+### `std::bad_alloc` / Docling OOM na página X
+
+Falta de RAM ao processar página com imagem/tabela pesada (comum em normas NBR longas).
+
+1. Feche apps pesados (Ollama, Docker extra) ou reinicie o parser
+2. No `.env` ou ambiente do parser (padrão já otimizado):
+   ```env
+   PARSER_LOW_MEMORY=true
+   PARSER_PAGE_BATCH_SIZE=10
+   ```
+3. Reinicie `pnpm parser:dev`
+4. Se persistir: comente `PARSER_SERVICE_URL` — a API usa `pdf-parse` (menos qualidade, zero Docling)
+
 ### Docker não está rodando
 
 Erros de conexão MongoDB/Redis. Inicie o Docker Desktop e rode:

@@ -55,4 +55,17 @@ export function mapSearchResult(chunk: KnowledgeChunkDocument) {
   };
 }
 
+export function mapCitation(chunk: KnowledgeChunkDocument) {
+  const document = chunk.documentId as unknown as KnowledgeDocumentEntity;
+  return {
+    documentId: document._id.toString(),
+    documentTitle: document.title,
+    normReference: document.normReference,
+    normItem: chunk.normItem,
+    chunkId: chunk._id.toString(),
+    excerpt: chunk.markdownContent.slice(0, 280),
+    sourceUrl: document.sourceReference,
+  };
+}
+
 export { IngestionStatus };

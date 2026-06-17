@@ -1,6 +1,12 @@
 {
   "brand": "Qi Conhecimento",
   "tagline": "Hub multimodal de conhecimento técnico para engenharia",
+  "hero": {
+    "badge": "AltoQi · Engenharia",
+    "title": "Conhecimento técnico na ponta dos dedos",
+    "subtitle": "Consulte normas, procedimentos e boas práticas com busca híbrida e assistente RAG — aberto e público.",
+    "cta": "Experimentar busca"
+  },
   "pillars": {
     "hub": "Hub de Entrada Multimodal",
     "brain": "Esteira de Padronização e Motor RAG",
@@ -10,10 +16,38 @@
     "accessAdmin": "Acessar painel",
     "learnMore": "Saiba mais"
   },
+  "specialtiesTitle": "Especialidades",
   "specialties": {
     "civil": "Civil",
     "hidraulica": "Hidráulica",
     "eletrica": "Elétrica",
     "seguranca_trabalho": "Segurança do Trabalho"
+  },
+  "search": {
+    "title": "Busca de conhecimento",
+    "subtitleChunks": "Busca híbrida por palavra-chave e similaridade semântica nos chunks indexados",
+    "subtitleAssistant": "RAG completo — busca + resposta do assistente com citações de norma",
+    "modes": {
+      "chunks": "Chunks",
+      "assistant": "Assistente (RAG)"
+    },
+    "query": "Consulta",
+    "queryPlaceholder": "Qual o recuo do tubo de esgoto?",
+    "assistantPlaceholder": "Qual o limite de abertura de fissuras em estruturas de concreto?",
+    "specialtyFilter": "Filtrar especialidade",
+    "allSpecialties": "Todas as especialidades",
+    "submit": "Buscar",
+    "askAssistant": "Perguntar ao assistente",
+    "searching": "Buscando...",
+    "asking": "Gerando resposta...",
+    "noResults": "Nenhum resultado encontrado para esta consulta",
+    "resultsCount": "{{count}} resultado(s) para \"{{query}}\"",
+    "assistantAnswer": "Resposta do assistente",
+    "noAnswer": "Nenhuma resposta gerada",
+    "citationsCount": "{{count}} citação(ões) usada(s) como contexto",
+    "noCitations": "Nenhuma citação retornada"
+  },
+  "errors": {
+    "searchFailed": "Não foi possível realizar a busca. Tente novamente."
   }
 }

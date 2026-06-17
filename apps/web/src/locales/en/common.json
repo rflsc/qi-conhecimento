@@ -1,6 +1,12 @@
 {
   "brand": "Qi Conhecimento",
   "tagline": "Multimodal technical knowledge hub for engineering",
+  "hero": {
+    "badge": "AltoQi · Engineering",
+    "title": "Technical knowledge at your fingertips",
+    "subtitle": "Query standards, procedures, and best practices with hybrid search and RAG assistant — open and public.",
+    "cta": "Try search"
+  },
   "pillars": {
     "hub": "Multimodal Input Hub",
     "brain": "Standardization Pipeline and RAG Engine",
@@ -10,10 +16,38 @@
     "accessAdmin": "Open admin panel",
     "learnMore": "Learn more"
   },
+  "specialtiesTitle": "Specialties",
   "specialties": {
     "civil": "Civil",
     "hidraulica": "Hydraulic",
     "eletrica": "Electrical",
     "seguranca_trabalho": "Work Safety"
+  },
+  "search": {
+    "title": "Knowledge search",
+    "subtitleChunks": "Hybrid keyword and semantic similarity search across indexed chunks",
+    "subtitleAssistant": "Full RAG — search plus assistant answer with norm citations",
+    "modes": {
+      "chunks": "Chunks",
+      "assistant": "Assistant (RAG)"
+    },
+    "query": "Query",
+    "queryPlaceholder": "What is the setback for a sewage pipe?",
+    "assistantPlaceholder": "What is the crack width limit in concrete structures?",
+    "specialtyFilter": "Filter specialty",
+    "allSpecialties": "All specialties",
+    "submit": "Search",
+    "askAssistant": "Ask assistant",
+    "searching": "Searching...",
+    "asking": "Generating answer...",
+    "noResults": "No results found for this query",
+    "resultsCount": "{{count}} result(s) for \"{{query}}\"",
+    "assistantAnswer": "Assistant answer",
+    "noAnswer": "No answer generated",
+    "citationsCount": "{{count}} citation(s) used as context",
+    "noCitations": "No citations returned"
+  },
+  "errors": {
+    "searchFailed": "Could not complete the search. Please try again."
   }
 }

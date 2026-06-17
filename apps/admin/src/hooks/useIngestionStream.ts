@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { IngestionProgress } from '@qi-conhecimento/shared-types';
 import { API_URL } from '@/lib/constants';
 import { getAccessToken } from '@/lib/auth';
+import { useGetIngestionProgressQuery } from '@/store/api';
 
 function parseSseChunk(buffer: string): { events: IngestionProgress[]; rest: string } {
   const events: IngestionProgress[] = [];
@@ -11,9 +12,7 @@ function parseSseChunk(buffer: string): { events: IngestionProgress[]; rest: str
   const rest = parts.pop() ?? '';
 
   for (const part of parts) {
-    const line = part
-      .split('\n')
-      .find((l) => l.startsWith('data:'));
+    const line = part.split('\n').find((l) => l.startsWith('data:'));
     if (!line) continue;
     try {
       events.push(JSON.parse(line.slice(5).trim()) as IngestionProgress);
@@ -25,22 +24,27 @@ function parseSseChunk(buffer: string): { events: IngestionProgress[]; rest: str
   return { events, rest };
 }
 
-export function useIngestionStream(documentId: string | null, enabled: boolean) {
-  const [progress, setProgress] = useState<IngestionProgress | null>(null);
+function pickNewest(a: IngestionProgress | null, b: IngestionProgress | null): IngestionProgress | null {
+  if (!a) return b;
+  if (!b) return a;
+  return new Date(a.updatedAt).getTime() >= new Date(b.updatedAt).getTime() ? a : b;
+}
+
+function useIngestionSse(documentId: string | null, enabled: boolean) {
+  const [streamed, setStreamed] = useState<IngestionProgress | null>(null);
   const [connected, setConnected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const bufferRef = useRef('');
 
   useEffect(() => {
     if (!documentId || !enabled) {
-      setProgress(null);
+      setStreamed(null);
       setConnected(false);
-      setError(null);
       return;
     }
 
-    const controller = new AbortController();
     let cancelled = false;
+    const controller = new AbortController();
+    bufferRef.current = '';
 
     async function connect() {
       try {
@@ -53,18 +57,12 @@ export function useIngestionStream(documentId: string | null, enabled: boolean) 
           { headers, signal: controller.signal },
         );
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        if (!response.body) {
-          throw new Error('Stream indisponível');
+        if (!response.ok || !response.body) {
+          setConnected(false);
+          return;
         }
 
         setConnected(true);
-        setError(null);
-        bufferRef.current = '';
-
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
 
@@ -77,13 +75,12 @@ export function useIngestionStream(documentId: string | null, enabled: boolean) 
           bufferRef.current = rest;
 
           if (events.length > 0) {
-            setProgress(events[events.length - 1]);
+            const latest = events[events.length - 1];
+            if (latest) setStreamed(latest);
           }
         }
-      } catch (err) {
-        if (controller.signal.aborted || cancelled) return;
-        setConnected(false);
-        setError(err instanceof Error ? err.message : 'Falha na conexão');
+      } catch {
+        // aborted or network error — polling covers updates
       } finally {
         if (!cancelled) setConnected(false);
       }
@@ -97,5 +94,24 @@ export function useIngestionStream(documentId: string | null, enabled: boolean) 
     };
   }, [documentId, enabled]);
 
-  return { progress, connected, error };
+  return { streamed, connected };
+}
+
+export function useIngestionProgress(documentId: string | null, enabled: boolean) {
+  const { data: polled, isFetching, isError } = useGetIngestionProgressQuery(documentId ?? '', {
+    skip: !documentId || !enabled,
+    pollingInterval: 2_000,
+  });
+  const { streamed, connected } = useIngestionSse(documentId, enabled);
+
+  const progress = useMemo(
+    () => pickNewest(streamed, polled ?? null),
+    [streamed, polled],
+  );
+
+  return {
+    progress,
+    connected: connected || isFetching,
+    error: isError ? 'polling_failed' : null,
+  };
 }

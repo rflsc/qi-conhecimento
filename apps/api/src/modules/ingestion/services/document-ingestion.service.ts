@@ -54,7 +54,18 @@ export class DocumentIngestionService {
 
       const parser = this.parserFactory.getParser(document.sourceType);
       const parseStarted = Date.now();
-      const { markdown } = await parser.parse(rawInput);
+      const stopParseHeartbeat = this.progressService.startActivityHeartbeat(
+        documentId,
+        'parsing',
+        `Parser (${document.sourceType}) em execução`,
+      );
+
+      let markdown: string;
+      try {
+        ({ markdown } = await parser.parse(rawInput));
+      } finally {
+        stopParseHeartbeat();
+      }
       const parseSeconds = ((Date.now() - parseStarted) / 1000).toFixed(1);
 
       this.progressService.setPhase(

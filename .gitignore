@@ -6,7 +6,9 @@ dist
 *.log
 coverage
 storage/
+dump/
 infra/data/
+*.tsbuildinfo
 apps/api/src/**/*.js
 apps/api/src/**/*.js.map
 apps/api/src/**/*.d.ts

@@ -7,6 +7,8 @@ import {
 } from '@reduxjs/toolkit/query/react';
 import type {
   EngineeringSpecialty,
+  FieldQuery,
+  IngestionProgress,
   IngestionStatus,
   PaginatedResponse,
 } from '@qi-conhecimento/shared-types';
@@ -112,6 +114,20 @@ export const knowledgeApi = createApi({
     >({
       query: (body) => ({ url: '/knowledge/search', method: 'POST', body }),
     }),
+    fieldQuery: builder.mutation<
+      FieldQuery,
+      { queryText: string; specialtyFilter?: EngineeringSpecialty }
+    >({
+      query: (body) => ({
+        url: '/messaging/query',
+        method: 'POST',
+        body: {
+          ...body,
+          channel: 'whatsapp',
+          externalUserId: 'admin-test',
+        },
+      }),
+    }),
     uploadDocument: builder.mutation<
       DocumentRow,
       UploadDocumentInput & { file: File }
@@ -140,6 +156,9 @@ export const knowledgeApi = createApi({
       }),
       invalidatesTags: ['Documents', 'Chunks', 'Stats'],
     }),
+    getIngestionProgress: builder.query<IngestionProgress, string>({
+      query: (documentId) => `/knowledge/documents/${documentId}/ingestion-progress`,
+    }),
   }),
 });
 
@@ -149,7 +168,9 @@ export const {
   useListChunksQuery,
   useCreateCmsEntryMutation,
   useSearchKnowledgeMutation,
+  useFieldQueryMutation,
   useUploadDocumentMutation,
   useImportLinkMutation,
   useCancelIngestionMutation,
+  useGetIngestionProgressQuery,
 } = knowledgeApi;

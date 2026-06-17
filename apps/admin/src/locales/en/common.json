@@ -47,7 +47,40 @@
     },
     "cancel": "Cancel",
     "cancelling": "Cancelling...",
+    "viewLog": "View log",
     "cancelConfirm": "Cancel ingestion of \"{{title}}\"? Queued jobs will be removed and partial chunks deleted."
+  },
+  "ingestionConsole": {
+    "title": "Ingestion console",
+    "loading": "Connecting to progress stream...",
+    "logTitle": "Live log",
+    "noLogs": "Waiting for events...",
+    "live": "Live",
+    "connecting": "Connecting...",
+    "reconnecting": "Reconnecting...",
+    "close": "Close",
+    "progress": "Overall progress",
+    "etaUnknown": "Estimate unavailable",
+    "etaDone": "Done",
+    "etaSeconds": "~{{count}}s remaining",
+    "etaMinutes": "~{{count}} min remaining",
+    "hint": "Parser, chunking and embeddings update in real time via SSE.",
+    "parsingHint": "PDF parsing can take several minutes. The log refreshes every 5 seconds while processing.",
+    "phases": {
+      "queued": "Queued",
+      "loading_source": "Loading source",
+      "parsing": "Parser",
+      "chunking": "Chunking",
+      "embedding": "Embeddings",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "stats": {
+      "chunks": "Chunks",
+      "embeddings": "Embeddings",
+      "updated": "Last update"
+    }
   },
   "cms": {
     "title": "Internal CMS",
@@ -66,15 +99,27 @@
   },
   "search": {
     "title": "Knowledge search",
-    "subtitle": "Hybrid keyword search over indexed chunks",
+    "subtitleChunks": "Hybrid keyword search over indexed chunks",
+    "subtitleAssistant": "Full RAG — search + assistant answer with citations (WhatsApp simulation)",
+    "modes": {
+      "chunks": "Chunks",
+      "assistant": "Assistant (RAG)"
+    },
     "query": "Query",
     "queryPlaceholder": "What is the minimum sewer pipe setback?",
+    "assistantPlaceholder": "What is the crack width limit in concrete structures?",
     "specialtyFilter": "Filter specialty",
     "allSpecialties": "All specialties",
     "submit": "Search",
+    "askAssistant": "Ask assistant",
     "searching": "Searching...",
+    "asking": "Generating answer...",
     "noResults": "No results found for this query",
-    "resultsCount": "{{count}} result(s) for \"{{query}}\""
+    "resultsCount": "{{count}} result(s) for \"{{query}}\"",
+    "assistantAnswer": "Assistant answer",
+    "noAnswer": "No answer generated",
+    "citationsCount": "{{count}} citation(s) used as context",
+    "noCitations": "No citations returned"
   },
   "import": {
     "title": "Import knowledge",
@@ -112,6 +157,7 @@
     "apiUnreachable": "Could not connect to the API. Make sure it is running on port 3100.",
     "loadFailed": "Failed to load data from the API.",
     "saveFailed": "Failed to save procedure.",
-    "searchFailed": "Search failed. Check if content is indexed."
+    "searchFailed": "Search failed. Check if content is indexed.",
+    "queryFailed": "Assistant query failed. Check the API and LLM key."
   }
 }

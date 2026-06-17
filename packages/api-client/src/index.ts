@@ -2,6 +2,7 @@ import type {
   AuthTokens,
   EngineeringSpecialty,
   FieldQuery,
+  KnowledgeCitation,
   KnowledgeDocument,
   PaginatedResponse,
   User,
@@ -43,6 +44,12 @@ export interface KnowledgeSearchResult {
   specialty: EngineeringSpecialty;
   excerpt: string;
   tags: string[];
+}
+
+export interface PublicKnowledgeAskResult {
+  query: string;
+  answer?: string;
+  citations: KnowledgeCitation[];
 }
 
 export interface CmsEntryResponse {
@@ -129,6 +136,23 @@ export class QiConhecimentoClient {
 
   searchKnowledge(input: SearchKnowledgeInput) {
     return this.request<{ query: string; results: KnowledgeSearchResult[] }>('/knowledge/search', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  publicSearchKnowledge(input: SearchKnowledgeInput) {
+    return this.request<{ query: string; results: KnowledgeSearchResult[] }>(
+      '/knowledge/public-search',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    );
+  }
+
+  publicAskKnowledge(input: SearchKnowledgeInput) {
+    return this.request<PublicKnowledgeAskResult>('/knowledge/public-ask', {
       method: 'POST',
       body: JSON.stringify(input),
     });

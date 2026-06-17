@@ -29,6 +29,7 @@ type ProgressListener = (progress: IngestionProgress) => void;
 export class IngestionProgressService {
   private readonly store = new Map<string, IngestionProgress>();
   private readonly listeners = new Map<string, Set<ProgressListener>>();
+  private readonly activityHeartbeats = new Map<string, ReturnType<typeof setInterval>>();
 
   constructor(private readonly knowledgeRepository: KnowledgeRepository) {}
 
@@ -45,8 +46,11 @@ export class IngestionProgressService {
       (await this.knowledgeRepository.findChunkById(payload.chunkId))?.documentId.toString();
     if (!documentId) return;
 
+    const counts = await this.knowledgeRepository.countChunkEmbeddingsByDocument(documentId);
     const state = this.ensure(documentId);
-    state.embeddingsDone = Math.min(state.embeddingsDone + 1, Math.max(state.totalChunks, 1));
+    state.embeddingsDone = counts.withEmbedding;
+    state.totalChunks = Math.max(state.totalChunks, counts.total);
+    state.embeddingsQueued = state.totalChunks;
     const allDone = state.totalChunks > 0 && state.embeddingsDone >= state.totalChunks;
     state.phase = allDone ? 'completed' : 'embedding';
     state.percent = this.computePercent(state);
@@ -99,6 +103,9 @@ export class IngestionProgressService {
     const phase = this.phaseFromStatus(document.ingestionStatus, counts);
     const now = new Date().toISOString();
 
+    const createdAt = (document as { createdAt?: Date }).createdAt;
+    const updatedAt = (document as { updatedAt?: Date }).updatedAt;
+
     return {
       documentId,
       phase,
@@ -113,8 +120,8 @@ export class IngestionProgressService {
       chunksCreated: counts.total,
       embeddingsDone: counts.withEmbedding,
       embeddingsQueued: counts.total,
-      startedAt: document.createdAt?.toISOString?.() ?? now,
-      updatedAt: document.updatedAt?.toISOString?.() ?? now,
+      startedAt: createdAt?.toISOString?.() ?? now,
+      updatedAt: updatedAt?.toISOString?.() ?? now,
       estimatedSecondsRemaining: null,
       ingestionStatus: document.ingestionStatus as IngestionStatus,
       logs: this.buildHistoricalLogs(document.ingestionStatus, counts, document.ingestionError),
@@ -195,6 +202,7 @@ export class IngestionProgressService {
   }
 
   fail(documentId: string, message: string): void {
+    this.stopActivityHeartbeat(documentId);
     const state = this.ensure(documentId);
     state.phase = 'failed';
     state.ingestionStatus = IngestionStatus.FAILED;
@@ -204,12 +212,48 @@ export class IngestionProgressService {
   }
 
   cancel(documentId: string, message: string): void {
+    this.stopActivityHeartbeat(documentId);
     const state = this.ensure(documentId);
     state.phase = 'cancelled';
     state.ingestionStatus = IngestionStatus.CANCELLED;
     state.estimatedSecondsRemaining = null;
     this.appendLog(documentId, 'warn', 'cancelled', message, state);
     this.commit(documentId, state);
+  }
+
+  startActivityHeartbeat(
+    documentId: string,
+    phase: IngestionPhase,
+    messagePrefix: string,
+    intervalMs = 5_000,
+  ): () => void {
+    this.stopActivityHeartbeat(documentId);
+    const startedAt = Date.now();
+
+    const timer = setInterval(() => {
+      const elapsed = Math.round((Date.now() - startedAt) / 1000);
+      const state = this.ensure(documentId);
+      state.phase = phase;
+      state.percent = this.computePercent(state);
+      this.appendLog(
+        documentId,
+        'info',
+        phase,
+        `${messagePrefix}… ${elapsed}s decorridos`,
+        state,
+      );
+      state.estimatedSecondsRemaining = this.estimateRemaining(state);
+      this.commit(documentId, state);
+    }, intervalMs);
+
+    this.activityHeartbeats.set(documentId, timer);
+    return () => this.stopActivityHeartbeat(documentId);
+  }
+
+  stopActivityHeartbeat(documentId: string): void {
+    const timer = this.activityHeartbeats.get(documentId);
+    if (timer) clearInterval(timer);
+    this.activityHeartbeats.delete(documentId);
   }
 
   private ensure(documentId: string): IngestionProgress {

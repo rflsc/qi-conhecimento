@@ -8,6 +8,7 @@ import { KnowledgeRepository } from './repositories/knowledge.repository';
 import { KnowledgeService } from './services/knowledge.service';
 import { KnowledgeSeedService } from './services/knowledge-seed.service';
 import { EmbeddingService } from './services/embedding.service';
+import { LlmService } from './services/llm.service';
 import { RagService } from './services/rag.service';
 import {
   KnowledgeDocumentModel,
@@ -30,8 +31,9 @@ import { KnowledgeChunkModel, KnowledgeChunkSchema } from './schemas/knowledge-c
     KnowledgeRepository,
     KnowledgeSeedService,
     EmbeddingService,
+    LlmService,
     RagService,
   ],
-  exports: [KnowledgeService, KnowledgeRepository, EmbeddingService, RagService],
+  exports: [KnowledgeService, KnowledgeRepository, EmbeddingService, LlmService, RagService],
 })
 export class KnowledgeModule {}

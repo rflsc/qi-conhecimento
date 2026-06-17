@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
-import { HomePage } from '@/containers/HomePage';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Qi Conhecimento',
-  description: 'Ecossistema de Conhecimento Técnico para Engenharia',
+  title: 'Qi Conhecimento — Busca técnica com RAG',
+  description:
+    'Consulte normas, procedimentos e boas práticas de engenharia com busca híbrida e assistente RAG. Acesso público.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -48,6 +48,14 @@ py -3.12 -m venv .venv
 
 > Docling **não** suporta Python 3.14. Use 3.11 ou 3.12.
 
+## Variáveis de ambiente
+
+| Variável | Default | Uso |
+| --- | --- | --- |
+| `PARSER_DO_OCR` | `false` | OCR em PDFs escaneados (lento, mais RAM) |
+| `PARSER_LOW_MEMORY` | `true` | Backend pypdfium2 — evita `std::bad_alloc` |
+| `PARSER_PAGE_BATCH_SIZE` | `15` | Páginas por lote (`0` = arquivo inteiro) |
+
 ## Integração com a API
 
 ```env

@@ -1,6 +1,12 @@
 {
   "brand": "Qi Conhecimento",
   "tagline": "Hub multimodal de connaissances techniques pour l'ingénierie",
+  "hero": {
+    "badge": "AltoQi · Ingénierie",
+    "title": "La connaissance technique à portée de main",
+    "subtitle": "Consultez normes, procédures et bonnes pratiques avec recherche hybride et assistant RAG — ouvert et public.",
+    "cta": "Essayer la recherche"
+  },
   "pillars": {
     "hub": "Hub d'entrée multimodal",
     "brain": "Pipeline de standardisation et moteur RAG",
@@ -10,10 +16,38 @@
     "accessAdmin": "Accéder au panneau",
     "learnMore": "En savoir plus"
   },
+  "specialtiesTitle": "Spécialités",
   "specialties": {
     "civil": "Génie civil",
     "hidraulica": "Hydraulique",
     "eletrica": "Électrique",
     "seguranca_trabalho": "Sécurité au travail"
+  },
+  "search": {
+    "title": "Recherche de connaissances",
+    "subtitleChunks": "Recherche hybride par mot-clé et similarité sémantique dans les chunks indexés",
+    "subtitleAssistant": "RAG complet — recherche + réponse de l'assistant avec citations de norme",
+    "modes": {
+      "chunks": "Chunks",
+      "assistant": "Assistant (RAG)"
+    },
+    "query": "Requête",
+    "queryPlaceholder": "Quel est le recul du tuyau d'égout ?",
+    "assistantPlaceholder": "Quelle est la limite d'ouverture des fissures dans les structures en béton ?",
+    "specialtyFilter": "Filtrer la spécialité",
+    "allSpecialties": "Toutes les spécialités",
+    "submit": "Rechercher",
+    "askAssistant": "Demander à l'assistant",
+    "searching": "Recherche...",
+    "asking": "Génération de la réponse...",
+    "noResults": "Aucun résultat trouvé pour cette requête",
+    "resultsCount": "{{count}} résultat(s) pour \"{{query}}\"",
+    "assistantAnswer": "Réponse de l'assistant",
+    "noAnswer": "Aucune réponse générée",
+    "citationsCount": "{{count}} citation(s) utilisée(s) comme contexte",
+    "noCitations": "Aucune citation retournée"
+  },
+  "errors": {
+    "searchFailed": "Impossible d'effectuer la recherche. Veuillez réessayer."
   }
 }

@@ -5,6 +5,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PinoLogger } from 'nestjs-pino';
 import { DomainEvents } from '@events/domain-events';
 import { JOB_NAMES, QUEUE_NAMES } from '@queues/queues.constants';
+import { IngestionStatus } from '@qi-conhecimento/shared-types';
 import { EmbeddingService } from '@modules/knowledge/services/embedding.service';
 import { KnowledgeRepository } from '@modules/knowledge/repositories/knowledge.repository';
 import { DocumentIngestionService } from '../services/document-ingestion.service';
@@ -41,12 +42,18 @@ export class IngestionProcessor extends WorkerHost {
   private async generateEmbeddings(chunkId: string): Promise<void> {
     const chunk = await this.knowledgeRepository.findChunkById(chunkId);
     if (!chunk) {
-      this.logger.warn({ chunkId }, 'Chunk não encontrado para embedding');
+      this.logger.warn({ chunkId }, 'Chunk não encontrado para embedding — job ignorado');
       return;
     }
 
     const documentId = chunk.documentId.toString();
-    if (await this.knowledgeRepository.isDocumentCancelled(documentId)) {
+    const document = await this.knowledgeRepository.findDocumentById(documentId);
+    if (!document) {
+      this.logger.info({ chunkId, documentId }, 'Embedding ignorado — documento removido');
+      return;
+    }
+
+    if (document.ingestionStatus === IngestionStatus.CANCELLED) {
       this.logger.info({ chunkId, documentId }, 'Embedding ignorado — ingestão cancelada');
       return;
     }

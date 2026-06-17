@@ -87,6 +87,7 @@ Mapa completo: [docs/index.md](./docs/index.md)
 
 | Tópico | Arquivo |
 | --- | --- |
+| **Deploy produção (Atlas + Render + Vercel)** | [docs/deployment/production.md](./docs/deployment/production.md) |
 | Setup local e troubleshooting | [docs/development/local-setup.md](./docs/development/local-setup.md) |
 | Fase 1 — admin + CMS + busca | [docs/development/phase-1.md](./docs/development/phase-1.md) |
 | Fase 2 — ingestão + RAG + LLM | [docs/development/phase-2.md](./docs/development/phase-2.md) |

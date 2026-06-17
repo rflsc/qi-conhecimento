@@ -1,6 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import OpenAI from 'openai';
 import { EngineeringSpecialty } from '@qi-conhecimento/shared-types';
 import { buildCitationLabel, cosineSimilarity } from '@qi-conhecimento/shared-utils';
 import { PinoLogger } from 'nestjs-pino';
@@ -8,24 +6,22 @@ import { KnowledgeRepository } from '../repositories/knowledge.repository';
 import { KnowledgeChunkDocument } from '../schemas/knowledge-chunk.schema';
 import { mapSearchResult } from '../interfaces/knowledge.mapper';
 import { EmbeddingService } from './embedding.service';
+import { LlmService } from './llm.service';
 
 const RRF_K = 60;
 
+const RAG_SYSTEM_PROMPT =
+  'Você é um assistente técnico de engenharia civil e instalações. Responda de forma curta e objetiva (máx. 3 parágrafos). Sempre cite a norma ou fonte (ex: "Conforme NBR 5410, item 6.2.1..."). Use apenas o contexto fornecido. Se não houver informação suficiente, diga claramente.';
+
 @Injectable()
 export class RagService {
-  private readonly openai: OpenAI | null;
-  private readonly llmModel: string;
-
   constructor(
     private readonly knowledgeRepository: KnowledgeRepository,
     private readonly embeddingService: EmbeddingService,
-    private readonly configService: ConfigService,
+    private readonly llmService: LlmService,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(RagService.name);
-    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
-    this.openai = apiKey ? new OpenAI({ apiKey }) : null;
-    this.llmModel = this.configService.get<string>('LLM_MODEL') ?? 'gpt-4o-mini';
   }
 
   async hybridSearch(query: string, specialty?: EngineeringSpecialty, limit = 10) {
@@ -58,11 +54,8 @@ export class RagService {
       return `Não encontrei referência técnica para "${query}". Verifique a especialidade ou consulte o administrador.`;
     }
 
-    if (!this.openai) {
-      const primary = chunks[0]!;
-      const doc = primary.documentId as { normReference?: string; title?: string };
-      const label = buildCitationLabel(doc.normReference, primary.normItem);
-      return `Conforme ${label}: ${primary.markdownContent.slice(0, 280)}`;
+    if (!this.llmService.isAvailable) {
+      return this.fallbackAnswer(chunks);
     }
 
     const context = chunks
@@ -73,24 +66,12 @@ export class RagService {
       .join('\n\n---\n\n');
 
     try {
-      const response = await this.openai.chat.completions.create({
-        model: this.llmModel,
-        temperature: 0.2,
-        max_tokens: 500,
-        messages: [
-          {
-            role: 'system',
-            content:
-              'Você é um assistente técnico de engenharia civil e instalações. Responda de forma curta e objetiva (máx. 3 parágrafos). Sempre cite a norma ou fonte (ex: "Conforme NBR 5410, item 6.2.1..."). Use apenas o contexto fornecido. Se não houver informação suficiente, diga claramente.',
-          },
-          {
-            role: 'user',
-            content: `Contexto técnico:\n${context}\n\nPergunta: ${query}`,
-          },
-        ],
-      });
+      const answer = await this.llmService.complete(
+        RAG_SYSTEM_PROMPT,
+        `Contexto técnico:\n${context}\n\nPergunta: ${query}`,
+      );
 
-      return response.choices[0]?.message?.content?.trim() ?? this.fallbackAnswer(chunks);
+      return answer ?? this.fallbackAnswer(chunks);
     } catch (error) {
       this.logger.warn({ error }, 'LLM indisponível — usando resposta template');
       return this.fallbackAnswer(chunks);

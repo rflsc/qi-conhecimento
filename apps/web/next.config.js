@@ -9,6 +9,7 @@ const nextConfig = {
     '@qi-conhecimento/api-client',
     '@qi-conhecimento/shared-types',
     '@qi-conhecimento/shared-validators',
+    '@qi-conhecimento/shared-utils',
   ],
 };
 

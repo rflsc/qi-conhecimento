@@ -1,0 +1,66 @@
+# Blueprint Render — API + Redis
+# https://render.com/docs/blueprint-spec
+#
+# MongoDB: provisione no Atlas (não incluso aqui).
+# Parser (opcional): deploy manual como Web Service Docker a partir de apps/parser.
+
+services:
+  - type: redis
+    name: qi-conhecimento-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+  - type: web
+    name: qi-conhecimento-api
+    runtime: node
+    region: oregon
+    plan: starter
+    buildCommand: >-
+      pnpm install --frozen-lockfile &&
+      pnpm --filter @qi-conhecimento/api... build
+    startCommand: pnpm --filter @qi-conhecimento/api start
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: qi-storage
+      mountPath: /var/data/storage
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: STORAGE_PATH
+        value: /var/data/storage
+      - key: SEED_ADMIN_ENABLED
+        value: "false"
+      - key: SEED_KNOWLEDGE_ENABLED
+        value: "false"
+      - key: EMBEDDING_PROVIDER
+        value: openai
+      - key: LLM_PROVIDER
+        value: anthropic
+      - key: JWT_EXPIRES_IN
+        value: 15m
+      - key: BCRYPT_ROUNDS
+        value: "12"
+      - key: MAX_UPLOAD_SIZE_MB
+        value: "50"
+      - key: PARSER_SERVICE_TIMEOUT_MS
+        value: "120000"
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: qi-conhecimento-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: PARSER_SERVICE_URL
+        sync: false

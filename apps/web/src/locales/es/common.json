@@ -1,6 +1,12 @@
 {
   "brand": "Qi Conhecimento",
   "tagline": "Hub multimodal de conocimiento técnico para ingeniería",
+  "hero": {
+    "badge": "AltoQi · Ingeniería",
+    "title": "Conocimiento técnico al alcance de la mano",
+    "subtitle": "Consulte normas, procedimientos y buenas prácticas con búsqueda híbrida y asistente RAG — abierto y público.",
+    "cta": "Probar búsqueda"
+  },
   "pillars": {
     "hub": "Hub de entrada multimodal",
     "brain": "Pipeline de estandarización y motor RAG",
@@ -10,10 +16,38 @@
     "accessAdmin": "Acceder al panel",
     "learnMore": "Saber más"
   },
+  "specialtiesTitle": "Especialidades",
   "specialties": {
     "civil": "Civil",
     "hidraulica": "Hidráulica",
     "eletrica": "Eléctrica",
     "seguranca_trabalho": "Seguridad laboral"
+  },
+  "search": {
+    "title": "Búsqueda de conocimiento",
+    "subtitleChunks": "Búsqueda híbrida por palabra clave y similitud semántica en los chunks indexados",
+    "subtitleAssistant": "RAG completo — búsqueda + respuesta del asistente con citas de norma",
+    "modes": {
+      "chunks": "Chunks",
+      "assistant": "Asistente (RAG)"
+    },
+    "query": "Consulta",
+    "queryPlaceholder": "¿Cuál es el receso de la tubería de alcantarillado?",
+    "assistantPlaceholder": "¿Cuál es el límite de apertura de fisuras en estructuras de hormigón?",
+    "specialtyFilter": "Filtrar especialidad",
+    "allSpecialties": "Todas las especialidades",
+    "submit": "Buscar",
+    "askAssistant": "Preguntar al asistente",
+    "searching": "Buscando...",
+    "asking": "Generando respuesta...",
+    "noResults": "No se encontraron resultados para esta consulta",
+    "resultsCount": "{{count}} resultado(s) para \"{{query}}\"",
+    "assistantAnswer": "Respuesta del asistente",
+    "noAnswer": "No se generó respuesta",
+    "citationsCount": "{{count}} cita(s) usada(s) como contexto",
+    "noCitations": "No se devolvieron citas"
+  },
+  "errors": {
+    "searchFailed": "No se pudo realizar la búsqueda. Inténtelo de nuevo."
   }
 }

@@ -15,7 +15,7 @@ import {
   SearchKnowledgeDto,
   UploadDocumentDto,
 } from '../dtos/knowledge.dto';
-import { mapChunk, mapDocument } from '../interfaces/knowledge.mapper';
+import { mapChunk, mapCitation, mapDocument } from '../interfaces/knowledge.mapper';
 import { KnowledgeRepository } from '../repositories/knowledge.repository';
 import { RagService } from './rag.service';
 import { StorageService } from '@modules/ingestion/services/storage.service';
@@ -152,6 +152,25 @@ export class KnowledgeService {
     return { query: dto.query, results };
   }
 
+  async publicSearch(dto: SearchKnowledgeDto) {
+    return this.search(dto);
+  }
+
+  async publicAsk(dto: SearchKnowledgeDto) {
+    const hybridResults = await this.ragService.hybridSearch(dto.query, dto.specialty, 5);
+    const chunks =
+      hybridResults.length > 0
+        ? await this.knowledgeRepository.findChunksByIds(
+            hybridResults.map((result) => result.chunkId),
+          )
+        : [];
+
+    const citations = chunks.map(mapCitation);
+    const answer = await this.ragService.generateAnswer(dto.query, chunks);
+
+    return { query: dto.query, answer, citations };
+  }
+
   async reindexDocumentEmbeddings(documentId: string) {
     const document = await this.knowledgeRepository.findDocumentById(documentId);
     if (!document) throw new NotFoundException('Document not found');
@@ -205,9 +224,10 @@ export class KnowledgeService {
       .then((snapshot) => {
         if (closed) return;
 
-        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
         res.setHeader('Cache-Control', 'no-cache, no-transform');
         res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
         res.flushHeaders?.();
         res.write(`data: ${JSON.stringify(snapshot)}\n\n`);
 
@@ -218,12 +238,19 @@ export class KnowledgeService {
 
         heartbeat = setInterval(() => {
           if (closed) return;
-          res.write(': heartbeat\n\n');
-        }, 15_000);
+          void this.progressService
+            .getSnapshot(documentId)
+            .then((current) => {
+              if (!closed) res.write(`data: ${JSON.stringify(current)}\n\n`);
+            })
+            .catch(() => undefined);
+        }, 5_000);
       })
       .catch(() => {
-        if (!closed) {
+        if (!closed && !res.headersSent) {
           res.status(404).json({ message: 'Document not found' });
+        } else {
+          cleanup();
         }
       });
   }

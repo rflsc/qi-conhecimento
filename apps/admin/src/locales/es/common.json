@@ -47,7 +47,40 @@
     },
     "cancel": "Cancelar",
     "cancelling": "Cancelando...",
+    "viewLog": "Ver log",
     "cancelConfirm": "¿Cancelar la ingestión de \"{{title}}\"? Se eliminarán jobs en cola y píldoras parciales."
+  },
+  "ingestionConsole": {
+    "title": "Consola de ingestión",
+    "loading": "Conectando al stream de progreso...",
+    "logTitle": "Log en tiempo real",
+    "noLogs": "Esperando eventos...",
+    "live": "En vivo",
+    "connecting": "Conectando...",
+    "reconnecting": "Reconectando...",
+    "close": "Cerrar",
+    "progress": "Progreso general",
+    "etaUnknown": "Estimación no disponible",
+    "etaDone": "Completado",
+    "etaSeconds": "~{{count}}s restantes",
+    "etaMinutes": "~{{count}} min restantes",
+    "hint": "Parser, chunking y embeddings se actualizan en tiempo real vía SSE.",
+    "parsingHint": "El parser de PDF puede tardar varios minutos. El log se actualiza cada 5 segundos.",
+    "phases": {
+      "queued": "En cola",
+      "loading_source": "Cargando fuente",
+      "parsing": "Parser",
+      "chunking": "Chunking",
+      "embedding": "Embeddings",
+      "completed": "Completado",
+      "failed": "Falló",
+      "cancelled": "Cancelado"
+    },
+    "stats": {
+      "chunks": "Píldoras",
+      "embeddings": "Embeddings",
+      "updated": "Última actualización"
+    }
   },
   "cms": {
     "title": "CMS interno",
@@ -66,15 +99,27 @@
   },
   "search": {
     "title": "Búsqueda de conocimiento",
-    "subtitle": "Búsqueda híbrida por palabra clave",
+    "subtitleChunks": "Búsqueda híbrida por palabra clave en chunks indexados",
+    "subtitleAssistant": "RAG completo — búsqueda + respuesta del asistente con citas (simula WhatsApp)",
+    "modes": {
+      "chunks": "Chunks",
+      "assistant": "Asistente (RAG)"
+    },
     "query": "Consulta",
     "queryPlaceholder": "¿Cuál es el recuo del tubo de alcantarillado?",
+    "assistantPlaceholder": "¿Cuál es el límite de apertura de fisuras en estructuras de hormigón?",
     "specialtyFilter": "Filtrar especialidad",
     "allSpecialties": "Todas las especialidades",
     "submit": "Buscar",
+    "askAssistant": "Preguntar al asistente",
     "searching": "Buscando...",
+    "asking": "Generando respuesta...",
     "noResults": "No se encontraron resultados",
-    "resultsCount": "{{count}} resultado(s) para \"{{query}}\""
+    "resultsCount": "{{count}} resultado(s) para \"{{query}}\"",
+    "assistantAnswer": "Respuesta del asistente",
+    "noAnswer": "Ninguna respuesta generada",
+    "citationsCount": "{{count}} cita(s) usada(s) como contexto",
+    "noCitations": "Ninguna cita devuelta"
   },
   "import": {
     "title": "Importar conocimiento",
@@ -112,6 +157,7 @@
     "apiUnreachable": "No se pudo conectar a la API (puerto 3100).",
     "loadFailed": "Error al cargar datos.",
     "saveFailed": "Error al guardar procedimiento.",
-    "searchFailed": "Error en la búsqueda."
+    "searchFailed": "Error en la búsqueda.",
+    "queryFailed": "Error al consultar el asistente. Verifique la API y la clave del LLM."
   }
 }

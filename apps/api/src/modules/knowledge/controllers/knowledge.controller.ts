@@ -21,7 +21,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { DocumentSourceType, UserRole } from '@qi-conhecimento/shared-types';
-import { Roles } from '@common/decorators/access.decorators';
+import { PublicAccess, Roles } from '@common/decorators/access.decorators';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import {
@@ -140,6 +140,22 @@ export class KnowledgeController {
   @ApiResponse({ status: 200 })
   search(@Body() dto: SearchKnowledgeDto) {
     return this.knowledgeService.search(dto);
+  }
+
+  @PublicAccess()
+  @Post('public-search')
+  @ApiOperation({ summary: 'Busca híbrida pública (LP web)' })
+  @ApiResponse({ status: 200 })
+  publicSearch(@Body() dto: SearchKnowledgeDto) {
+    return this.knowledgeService.publicSearch(dto);
+  }
+
+  @PublicAccess()
+  @Post('public-ask')
+  @ApiOperation({ summary: 'RAG público — busca + resposta com citações (LP web)' })
+  @ApiResponse({ status: 200 })
+  publicAsk(@Body() dto: SearchKnowledgeDto) {
+    return this.knowledgeService.publicAsk(dto);
   }
 
   @Get('documents/:documentId/ingestion-progress')

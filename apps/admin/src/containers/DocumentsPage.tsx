@@ -8,6 +8,7 @@ import {
   useListDocumentsQuery,
 } from '@/store/api';
 import { INGESTION_STATUS_LABELS, SOURCE_TYPE_LABELS } from '@/lib/constants';
+import { IngestionConsoleModal } from '@/components/IngestionConsoleModal';
 
 type Tab = 'documents' | 'chunks';
 
@@ -20,6 +21,7 @@ export function DocumentsPage() {
   const [tab, setTab] = useState<Tab>('documents');
   const [page, setPage] = useState(1);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [consoleDoc, setConsoleDoc] = useState<{ id: string; title: string } | null>(null);
 
   const documentsQuery = useListDocumentsQuery({ page, limit: 15 });
   const chunksQuery = useListChunksQuery({ page, limit: 15 });
@@ -137,20 +139,27 @@ export function DocumentsPage() {
                       </span>
                     </td>
                     <td className="p-3">
-                      {canCancelIngestion(doc.ingestionStatus) ? (
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           type="button"
-                          disabled={cancellingId === doc.id}
-                          onClick={() => handleCancel(doc.id, doc.title)}
-                          className="text-red-400 hover:text-red-300 text-xs font-medium disabled:opacity-50"
+                          onClick={() => setConsoleDoc({ id: doc.id, title: doc.title })}
+                          className="text-emerald-400 hover:text-emerald-300 text-xs font-medium"
                         >
-                          {cancellingId === doc.id
-                            ? t('documents.cancelling')
-                            : t('documents.cancel')}
+                          {t('documents.viewLog')}
                         </button>
-                      ) : (
-                        <span className="text-slate-600 text-xs">—</span>
-                      )}
+                        {canCancelIngestion(doc.ingestionStatus) ? (
+                          <button
+                            type="button"
+                            disabled={cancellingId === doc.id}
+                            onClick={() => handleCancel(doc.id, doc.title)}
+                            className="text-red-400 hover:text-red-300 text-xs font-medium disabled:opacity-50"
+                          >
+                            {cancellingId === doc.id
+                              ? t('documents.cancelling')
+                              : t('documents.cancel')}
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -209,6 +218,14 @@ export function DocumentsPage() {
             ))
           )}
         </div>
+      ) : null}
+
+      {consoleDoc ? (
+        <IngestionConsoleModal
+          documentId={consoleDoc.id}
+          documentTitle={consoleDoc.title}
+          onClose={() => setConsoleDoc(null)}
+        />
       ) : null}
 
       {activeQuery.data && activeQuery.data.total > activeQuery.data.limit ? (
