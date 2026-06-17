@@ -3,6 +3,7 @@
   "private": true,
   "description": "Ecossistema de Conhecimento Técnico para Engenharia Civil e Instalações — Hub multimodal com RAG e assistente de campo",
   "scripts": {
+    "predev": "node scripts/kill-dev-ports.mjs",
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",

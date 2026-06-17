@@ -2,6 +2,7 @@
   "brand": "Qi Conhecimento Admin",
   "auth": {
     "login": "Entrar",
+    "loggingIn": "Entrando...",
     "email": "E-mail",
     "password": "Senha",
     "welcome": "Hub de conhecimento técnico"
@@ -21,5 +22,8 @@
     "manualEditor": "Editor de procedimentos"
   },
   "actions": { "save": "Salvar", "logout": "Sair" },
-  "errors": { "generic": "Ocorreu um erro. Tente novamente." }
+  "errors": {
+    "generic": "E-mail ou senha inválidos.",
+    "apiUnreachable": "Não foi possível conectar à API. Verifique se ela está rodando na porta 3100."
+  }
 }
