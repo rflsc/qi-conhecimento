@@ -1,6 +1,7 @@
 import logging
 import os
 import tempfile
+import time
 from typing import Any
 
 import pypdfium2 as pdfium
@@ -19,9 +20,14 @@ def get_converter() -> DocumentConverter:
     return _build_converter()
 
 
-def _build_converter() -> DocumentConverter:
+def _resolve_ocr(do_ocr: bool | None) -> bool:
+    return settings.do_ocr if do_ocr is None else do_ocr
+
+
+def _build_converter(do_ocr: bool | None = None) -> DocumentConverter:
+    ocr = _resolve_ocr(do_ocr)
     pipeline_options = PdfPipelineOptions(
-        do_ocr=settings.do_ocr,
+        do_ocr=ocr,
         generate_page_images=False,
         generate_picture_images=False,
         generate_parsed_pages=False,
@@ -39,7 +45,7 @@ def _build_converter() -> DocumentConverter:
 
     logger.info(
         "DocumentConverter ocr=%s low_memory=%s batch=%s",
-        settings.do_ocr,
+        ocr,
         settings.low_memory,
         settings.page_batch_size,
     )
@@ -48,7 +54,7 @@ def _build_converter() -> DocumentConverter:
     )
 
 
-def convert_to_markdown(file_bytes: bytes, filename: str) -> tuple[str, str | None]:
+def convert_to_markdown(file_bytes: bytes, filename: str, do_ocr: bool | None = None) -> tuple[str, str | None]:
     suffix = os.path.splitext(filename)[1] or ".pdf"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(file_bytes)
@@ -58,22 +64,45 @@ def convert_to_markdown(file_bytes: bytes, filename: str) -> tuple[str, str | No
         if suffix.lower() != ".pdf":
             return _convert_path(tmp_path)
 
-        page_count = _pdf_page_count(tmp_path)
+        try:
+            page_count = _pdf_page_count(tmp_path)
+        except Exception as exc:
+            logger.warning("Pdfium não leu metadados do PDF (%s) — convertendo documento inteiro", exc)
+            return _convert_path(tmp_path, do_ocr=do_ocr)
+
         batch = settings.page_batch_size
         if batch <= 0 or page_count <= batch:
-            return _convert_path(tmp_path)
+            return _convert_path(tmp_path, do_ocr=do_ocr)
 
-        logger.info("Convertendo PDF em lotes: %s páginas, batch=%s", page_count, batch)
+        batch_count = (page_count + batch - 1) // batch
+        logger.info(
+            "Convertendo PDF em lotes: %s páginas, batch=%s (%s lotes)",
+            page_count,
+            batch,
+            batch_count,
+        )
         parts: list[str] = []
-        for start in range(1, page_count + 1, batch):
-            end = min(start + batch - 1, page_count)
-            converter = _build_converter()
-            try:
-                markdown, _ = _convert_path(tmp_path, converter, page_range=(start, end))
+        # Reutiliza um único conversor — recriar o pipeline a cada lote recarrega
+        # modelos Docling e pode multiplicar o tempo total por 2–3× em CPU.
+        converter = _build_converter(do_ocr)
+        try:
+            for index, start in enumerate(range(1, page_count + 1, batch), start=1):
+                end = min(start + batch - 1, page_count)
+                t0 = time.monotonic()
+                markdown, _ = _convert_path(tmp_path, converter, page_range=(start, end), do_ocr=do_ocr)
+                elapsed = time.monotonic() - t0
+                logger.info(
+                    "Lote %s/%s concluído (págs. %s–%s) em %.1fs",
+                    index,
+                    batch_count,
+                    start,
+                    end,
+                    elapsed,
+                )
                 if markdown.strip():
                     parts.append(markdown.strip())
-            finally:
-                del converter
+        finally:
+            del converter
 
         full = "\n\n".join(parts)
         return full, _extract_title(full)
@@ -96,9 +125,10 @@ def _convert_path(
     path: str,
     converter: DocumentConverter | None = None,
     page_range: tuple[int, int] | None = None,
+    do_ocr: bool | None = None,
 ) -> tuple[str, str | None]:
     owns_converter = converter is None
-    active = converter or _build_converter()
+    active = converter or _build_converter(do_ocr)
     try:
         kwargs: dict[str, Any] = {}
         if page_range is not None:

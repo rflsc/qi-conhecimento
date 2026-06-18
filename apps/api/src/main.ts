@@ -6,7 +6,7 @@ import { AppModule } from './app.module';
 
 function resolveCorsOrigins(): string[] {
   const fromEnv = process.env.CORS_ORIGINS?.split(',')
-    .map((origin) => origin.trim())
+    .map((origin) => origin.trim().replace(/\/$/, ''))
     .filter(Boolean);
 
   if (fromEnv?.length) return fromEnv;
@@ -19,9 +19,13 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
 
+  const corsOrigins = resolveCorsOrigins();
+
   app.enableCors({
-    origin: resolveCorsOrigins(),
+    origin: corsOrigins,
     credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   app.useGlobalPipes(
@@ -53,6 +57,7 @@ async function bootstrap() {
 
   const logger = app.get(Logger);
   logger.log(`API listening on ${host}:${port}`);
+  logger.log({ corsOrigins }, 'CORS origins configured');
 }
 
 void bootstrap().catch((error: unknown) => {

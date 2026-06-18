@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -20,6 +20,7 @@ import { KnowledgeRepository } from '../repositories/knowledge.repository';
 import { RagService } from './rag.service';
 import { StorageService } from '@modules/ingestion/services/storage.service';
 import { IngestionProgressService } from '@modules/ingestion/services/ingestion-progress.service';
+import { DoclingClient } from '@modules/ingestion/services/docling.client';
 
 @Injectable()
 export class KnowledgeService {
@@ -29,6 +30,7 @@ export class KnowledgeService {
     private readonly storageService: StorageService,
     private readonly eventEmitter: EventEmitter2,
     private readonly progressService: IngestionProgressService,
+    private readonly doclingClient: DoclingClient,
     @InjectQueue(QUEUE_NAMES.INGESTION) private readonly ingestionQueue: Queue,
   ) {}
 
@@ -63,19 +65,41 @@ export class KnowledgeService {
       deletedAt: null,
     });
 
-    const relativePath = await this.storageService.saveFile(document._id.toString(), file);
-    document.sourceReference = relativePath;
-    await document.save();
+    try {
+      const relativePath = await this.storageService.saveFile(document._id.toString(), file);
+      document.sourceReference = relativePath;
+      await document.save();
 
-    await this.ingestionQueue.add(JOB_NAMES.PROCESS_DOCUMENT, {
-      documentId: document._id.toString(),
-    });
+      await this.enqueueIngestion(document._id.toString(), {
+        allowWeakParserFallback: dto.allowWeakParserFallback,
+      });
+      return mapDocument(document);
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof ServiceUnavailableException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Falha ao salvar o arquivo',
+      );
+    }
+  }
 
-    this.eventEmitter.emit(DomainEvents.DOCUMENT_INGESTED, {
-      documentId: document._id.toString(),
-    });
+  private async enqueueIngestion(
+    documentId: string,
+    options?: { allowWeakParserFallback?: boolean },
+  ) {
+    try {
+      await this.ingestionQueue.add(JOB_NAMES.PROCESS_DOCUMENT, {
+        documentId,
+        allowWeakParserFallback: options?.allowWeakParserFallback === true,
+      });
+    } catch {
+      throw new ServiceUnavailableException(
+        'Redis indisponível — não foi possível enfileirar a ingestão. Verifique REDIS_URL ou rode pnpm infra:up',
+      );
+    }
 
-    return mapDocument(document);
+    this.eventEmitter.emit(DomainEvents.DOCUMENT_INGESTED, { documentId });
   }
 
   async createCmsEntry(dto: CreateCmsEntryDto) {
@@ -196,6 +220,10 @@ export class KnowledgeService {
     return { documentId, chunksQueued: chunkIds.length };
   }
 
+  async getParserStatus() {
+    return this.doclingClient.checkHealth();
+  }
+
   async getIngestionProgress(documentId: string) {
     const document = await this.knowledgeRepository.findDocumentById(documentId);
     if (!document) throw new NotFoundException('Document not found');
@@ -309,6 +337,73 @@ export class KnowledgeService {
     }
 
     return removed;
+  }
+
+  async reprocessDocumentWithOcr(documentId: string) {
+    const document = await this.knowledgeRepository.findDocumentById(documentId);
+    if (!document) throw new NotFoundException('Document not found');
+
+    if (document.sourceType !== DocumentSourceType.PDF) {
+      throw new BadRequestException('OCR só se aplica a documentos PDF');
+    }
+
+    if (!document.offerOcrRetry) {
+      throw new BadRequestException('Não há oferta de reprocessamento com OCR para este documento');
+    }
+
+    if (!this.doclingClient.isEnabled) {
+      throw new ServiceUnavailableException(
+        'Docling não está configurado. Defina PARSER_SERVICE_URL e rode pnpm parser:dev',
+      );
+    }
+
+    if (!document.sourceReference) {
+      throw new BadRequestException('Arquivo do documento não encontrado');
+    }
+
+    const chunkIds = await this.knowledgeRepository.findChunkIdsByDocument(documentId);
+    await this.removeIngestionJobs(documentId, chunkIds);
+    await this.knowledgeRepository.softDeleteChunksByDocument(documentId);
+    await this.knowledgeRepository.clearParseQualityFlags(documentId);
+    await this.knowledgeRepository.updateDocumentStatus(documentId, IngestionStatus.PENDING, null);
+
+    this.progressService.init(documentId);
+    this.progressService.setPhase(
+      documentId,
+      'queued',
+      'Reprocessamento com OCR enfileirado — as pílulas anteriores serão substituídas',
+    );
+
+    try {
+      await this.ingestionQueue.add(JOB_NAMES.PROCESS_DOCUMENT, {
+        documentId,
+        doOcr: true,
+      });
+    } catch {
+      throw new ServiceUnavailableException(
+        'Redis indisponível — não foi possível enfileirar o reprocessamento com OCR',
+      );
+    }
+
+    this.eventEmitter.emit(DomainEvents.DOCUMENT_INGESTED, { documentId });
+
+    const updated = await this.knowledgeRepository.findDocumentById(documentId);
+    return mapDocument(updated!);
+  }
+
+  async dismissOcrRetry(documentId: string) {
+    const document = await this.knowledgeRepository.findDocumentById(documentId);
+    if (!document) throw new NotFoundException('Document not found');
+
+    if (!document.offerOcrRetry) {
+      throw new BadRequestException('Não há oferta de OCR pendente para este documento');
+    }
+
+    await this.knowledgeRepository.clearOcrRetryOffer(documentId);
+    this.progressService.clearOcrRetryOffer(documentId);
+
+    const updated = await this.knowledgeRepository.findDocumentById(documentId);
+    return mapDocument(updated!);
   }
 
   async getStats() {

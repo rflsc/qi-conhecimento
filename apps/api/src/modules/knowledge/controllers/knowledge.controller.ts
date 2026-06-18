@@ -33,6 +33,7 @@ import {
   UploadDocumentDto,
 } from '../dtos/knowledge.dto';
 import { KnowledgeService } from '../services/knowledge.service';
+import { resolveMaxUploadBytes } from '../../../config/upload.config';
 
 @ApiTags('knowledge')
 @ApiBearerAuth('JWT-auth')
@@ -40,6 +41,13 @@ import { KnowledgeService } from '../services/knowledge.service';
 @Controller('knowledge')
 export class KnowledgeController {
   constructor(private readonly knowledgeService: KnowledgeService) {}
+
+  @Get('parser/status')
+  @Roles(UserRole.ADMIN, UserRole.EDITOR)
+  @ApiOperation({ summary: 'Status do serviço Docling (parser de PDF)' })
+  getParserStatus() {
+    return this.knowledgeService.getParserStatus();
+  }
 
   @Get('stats')
   @Roles(UserRole.ADMIN, UserRole.EDITOR)
@@ -92,10 +100,15 @@ export class KnowledgeController {
         sourceType: { type: 'string', enum: ['pdf', 'image'] },
         normReference: { type: 'string' },
         author: { type: 'string' },
+        allowWeakParserFallback: { type: 'boolean' },
       },
     },
   })
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: resolveMaxUploadBytes() },
+    }),
+  )
   uploadDocument(
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: UploadDocumentDto,
@@ -181,6 +194,22 @@ export class KnowledgeController {
   @ApiResponse({ status: 200 })
   cancelIngestion(@Param('documentId') documentId: string) {
     return this.knowledgeService.cancelDocumentIngestion(documentId);
+  }
+
+  @Post('documents/:documentId/reprocess-with-ocr')
+  @Roles(UserRole.ADMIN, UserRole.EDITOR)
+  @ApiOperation({ summary: 'Reprocessa PDF com OCR após extração suspeitamente baixa' })
+  @ApiResponse({ status: 200 })
+  reprocessWithOcr(@Param('documentId') documentId: string) {
+    return this.knowledgeService.reprocessDocumentWithOcr(documentId);
+  }
+
+  @Post('documents/:documentId/dismiss-ocr-retry')
+  @Roles(UserRole.ADMIN, UserRole.EDITOR)
+  @ApiOperation({ summary: 'Dispensa a oferta de reprocessar com OCR' })
+  @ApiResponse({ status: 200 })
+  dismissOcrRetry(@Param('documentId') documentId: string) {
+    return this.knowledgeService.dismissOcrRetry(documentId);
   }
 
   @Post('documents/:documentId/reindex-embeddings')

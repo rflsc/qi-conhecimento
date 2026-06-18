@@ -29,7 +29,10 @@ export class IngestionProcessor extends WorkerHost {
   async process(job: Job): Promise<void> {
     switch (job.name) {
       case JOB_NAMES.PROCESS_DOCUMENT:
-        await this.documentIngestionService.processDocument(job.data.documentId as string);
+        await this.documentIngestionService.processDocument(job.data.documentId as string, {
+          allowWeakParserFallback: job.data.allowWeakParserFallback === true,
+          doOcr: job.data.doOcr === true,
+        });
         break;
       case JOB_NAMES.GENERATE_EMBEDDINGS:
         await this.generateEmbeddings(job.data.chunkId as string);
@@ -59,21 +62,14 @@ export class IngestionProcessor extends WorkerHost {
     }
 
     const counts = await this.knowledgeRepository.countChunkEmbeddingsByDocument(documentId);
-    const nextIndex = counts.withEmbedding + 1;
-    this.progressService.embeddingStarted(
-      documentId,
-      chunkId,
-      nextIndex,
-      Math.max(counts.total, nextIndex),
-    );
+    const total = Math.max(counts.total, counts.withEmbedding + 1);
+    this.progressService.embeddingStarted(documentId, total);
 
     const embedding = await this.embeddingService.embed(chunk.content);
     if (!embedding) {
-      this.progressService.setPhase(
+      this.progressService.appendEmbeddingWarning(
         documentId,
-        'embedding',
         `Embedding ignorado — ${this.embeddingService.unavailableReason()}`,
-        'warn',
       );
       this.logger.info({ chunkId }, `Embedding ignorado — ${this.embeddingService.unavailableReason()}`);
       return;

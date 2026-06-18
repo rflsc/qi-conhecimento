@@ -14,7 +14,7 @@ import {
   type UploadDocumentInput,
 } from '@qi-conhecimento/shared-validators';
 import { SpecialtySelect } from '@/components/SpecialtySelect';
-import { useImportLinkMutation, useUploadDocumentMutation } from '@/store/api';
+import { useGetParserStatusQuery, useImportLinkMutation, useUploadDocumentMutation } from '@/store/api';
 
 type ImportTab = 'pdf' | 'image' | 'link';
 
@@ -34,6 +34,10 @@ export function ImportDocumentPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploadDocument, { isLoading: uploading }] = useUploadDocumentMutation();
   const [importLink, { isLoading: importingLink }] = useImportLinkMutation();
+  const { data: parserStatus } = useGetParserStatusQuery(undefined, {
+    skip: tab !== 'pdf',
+    pollingInterval: 15_000,
+  });
 
   const fileForm = useForm<UploadDocumentInput>({
     resolver: zodResolver(uploadDocumentSchema),
@@ -43,6 +47,7 @@ export function ImportDocumentPage() {
       sourceType: DocumentSourceType.PDF,
       normReference: '',
       author: '',
+      allowWeakParserFallback: false,
     },
   });
 
@@ -58,6 +63,7 @@ export function ImportDocumentPage() {
   });
 
   const fileSpecialty = fileForm.watch('specialty');
+  const allowWeakParserFallback = fileForm.watch('allowWeakParserFallback');
   const linkSpecialty = linkForm.watch('specialty');
   const isLoading = uploading || importingLink;
 
@@ -74,8 +80,22 @@ export function ImportDocumentPage() {
       return;
     }
 
+    if (
+      tab === 'pdf' &&
+      !values.allowWeakParserFallback &&
+      parserStatus &&
+      (!parserStatus.configured || !parserStatus.reachable)
+    ) {
+      toast.error(t('import.doclingOffline'));
+      return;
+    }
+
     try {
-      await uploadDocument({ ...values, file, sourceType: TAB_SOURCE[tab] as UploadDocumentInput['sourceType'] }).unwrap();
+      await uploadDocument({
+        ...values,
+        file,
+        sourceType: TAB_SOURCE[tab] as UploadDocumentInput['sourceType'],
+      }).unwrap();
       toast.success(t('import.queued'));
       fileForm.reset({
         title: '',
@@ -83,6 +103,7 @@ export function ImportDocumentPage() {
         sourceType: TAB_SOURCE[tab] as UploadDocumentInput['sourceType'],
         normReference: '',
         author: '',
+        allowWeakParserFallback: false,
       });
       setFile(null);
     } catch {
@@ -112,6 +133,15 @@ export function ImportDocumentPage() {
 
   const accept = tab === 'pdf' ? '.pdf,application/pdf' : '.jpg,.jpeg,.png,.webp,image/*';
 
+  const parserBanner =
+    tab === 'pdf' && parserStatus
+      ? !parserStatus.configured
+        ? { tone: 'amber' as const, text: t('import.doclingNotConfigured') }
+        : parserStatus.reachable
+          ? { tone: 'emerald' as const, text: t('import.doclingOnline') }
+          : { tone: 'amber' as const, text: t('import.doclingOffline') }
+      : null;
+
   return (
     <div className="space-y-4 max-w-3xl">
       <div>
@@ -135,6 +165,18 @@ export function ImportDocumentPage() {
           </button>
         ))}
       </div>
+
+      {parserBanner ? (
+        <p
+          className={`text-sm rounded-lg px-3 py-2 border ${
+            parserBanner.tone === 'emerald'
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+              : 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+          }`}
+        >
+          {parserBanner.text}
+        </p>
+      ) : null}
 
       {tab === 'link' ? (
         <form onSubmit={linkForm.handleSubmit(onSubmitLink)} className="space-y-4">
@@ -225,6 +267,21 @@ export function ImportDocumentPage() {
               className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 focus:ring-1 focus:ring-emerald-500 outline-none"
             />
           </label>
+
+          {tab === 'pdf' ? (
+            <label className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={Boolean(allowWeakParserFallback)}
+                onChange={(e) => fileForm.setValue('allowWeakParserFallback', e.target.checked)}
+                className="mt-1 rounded border-slate-600"
+              />
+              <span className="space-y-1">
+                <span className="block text-sm text-slate-200">{t('import.weakParserFallback')}</span>
+                <span className="block text-xs text-slate-500">{t('import.weakParserHint')}</span>
+              </span>
+            </label>
+          ) : null}
 
           <button
             type="submit"

@@ -6,7 +6,7 @@ class Settings:
 
     host: str = os.getenv("PARSER_HOST", "0.0.0.0")
     port: int = int(os.getenv("PARSER_PORT", "8000"))
-    max_upload_mb: int = int(os.getenv("PARSER_MAX_UPLOAD_MB", "50"))
+    max_upload_mb: int = int(os.getenv("PARSER_MAX_UPLOAD_MB", "150"))
 
     # OCR de PDFs escaneados (mais lento e consome mais RAM)
     do_ocr: bool = os.getenv("PARSER_DO_OCR", "false").lower() == "true"

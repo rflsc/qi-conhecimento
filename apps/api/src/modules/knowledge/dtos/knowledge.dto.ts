@@ -1,5 +1,6 @@
-import { IsArray, IsEnum, IsOptional, IsString, IsUrl, MinLength } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsOptional, IsString, IsUrl, MinLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   DocumentSourceType,
   EngineeringSpecialty,
@@ -84,6 +85,15 @@ export class UploadDocumentDto {
   @IsOptional()
   @IsString()
   author?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Se true, usa pdf-parse quando Docling falhar ou não estiver configurado (qualidade inferior)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === true || value === 'true')
+  allowWeakParserFallback?: boolean;
 }
 
 export class ImportLinkDocumentDto {

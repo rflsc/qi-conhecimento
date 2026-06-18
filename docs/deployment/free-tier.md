@@ -22,6 +22,15 @@ A API não chegou a abrir a porta. Causas comuns:
 
 Confira os **Logs** do serviço no Render — se aparecer `ECONNREFUSED 127.0.0.1:6379`, corrija `REDIS_URL`.
 
+### `ECONNRESET` no Redis (Upstash)
+
+Significa **TLS ausente ou URL mal copiada**.
+
+1. `REDIS_URL` deve ser **`rediss://`** (dois s), não `redis://`
+2. Sem prefixos `redis-cli`, `--tls`, `-u` — só a URL pura
+3. No Upstash: **Connect → Node.js → ioredis** e copie a URL gerada
+4. Salve no Render → Redeploy
+
 Variáveis **obrigatórias** no Render:
 
 | Variável | Exemplo |
@@ -56,8 +65,13 @@ Variáveis **obrigatórias** no Render:
 
 1. [console.upstash.com](https://console.upstash.com) → **Create database**
 2. Região próxima ao Render (ex: `us-east-1`)
-3. Aba **Details** → copie a **Redis URL** (`rediss://default:...@...upstash.io:6379`)
-4. Guarde para o passo 4
+3. Aba **Details** → clique **Connect** → **Node.js** → **ioredis**
+4. Copie **somente** a URL (começa com `rediss://`, com dois **s**):
+   ```
+   rediss://default:...@darling-frog-xxxxx.upstash.io:6379
+   ```
+   **Não** copie `redis-cli --tls -u ...` — isso quebra a conexão.
+5. Se a URL vier com `redis://`, troque para `rediss://` (Upstash exige TLS).
 
 > Não use Redis do Render — exige plano pago.
 

@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { IngestionLogEntry, IngestionPhase, IngestionProgress } from '@qi-conhecimento/shared-types';
 import { useIngestionProgress } from '@/hooks/useIngestionStream';
 import { INGESTION_STATUS_LABELS } from '@/lib/constants';
+import { useDismissOcrRetryMutation, useReprocessWithOcrMutation } from '@/store/api';
+import { toast } from 'sonner';
 
 interface Props {
   documentId: string;
@@ -49,16 +51,35 @@ function formatTime(iso: string): string {
   });
 }
 
+function resolveStatusLabel(progress: IngestionProgress): string {
+  if (
+    progress.phase === 'embedding' &&
+    progress.ingestionStatus === 'completed' &&
+    progress.totalChunks > 0 &&
+    progress.embeddingsDone < progress.totalChunks
+  ) {
+    return 'Gerando embeddings';
+  }
+  return INGESTION_STATUS_LABELS[progress.ingestionStatus] ?? progress.ingestionStatus;
+}
+
+function embeddingPercent(progress: IngestionProgress): number | null {
+  if (progress.totalChunks <= 0) return null;
+  return Math.round((progress.embeddingsDone / progress.totalChunks) * 100);
+}
+
 function ProgressPanel({ progress, t }: { progress: IngestionProgress; t: (key: string, opts?: Record<string, unknown>) => string }) {
+  const embedPct = embeddingPercent(progress);
+  const showEmbeddingBar =
+    progress.phase === 'embedding' && progress.totalChunks > 0 && progress.embeddingsDone < progress.totalChunks;
+
   return (
     <div className="space-y-3 border-b border-slate-800 pb-4">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="bg-slate-800 text-slate-300 rounded-full px-2.5 py-0.5">
           {t(PHASE_LABEL_KEYS[progress.phase])}
         </span>
-        <span className="text-slate-500">
-          {INGESTION_STATUS_LABELS[progress.ingestionStatus] ?? progress.ingestionStatus}
-        </span>
+        <span className="text-slate-500">{resolveStatusLabel(progress)}</span>
         {progress.parserEngine ? (
           <span className="text-slate-500">· {progress.parserEngine}</span>
         ) : null}
@@ -82,17 +103,40 @@ function ProgressPanel({ progress, t }: { progress: IngestionProgress; t: (key: 
         </div>
       </div>
 
+      {showEmbeddingBar ? (
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-slate-500">
+            <span>{t('ingestionConsole.embeddingProgress')}</span>
+            <span className="font-mono text-slate-300">
+              {progress.embeddingsDone}/{progress.totalChunks} ({embedPct}%)
+            </span>
+          </div>
+          <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-sky-500 transition-all duration-500 ease-out"
+              style={{ width: `${embedPct ?? 0}%` }}
+            />
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
         <div className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2">
           <p className="text-slate-500">{t('ingestionConsole.stats.chunks')}</p>
           <p className="font-mono text-slate-200">
-            {progress.chunksCreated}/{progress.totalChunks || '—'}
+            {progress.totalChunks > 0
+              ? `${progress.chunksCreated}/${progress.totalChunks}`
+              : progress.chunksCreated > 0
+                ? `${progress.chunksCreated}/—`
+                : '—'}
           </p>
         </div>
         <div className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2">
           <p className="text-slate-500">{t('ingestionConsole.stats.embeddings')}</p>
           <p className="font-mono text-slate-200">
-            {progress.embeddingsDone}/{progress.totalChunks || progress.embeddingsQueued || '—'}
+            {progress.totalChunks > 0
+              ? `${progress.embeddingsDone}/${progress.totalChunks}`
+              : '—'}
           </p>
         </div>
         <div className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 col-span-2 sm:col-span-2">
@@ -108,6 +152,32 @@ export function IngestionConsoleModal({ documentId, documentTitle, onClose }: Pr
   const { t } = useTranslation('common');
   const { progress, connected } = useIngestionProgress(documentId, true);
   const logEndRef = useRef<HTMLDivElement>(null);
+  const [reprocessWithOcr, { isLoading: isReprocessing }] = useReprocessWithOcrMutation();
+  const [dismissOcrRetry, { isLoading: isDismissing }] = useDismissOcrRetryMutation();
+  const [ocrActionTaken, setOcrActionTaken] = useState(false);
+
+  const showOcrOffer =
+    Boolean(progress?.offerOcrRetry && progress.parseQualityWarning) && !ocrActionTaken;
+
+  async function handleReprocessWithOcr() {
+    try {
+      setOcrActionTaken(true);
+      await reprocessWithOcr(documentId).unwrap();
+      toast.success(t('ingestionConsole.reprocessWithOcrStarted'));
+    } catch {
+      setOcrActionTaken(false);
+      toast.error(t('ingestionConsole.reprocessWithOcrFailed'));
+    }
+  }
+
+  async function handleDismissOcrRetry() {
+    try {
+      await dismissOcrRetry(documentId).unwrap();
+      setOcrActionTaken(true);
+    } catch {
+      toast.error(t('ingestionConsole.dismissOcrFailed'));
+    }
+  }
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -168,7 +238,47 @@ export function IngestionConsoleModal({ documentId, documentTitle, onClose }: Pr
         </header>
 
         <div className="px-5 pt-4 overflow-y-auto flex-1">
-          {progress ? <ProgressPanel progress={progress} t={t} /> : (
+          {progress ? (
+            <>
+              {progress.parseQualityWarning ? (
+                <div
+                  className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 leading-relaxed"
+                  role="alert"
+                >
+                  <p className="font-medium text-amber-300 mb-1">
+                    {t('ingestionConsole.lowExtractionTitle')}
+                  </p>
+                  <p className="text-amber-100/90">{progress.parseQualityWarning}</p>
+                  {showOcrOffer ? (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs text-amber-200/80">{t('ingestionConsole.ocrRetryHint')}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleReprocessWithOcr()}
+                          disabled={isReprocessing || isDismissing}
+                          className="bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 rounded-lg px-3 py-1.5 text-xs font-medium"
+                        >
+                          {isReprocessing
+                            ? t('ingestionConsole.reprocessWithOcrLoading')
+                            : t('ingestionConsole.reprocessWithOcr')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDismissOcrRetry()}
+                          disabled={isReprocessing || isDismissing}
+                          className="border border-amber-500/40 hover:bg-amber-500/10 disabled:opacity-60 text-amber-100 rounded-lg px-3 py-1.5 text-xs"
+                        >
+                          {t('ingestionConsole.keepAsIs')}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              <ProgressPanel progress={progress} t={t} />
+            </>
+          ) : (
             <p className="text-slate-400 text-sm pb-4">{t('ingestionConsole.loading')}</p>
           )}
 
@@ -196,7 +306,9 @@ export function IngestionConsoleModal({ documentId, documentTitle, onClose }: Pr
         <footer className="px-5 py-3 border-t border-slate-800 text-xs text-slate-500">
           {progress?.phase === 'parsing'
             ? t('ingestionConsole.parsingHint')
-            : t('ingestionConsole.hint')}
+            : progress?.phase === 'embedding'
+              ? t('ingestionConsole.embeddingHint')
+              : t('ingestionConsole.hint')}
         </footer>
       </div>
     </div>

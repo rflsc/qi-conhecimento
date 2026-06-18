@@ -16,19 +16,39 @@ function canCancelIngestion(status: string): boolean {
   return status === 'pending' || status === 'processing';
 }
 
+const PAGE_SIZE = 15;
+
 export function DocumentsPage() {
   const { t } = useTranslation('common');
   const [tab, setTab] = useState<Tab>('documents');
-  const [page, setPage] = useState(1);
+  const [documentsPage, setDocumentsPage] = useState(1);
+  const [chunksPage, setChunksPage] = useState(1);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [consoleDoc, setConsoleDoc] = useState<{ id: string; title: string } | null>(null);
 
-  const documentsQuery = useListDocumentsQuery({ page, limit: 15 });
-  const chunksQuery = useListChunksQuery({ page, limit: 15 });
+  const documentsQuery = useListDocumentsQuery(
+    { page: documentsPage, limit: PAGE_SIZE },
+    { skip: tab !== 'documents', refetchOnMountOrArgChange: true },
+  );
+  const chunksQuery = useListChunksQuery(
+    { page: chunksPage, limit: PAGE_SIZE },
+    { skip: tab !== 'chunks', refetchOnMountOrArgChange: true },
+  );
   const [cancelIngestion] = useCancelIngestionMutation();
 
   const activeQuery = tab === 'documents' ? documentsQuery : chunksQuery;
+  const activePage = tab === 'documents' ? documentsPage : chunksPage;
+  const setActivePage = tab === 'documents' ? setDocumentsPage : setChunksPage;
   const isError = activeQuery.isError;
+
+  const documentsRows =
+    documentsQuery.data?.page === documentsPage ? documentsQuery.data.data : undefined;
+  const chunksRows = chunksQuery.data?.page === chunksPage ? chunksQuery.data.data : undefined;
+
+  const isTabLoading =
+    tab === 'documents'
+      ? documentsQuery.isLoading || (documentsQuery.isFetching && !documentsRows)
+      : chunksQuery.isLoading || (chunksQuery.isFetching && !chunksRows);
 
   async function handleCancel(documentId: string, title: string) {
     if (!window.confirm(t('documents.cancelConfirm', { title }))) return;
@@ -66,10 +86,7 @@ export function DocumentsPage() {
           <button
             key={key}
             type="button"
-            onClick={() => {
-              setTab(key);
-              setPage(1);
-            }}
+            onClick={() => setTab(key)}
             className={`rounded-lg px-3 py-1.5 text-sm ${
               tab === key
                 ? 'bg-emerald-500/10 text-emerald-400'
@@ -87,11 +104,11 @@ export function DocumentsPage() {
         </p>
       ) : null}
 
-      {activeQuery.isLoading ? (
+      {isTabLoading ? (
         <p className="text-slate-400 text-sm">{t('common.loading')}</p>
       ) : null}
 
-      {tab === 'documents' && documentsQuery.data ? (
+      {tab === 'documents' && documentsRows ? (
         <div className="overflow-x-auto bg-slate-900 border border-slate-800 rounded-xl">
           <table className="w-full text-sm">
             <thead className="text-slate-400 border-b border-slate-800">
@@ -105,14 +122,14 @@ export function DocumentsPage() {
               </tr>
             </thead>
             <tbody>
-              {documentsQuery.data.data.length === 0 ? (
+              {documentsRows.length === 0 ? (
                 <tr>
                   <td className="p-3 text-slate-500" colSpan={6}>
                     {t('documents.empty')}
                   </td>
                 </tr>
               ) : (
-                documentsQuery.data.data.map((doc) => (
+                documentsRows.map((doc) => (
                   <tr key={doc.id} className="border-b border-slate-800/80">
                     <td className="p-3 font-medium">{doc.title}</td>
                     <td className="p-3 text-slate-400">{t(`specialties.${doc.specialty}`)}</td>
@@ -169,12 +186,12 @@ export function DocumentsPage() {
         </div>
       ) : null}
 
-      {tab === 'chunks' && chunksQuery.data ? (
-        <div className="space-y-3">
-          {chunksQuery.data.data.length === 0 ? (
+      {tab === 'chunks' && chunksRows ? (
+        <div key={chunksPage} className="space-y-3">
+          {chunksRows.length === 0 ? (
             <p className="text-slate-500 text-sm">{t('documents.chunksEmpty')}</p>
           ) : (
-            chunksQuery.data.data.map((chunk) => (
+            chunksRows.map((chunk) => (
               <article
                 key={chunk.id}
                 className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2"
@@ -232,19 +249,23 @@ export function DocumentsPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}
+            disabled={activePage <= 1 || activeQuery.isFetching}
+            onClick={() => setActivePage((p) => p - 1)}
             className="bg-slate-800 text-slate-300 rounded-lg px-3 py-1 text-sm disabled:opacity-40"
           >
             {t('common.previous')}
           </button>
           <span className="text-slate-400 text-sm">
-            {t('common.page')} {page}
+            {t('common.page')} {activePage}
+            {activeQuery.isFetching ? ` · ${t('common.loading')}` : ''}
           </span>
           <button
             type="button"
-            disabled={page * activeQuery.data.limit >= activeQuery.data.total}
-            onClick={() => setPage((p) => p + 1)}
+            disabled={
+              activeQuery.isFetching ||
+              activePage * activeQuery.data.limit >= activeQuery.data.total
+            }
+            onClick={() => setActivePage((p) => p + 1)}
             className="bg-slate-800 text-slate-300 rounded-lg px-3 py-1 text-sm disabled:opacity-40"
           >
             {t('common.next')}

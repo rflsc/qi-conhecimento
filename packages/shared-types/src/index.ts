@@ -60,6 +60,10 @@ export interface IngestionProgress {
   estimatedSecondsRemaining: number | null;
   ingestionStatus: IngestionStatus;
   parserEngine?: string;
+  /** Aviso quando o parser extraiu pouco texto para o tamanho/páginas do PDF. */
+  parseQualityWarning?: string;
+  /** Exibe opção de reprocessar o PDF com OCR no console de ingestão. */
+  offerOcrRetry?: boolean;
   logs: IngestionLogEntry[];
 }
 

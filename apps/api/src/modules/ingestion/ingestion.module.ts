@@ -30,6 +30,6 @@ import { IngestionProgressService } from './services/ingestion-progress.service'
     HtmlParser,
     ParserFactory,
   ],
-  exports: [StorageService, DocumentIngestionService, IngestionProgressService],
+  exports: [StorageService, DocumentIngestionService, IngestionProgressService, DoclingClient],
 })
 export class IngestionModule {}

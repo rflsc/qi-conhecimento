@@ -41,6 +41,7 @@ export const uploadDocumentSchema = z.object({
   sourceType: z.enum([DocumentSourceType.PDF, DocumentSourceType.IMAGE]),
   normReference: z.string().max(200).optional(),
   author: z.string().max(200).optional(),
+  allowWeakParserFallback: z.boolean().optional().default(false),
 });
 
 export const createManualContentSchema = z.object({

@@ -12,6 +12,13 @@ import { DomainEvents } from '@events/domain-events';
 import { KnowledgeRepository } from '@modules/knowledge/repositories/knowledge.repository';
 
 const MAX_LOGS = 300;
+const CHUNK_LOG_STEP_SMALL = 10;
+const CHUNK_LOG_STEP_MEDIUM = 20;
+const CHUNK_LOG_STEP_LARGE = 25;
+const EMBEDDING_LOG_STEP_SMALL = 5;
+const EMBEDDING_LOG_STEP_MEDIUM = 10;
+const EMBEDDING_LOG_STEP_LARGE = 25;
+const PARSER_HEARTBEAT_MS = 10_000;
 const PHASE_BASE_PERCENT: Record<IngestionPhase, number> = {
   queued: 0,
   loading_source: 5,
@@ -30,6 +37,7 @@ export class IngestionProgressService {
   private readonly store = new Map<string, IngestionProgress>();
   private readonly listeners = new Map<string, Set<ProgressListener>>();
   private readonly activityHeartbeats = new Map<string, ReturnType<typeof setInterval>>();
+  private readonly embeddingLogMilestone = new Map<string, number>();
 
   constructor(private readonly knowledgeRepository: KnowledgeRepository) {}
 
@@ -55,17 +63,27 @@ export class IngestionProgressService {
     state.phase = allDone ? 'completed' : 'embedding';
     state.percent = this.computePercent(state);
     state.estimatedSecondsRemaining = allDone ? 0 : this.estimateRemaining(state);
+
     if (allDone) {
-      state.ingestionStatus = IngestionStatus.COMPLETED;
+      this.embeddingLogMilestone.delete(documentId);
+      this.complete(
+        documentId,
+        `Ingestão finalizada — ${state.embeddingsDone} embedding(s) em ${state.totalChunks} pílula(s)`,
+      );
+      return;
     }
-    this.appendLog(
-      documentId,
-      'success',
-      state.phase,
-      allDone
-        ? `Todos os embeddings concluídos (${state.embeddingsDone}/${state.totalChunks})`
-        : `Embedding concluído (${state.embeddingsDone}/${state.totalChunks || '?'})`,
-    );
+
+    if (this.shouldLogEmbeddingProgress(documentId, state.embeddingsDone, state.totalChunks)) {
+      const pct = Math.round((state.embeddingsDone / state.totalChunks) * 100);
+      this.appendLog(
+        documentId,
+        'info',
+        'embedding',
+        `Embeddings: ${state.embeddingsDone}/${state.totalChunks} (${pct}%) — faltam ${state.totalChunks - state.embeddingsDone}`,
+        state,
+      );
+    }
+
     this.commit(documentId, state);
   }
 
@@ -86,6 +104,7 @@ export class IngestionProgressService {
       logs: [],
     };
     this.store.set(documentId, progress);
+    this.embeddingLogMilestone.delete(documentId);
     this.notify(documentId, progress);
     return progress;
   }
@@ -124,6 +143,8 @@ export class IngestionProgressService {
       updatedAt: updatedAt?.toISOString?.() ?? now,
       estimatedSecondsRemaining: null,
       ingestionStatus: document.ingestionStatus as IngestionStatus,
+      parseQualityWarning: document.parseQualityWarning,
+      offerOcrRetry: document.offerOcrRetry === true,
       logs: this.buildHistoricalLogs(document.ingestionStatus, counts, document.ingestionError),
     };
   }
@@ -166,7 +187,14 @@ export class IngestionProgressService {
     state.totalChunks = total;
     state.embeddingsQueued = total;
     state.percent = this.computePercent(state);
-    this.appendLog(documentId, 'info', 'chunking', `${total} segmento(s) identificado(s) para indexação`);
+    this.appendLog(
+      documentId,
+      'info',
+      'chunking',
+      total === 0
+        ? 'Nenhum segmento identificado para indexação'
+        : `${total} segmento(s) identificado(s) — iniciando criação de pílulas`,
+    );
     this.commit(documentId, state);
   }
 
@@ -177,17 +205,53 @@ export class IngestionProgressService {
     state.embeddingsQueued = total;
     state.phase = 'chunking';
     state.percent = this.computePercent(state);
-    this.appendLog(documentId, 'info', 'chunking', `Pílula ${index}/${total} criada e enfileirada`);
+
+    if (this.shouldLogChunkProgress(index, total)) {
+      const pct = Math.round((index / total) * 100);
+      const message =
+        index === total
+          ? `Pílulas criadas: ${total}/${total} — enfileirando embeddings`
+          : `Criando pílulas: ${index}/${total} (${pct}%)`;
+      this.appendLog(documentId, 'info', 'chunking', message, state);
+    }
+
     this.commit(documentId, state);
   }
 
-  embeddingStarted(documentId: string, chunkId: string, index: number, total: number): void {
+  embeddingStarted(documentId: string, totalHint: number): void {
     const state = this.ensure(documentId);
     state.phase = 'embedding';
-    state.totalChunks = total;
-    state.embeddingsQueued = total;
+    state.totalChunks = Math.max(state.totalChunks, totalHint);
+    state.embeddingsQueued = state.totalChunks;
     state.percent = this.computePercent(state);
-    this.appendLog(documentId, 'info', 'embedding', `Gerando embedding ${index}/${total} (chunk ${chunkId.slice(-6)})`);
+    this.commit(documentId, state);
+  }
+
+  appendEmbeddingWarning(documentId: string, message: string): void {
+    const state = this.ensure(documentId);
+    state.phase = 'embedding';
+    this.appendLog(documentId, 'warn', 'embedding', message, state);
+    this.commit(documentId, state);
+  }
+
+  setParseQualityWarning(documentId: string, message: string, offerOcrRetry = true): void {
+    const state = this.ensure(documentId);
+    state.parseQualityWarning = message;
+    state.offerOcrRetry = offerOcrRetry;
+    this.appendLog(documentId, 'warn', 'parsing', message, state);
+    this.commit(documentId, state);
+  }
+
+  clearOcrRetryOffer(documentId: string): void {
+    const state = this.ensure(documentId);
+    state.offerOcrRetry = false;
+    this.commit(documentId, state);
+  }
+
+  clearParseQualityFlags(documentId: string): void {
+    const state = this.ensure(documentId);
+    delete state.parseQualityWarning;
+    delete state.offerOcrRetry;
     this.commit(documentId, state);
   }
 
@@ -225,7 +289,7 @@ export class IngestionProgressService {
     documentId: string,
     phase: IngestionPhase,
     messagePrefix: string,
-    intervalMs = 5_000,
+    intervalMs = PARSER_HEARTBEAT_MS,
   ): () => void {
     this.stopActivityHeartbeat(documentId);
     const startedAt = Date.now();
@@ -235,11 +299,12 @@ export class IngestionProgressService {
       const state = this.ensure(documentId);
       state.phase = phase;
       state.percent = this.computePercent(state);
+      const engine = state.parserEngine ? ` · ${state.parserEngine}` : '';
       this.appendLog(
         documentId,
         'info',
         phase,
-        `${messagePrefix}… ${elapsed}s decorridos`,
+        `${messagePrefix}${engine} — ${this.formatDuration(elapsed)} — ainda processando`,
         state,
       );
       state.estimatedSecondsRemaining = this.estimateRemaining(state);
@@ -359,7 +424,7 @@ export class IngestionProgressService {
         timestamp: now,
         level: 'info',
         phase: 'queued',
-        message: 'Histórico reconstruído a partir do banco de dados',
+        message: 'Resumo reconstruído do banco — o log detalhado não fica salvo após fechar o console',
       },
     ];
 
@@ -373,13 +438,22 @@ export class IngestionProgressService {
       });
     }
 
-    if (counts.withEmbedding > 0) {
+    if (counts.total > 0 && counts.withEmbedding < counts.total) {
+      const pct = Math.round((counts.withEmbedding / counts.total) * 100);
+      logs.push({
+        id: randomUUID(),
+        timestamp: now,
+        level: 'info',
+        phase: 'embedding',
+        message: `Embeddings: ${counts.withEmbedding}/${counts.total} (${pct}%) — ainda em andamento ou interrompido`,
+      });
+    } else if (counts.withEmbedding > 0) {
       logs.push({
         id: randomUUID(),
         timestamp: now,
         level: 'success',
         phase: 'embedding',
-        message: `${counts.withEmbedding}/${counts.total} embedding(s) concluído(s)`,
+        message: `Embeddings: ${counts.withEmbedding}/${counts.total} (100%)`,
       });
     }
 
@@ -403,16 +477,67 @@ export class IngestionProgressService {
       });
     }
 
-    if (status === IngestionStatus.COMPLETED && counts.withEmbedding >= counts.total) {
+    if (
+      counts.total > 0 &&
+      counts.withEmbedding >= counts.total &&
+      status === IngestionStatus.COMPLETED
+    ) {
       logs.push({
         id: randomUUID(),
         timestamp: now,
         level: 'success',
         phase: 'completed',
-        message: 'Processamento concluído',
+        message: `Ingestão finalizada — ${counts.total} pílula(s) com embeddings`,
+      });
+    } else if (counts.total === 0 && status === IngestionStatus.COMPLETED) {
+      logs.push({
+        id: randomUUID(),
+        timestamp: now,
+        level: 'success',
+        phase: 'completed',
+        message: 'Processamento concluído sem pílulas geradas',
       });
     }
 
     return logs;
+  }
+
+  private shouldLogChunkProgress(index: number, total: number): boolean {
+    if (total <= 1) return true;
+    if (index === 1 || index === total) return true;
+    const step =
+      total <= 50 ? CHUNK_LOG_STEP_SMALL : total <= 200 ? CHUNK_LOG_STEP_MEDIUM : CHUNK_LOG_STEP_LARGE;
+    return index % step === 0;
+  }
+
+  private shouldLogEmbeddingProgress(documentId: string, done: number, total: number): boolean {
+    if (total <= 0 || done <= 0) return false;
+    if (done === 1 || done === total) return true;
+
+    const step =
+      total <= 30
+        ? EMBEDDING_LOG_STEP_SMALL
+        : total <= 150
+          ? EMBEDDING_LOG_STEP_MEDIUM
+          : EMBEDDING_LOG_STEP_LARGE;
+
+    if (done % step === 0) return true;
+
+    const pct = Math.floor((done / total) * 100);
+    const last = this.embeddingLogMilestone.get(documentId) ?? -1;
+    const milestone = Math.floor(pct / 10) * 10;
+    if (milestone >= 10 && milestone > last) {
+      this.embeddingLogMilestone.set(documentId, milestone);
+      return true;
+    }
+
+    return false;
+  }
+
+  private formatDuration(totalSeconds: number): string {
+    if (totalSeconds < 60) return `${totalSeconds}s`;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return seconds > 0 ? `${minutes} min ${seconds}s` : `${minutes} min`;
   }
 }

@@ -37,7 +37,7 @@ services:
       - key: BCRYPT_ROUNDS
         value: "12"
       - key: MAX_UPLOAD_SIZE_MB
-        value: "50"
+        value: "150"
       - key: PARSER_SERVICE_TIMEOUT_MS
         value: "120000"
       - key: MONGODB_URI

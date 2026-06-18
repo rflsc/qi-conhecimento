@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
-import { DocumentParser, ParseResult } from './parser.interface';
+import { DocumentParser, ParseOptions, ParseResult } from './parser.interface';
 
 @Injectable()
 export class HtmlParser implements DocumentParser {
-  async parse(input: Buffer | string): Promise<ParseResult> {
+  async parse(input: Buffer | string, _options?: ParseOptions): Promise<ParseResult> {
     const html = Buffer.isBuffer(input) ? input.toString('utf-8') : input;
     const $ = cheerio.load(html);
 

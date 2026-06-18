@@ -1,11 +1,11 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 
 from .config import settings
-from .parser import convert_to_markdown, get_converter
+from .parser import convert_to_markdown, get_converter, _resolve_ocr
 from .schemas import HealthResponse, ParseResponse
 
 logging.basicConfig(level=logging.INFO)
@@ -34,7 +34,10 @@ def health() -> HealthResponse:
 
 
 @app.post("/v1/parse", response_model=ParseResponse)
-async def parse(file: UploadFile = File(...)) -> ParseResponse:
+async def parse(
+    file: UploadFile = File(...),
+    do_ocr: str | None = Form(default=None),
+) -> ParseResponse:
     data = await file.read()
 
     max_bytes = settings.max_upload_mb * 1024 * 1024
@@ -43,9 +46,16 @@ async def parse(file: UploadFile = File(...)) -> ParseResponse:
     if not data:
         raise HTTPException(status_code=422, detail="Arquivo vazio")
 
+    ocr_override: bool | None = None
+    if do_ocr is not None:
+        ocr_override = do_ocr.strip().lower() in ("true", "1", "yes", "on")
+
     try:
         markdown, title = await run_in_threadpool(
-            convert_to_markdown, data, file.filename or "document.pdf"
+            convert_to_markdown,
+            data,
+            file.filename or "document.pdf",
+            ocr_override,
         )
     except Exception as exc:  # noqa: BLE001 — superfície de erro controlada para o cliente
         logger.exception("Falha ao converter documento")
@@ -54,4 +64,9 @@ async def parse(file: UploadFile = File(...)) -> ParseResponse:
     if not markdown.strip():
         raise HTTPException(status_code=422, detail="Documento sem conteúdo extraível")
 
-    return ParseResponse(markdown=markdown, title=title)
+    ocr_used = _resolve_ocr(ocr_override)
+    return ParseResponse(
+        markdown=markdown,
+        title=title,
+        engine="docling+ocr" if ocr_used else "docling",
+    )

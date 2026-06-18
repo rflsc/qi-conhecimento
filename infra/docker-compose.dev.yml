@@ -19,7 +19,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      PARSER_MAX_UPLOAD_MB: "50"
+      PARSER_MAX_UPLOAD_MB: "150"
       PARSER_DO_OCR: "false"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]

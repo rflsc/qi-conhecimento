@@ -38,6 +38,12 @@ export class KnowledgeDocumentModel {
   @Prop({ trim: true })
   ingestionError?: string;
 
+  @Prop({ trim: true })
+  parseQualityWarning?: string;
+
+  @Prop({ default: false })
+  offerOcrRetry?: boolean;
+
   @Prop({ type: Date, default: null, index: true })
   deletedAt!: Date | null;
 }

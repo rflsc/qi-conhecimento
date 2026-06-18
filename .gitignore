@@ -7,6 +7,8 @@ dist
 coverage
 storage/
 dump/
+pdf-downloads/
+scripts/pdf-urls.txt
 infra/data/
 *.tsbuildinfo
 apps/api/src/**/*.js

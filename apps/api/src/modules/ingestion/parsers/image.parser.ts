@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { PinoLogger } from 'nestjs-pino';
 import { DoclingClient } from '../services/docling.client';
-import { DocumentParser, ParseResult } from './parser.interface';
+import { DocumentParser, ParseOptions, ParseResult } from './parser.interface';
 
 @Injectable()
 export class ImageParser implements DocumentParser {
@@ -19,7 +19,7 @@ export class ImageParser implements DocumentParser {
     this.openai = apiKey ? new OpenAI({ apiKey }) : null;
   }
 
-  async parse(input: Buffer | string): Promise<ParseResult> {
+  async parse(input: Buffer | string, _options?: ParseOptions): Promise<ParseResult> {
     const buffer = Buffer.isBuffer(input) ? input : Buffer.from(input);
     const filename = this.filenameForBuffer(buffer);
 

@@ -1,0 +1,3 @@
+# Cole aqui uma URL de PDF por linha (resultados do Google, etc.)
+# Exemplo:
+# https://www.normadedesempenho.com.br/wp-content/uploads/2018/09/exemplo-nbr.pdf

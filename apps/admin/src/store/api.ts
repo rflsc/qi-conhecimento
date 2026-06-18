@@ -58,6 +58,12 @@ export interface KnowledgeStats {
   chunksWithoutEmbeddings?: number;
 }
 
+export interface ParserStatus {
+  configured: boolean;
+  reachable: boolean;
+  engine?: string;
+}
+
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_URL,
   prepareHeaders: (headers) => {
@@ -88,6 +94,9 @@ export const knowledgeApi = createApi({
     getStats: builder.query<KnowledgeStats, void>({
       query: () => '/knowledge/stats',
       providesTags: ['Stats'],
+    }),
+    getParserStatus: builder.query<ParserStatus, void>({
+      query: () => '/knowledge/parser/status',
     }),
     listDocuments: builder.query<PaginatedResponse<DocumentRow>, { page?: number; limit?: number }>({
       query: ({ page = 1, limit = 20 }) => `/knowledge/documents?page=${page}&limit=${limit}`,
@@ -156,6 +165,20 @@ export const knowledgeApi = createApi({
       }),
       invalidatesTags: ['Documents', 'Chunks', 'Stats'],
     }),
+    reprocessWithOcr: builder.mutation<DocumentRow, string>({
+      query: (documentId) => ({
+        url: `/knowledge/documents/${documentId}/reprocess-with-ocr`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Documents', 'Chunks', 'Stats'],
+    }),
+    dismissOcrRetry: builder.mutation<DocumentRow, string>({
+      query: (documentId) => ({
+        url: `/knowledge/documents/${documentId}/dismiss-ocr-retry`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Documents'],
+    }),
     getIngestionProgress: builder.query<IngestionProgress, string>({
       query: (documentId) => `/knowledge/documents/${documentId}/ingestion-progress`,
     }),
@@ -164,6 +187,7 @@ export const knowledgeApi = createApi({
 
 export const {
   useGetStatsQuery,
+  useGetParserStatusQuery,
   useListDocumentsQuery,
   useListChunksQuery,
   useCreateCmsEntryMutation,
@@ -172,5 +196,7 @@ export const {
   useUploadDocumentMutation,
   useImportLinkMutation,
   useCancelIngestionMutation,
+  useReprocessWithOcrMutation,
+  useDismissOcrRetryMutation,
   useGetIngestionProgressQuery,
 } = knowledgeApi;

@@ -1,8 +1,9 @@
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import { join, extname } from 'path';
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
+import { resolveMaxUploadBytes } from '../../../config/upload.config';
 
 @Injectable()
 export class StorageService implements OnModuleInit {
@@ -18,8 +19,8 @@ export class StorageService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     this.storagePath = this.configService.get<string>('STORAGE_PATH') ?? './storage';
-    const maxMb = Number(this.configService.get<string>('MAX_UPLOAD_SIZE_MB') ?? 50);
-    this.maxUploadBytes = maxMb * 1024 * 1024;
+    this.maxUploadBytes = resolveMaxUploadBytes();
+    const maxMb = this.maxUploadBytes / 1024 / 1024;
     await mkdir(this.storagePath, { recursive: true });
     this.logger.info({ path: this.storagePath, maxMb }, 'Storage inicializado');
   }
@@ -29,16 +30,30 @@ export class StorageService implements OnModuleInit {
   }
 
   async saveFile(documentId: string, file: Express.Multer.File): Promise<string> {
-    if (file.size > this.maxUploadBytes) {
-      throw new Error(`Arquivo excede o limite de ${this.maxUploadBytes / 1024 / 1024} MB`);
+    if (!file?.size) {
+      throw new BadRequestException('Arquivo vazio ou inválido');
     }
+
+    if (file.size > this.maxUploadBytes) {
+      throw new BadRequestException(
+        `Arquivo excede o limite de ${this.maxUploadBytes / 1024 / 1024} MB`,
+      );
+    }
+
+    const content = await this.readUploadContent(file);
 
     const ext = extname(file.originalname) || '.bin';
     const relativePath = join(documentId, `source${ext}`);
     const absolutePath = join(this.storagePath, relativePath);
     await mkdir(join(this.storagePath, documentId), { recursive: true });
-    await writeFile(absolutePath, file.buffer);
+    await writeFile(absolutePath, content);
     return relativePath.replace(/\\/g, '/');
+  }
+
+  private async readUploadContent(file: Express.Multer.File): Promise<Buffer> {
+    if (file.buffer?.length) return file.buffer;
+    if (file.path) return readFile(file.path);
+    throw new BadRequestException('Não foi possível ler o arquivo enviado');
   }
 
   async readFile(relativePath: string): Promise<Buffer> {

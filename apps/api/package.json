@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "predev": "node ../../scripts/kill-port.mjs 3100",
+    "predev": "pnpm --filter @qi-conhecimento/shared-types build && node ../../scripts/kill-port.mjs 3100",
     "build": "nest build",
     "dev": "nodemon",
     "start": "node dist/main",

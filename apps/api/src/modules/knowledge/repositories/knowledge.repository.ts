@@ -54,6 +54,36 @@ export class KnowledgeRepository {
       .exec();
   }
 
+  setParseQualityWarning(
+    id: string,
+    message: string,
+    offerOcrRetry: boolean,
+  ): Promise<KnowledgeDocumentEntity | null> {
+    return this.documentModel
+      .findOneAndUpdate(
+        { _id: id, deletedAt: null },
+        { parseQualityWarning: message, offerOcrRetry },
+        { new: true },
+      )
+      .exec();
+  }
+
+  clearOcrRetryOffer(id: string): Promise<KnowledgeDocumentEntity | null> {
+    return this.documentModel
+      .findOneAndUpdate({ _id: id, deletedAt: null }, { offerOcrRetry: false }, { new: true })
+      .exec();
+  }
+
+  clearParseQualityFlags(id: string): Promise<KnowledgeDocumentEntity | null> {
+    return this.documentModel
+      .findOneAndUpdate(
+        { _id: id, deletedAt: null },
+        { $unset: { parseQualityWarning: '', offerOcrRetry: '' } },
+        { new: true },
+      )
+      .exec();
+  }
+
   findChunks(
     page: number,
     limit: number,
