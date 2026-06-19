@@ -77,8 +77,10 @@ Redux Toolkit + RTK Query em `src/store/api.ts`, com JWT via cookie `access_toke
 | --- | --- | --- |
 | Dashboard | `GET /knowledge/stats` | Inclui contagem de embeddings |
 | Importar | `POST /knowledge/documents/upload`, `POST /knowledge/documents/import-link` | |
-| Documentos | `GET /knowledge/documents`, `GET /knowledge/chunks` | Badge `embedding ✓`; botão **Cancelar** |
-| Documentos (ação) | `POST /knowledge/documents/{id}/cancel-ingestion` | Pendente / processando |
+| Documentos | `GET /knowledge/documents`, `GET /knowledge/chunks` | Badge `embedding ✓`; **Cancelar** enquanto embeddings pendentes |
+| Documentos (ação) | `POST /knowledge/documents/{id}/cancel-ingestion` | Parse, chunking ou fila de embeddings |
+| Console ingestão | `GET /knowledge/documents/{id}/ingestion-stream` | SSE — fases, progresso Docling, barra embeddings |
+| Console (OCR) | `POST .../reprocess-with-ocr`, `POST .../dismiss-ocr-retry` | Oferta quando extração baixa |
 | CMS interno | `POST /knowledge/cms` | |
 | Busca | `POST /knowledge/search` | Híbrida com Ollama ou OpenAI |
 

@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { join, extname } from 'path';
 import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -59,6 +59,21 @@ export class StorageService implements OnModuleInit {
   async readFile(relativePath: string): Promise<Buffer> {
     const absolutePath = join(this.storagePath, relativePath);
     return readFile(absolutePath);
+  }
+
+  /** Remove a pasta do documento no disco (upload PDF/imagem). */
+  async deleteDocumentStorage(documentId: string): Promise<void> {
+    const dir = join(this.storagePath, documentId);
+    try {
+      await rm(dir, { recursive: true, force: true });
+      this.logger.info({ documentId, dir }, 'Arquivos do documento removidos do storage');
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT') {
+        this.logger.warn({ documentId, error }, 'Falha ao remover pasta do documento no storage');
+        throw error;
+      }
+    }
   }
 
   async fetchUrl(url: string): Promise<string> {

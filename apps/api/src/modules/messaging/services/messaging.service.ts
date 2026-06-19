@@ -18,18 +18,10 @@ export class MessagingService {
   ) {}
 
   async handleFieldQuery(dto: FieldQueryDto) {
-    const hybridResults = await this.ragService.hybridSearch(
+    const chunks = await this.ragService.retrieveChunksForAnswer(
       dto.queryText,
       dto.specialtyFilter,
-      5,
     );
-
-    let chunks: KnowledgeChunkDocument[] = [];
-    if (hybridResults.length > 0) {
-      chunks = await this.knowledgeRepository.findChunksByIds(
-        hybridResults.map((r) => r.chunkId),
-      );
-    }
 
     const citations = chunks.map((chunk) => this.toCitation(chunk));
     const answer = await this.ragService.generateAnswer(dto.queryText, chunks);

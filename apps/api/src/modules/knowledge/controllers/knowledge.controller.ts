@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -220,5 +221,15 @@ export class KnowledgeController {
   @ApiResponse({ status: 200 })
   reindexEmbeddings(@Param('documentId') documentId: string) {
     return this.knowledgeService.reindexDocumentEmbeddings(documentId);
+  }
+
+  @Delete('documents/:documentId')
+  @Roles(UserRole.ADMIN, UserRole.EDITOR)
+  @ApiOperation({
+    summary: 'Remove documento, pílulas, arquivo no storage e jobs associados (exclusão permanente)',
+  })
+  @ApiResponse({ status: 200 })
+  deleteDocument(@Param('documentId') documentId: string) {
+    return this.knowledgeService.deleteDocument(documentId);
   }
 }

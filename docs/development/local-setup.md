@@ -82,8 +82,11 @@ No `.env` da raiz:
 
 ```env
 PARSER_SERVICE_URL=http://localhost:8000
-PARSER_SERVICE_TIMEOUT_MS=120000
+PARSER_SERVICE_TIMEOUT_MS=7200000
+PARSER_MAX_UPLOAD_MB=150
 ```
+
+`PARSER_SERVICE_TIMEOUT_MS` default **2 h** — PDFs grandes em CPU (Docling + OCR) podem levar dezenas de minutos. A API também aplica um mínimo dinâmico (~8 min + ~4 min/MB).
 
 Sem o parser, PDFs usam fallback `pdf-parse`; imagens exigem `OPENAI_API_KEY` (Vision) ou Docling.
 
@@ -163,11 +166,23 @@ STORAGE_PATH=./storage
 4. **Busca** — teste query reformulada (ex.: `"quanto afastar tubo da parede"`)
 5. Swagger → `POST /messaging/query` *(resposta LLM exige `OPENAI_API_KEY`)*
 
-### Cancelar ingestão travada
+### Cancelar ingestão ou embeddings em andamento
 
-Admin → **Documentos** → botão **Cancelar** em linhas **Pendente** ou **Processando**.
+Admin → **Documentos** → **Cancelar** (ou **Ver log** → Cancelar no rodapé do console).
+
+Funciona enquanto o documento está **Pendente**, **Processando** ou **Concluído mas ainda gerando embeddings** (fila BullMQ com pílulas sem vetor).
 
 Remove jobs da fila, apaga pílulas parciais e marca status **Cancelado**. API: `POST /knowledge/documents/{id}/cancel-ingestion`.
+
+### Console de ingestão (SSE)
+
+**Documentos** → **Ver log** — stream em tempo real (`GET /knowledge/documents/{id}/ingestion-stream`) com fases parse/chunking/embedding, progresso de páginas Docling e barra de embeddings.
+
+### OCR sob demanda
+
+Se a extração de texto ficar suspeitamente baixa (PDF escaneado), o console oferece **Reprocessar com OCR**. OCR em CPU é **muito mais lento** que parse normal — use só em PDFs sem texto selecionável. API: `POST /knowledge/documents/{id}/reprocess-with-ocr`.
+
+Na importação, marque **Permitir fallback pdf-parse** para usar o parser simples quando Docling falhar ou estourar timeout.
 
 Guia: [phase-2.md](./phase-2.md)
 
@@ -210,6 +225,14 @@ Rebuild do pacote compartilhado após alterações em `packages/shared-types`:
 pnpm --filter @qi-conhecimento/shared-types build
 ```
 
+### Docling excedeu tempo limite / caiu para pdf-parse
+
+1. Confirme `pnpm parser:dev` rodando — logs mostram lotes `Lote X/Y concluído`
+2. PDFs com **texto nativo** não precisam de OCR — evite **Reprocessar com OCR** no admin
+3. Aumente `PARSER_SERVICE_TIMEOUT_MS` (ex.: `7200000` = 2 h) e reinicie a API
+4. OCR em 49 páginas em CPU pode levar **30–60+ min** — timeout curto dispara fallback automático para `pdf-parse` (pouco texto)
+5. Mantenha `PARSER_DO_OCR=false` no ambiente do parser (padrão em `parser:dev`) salvo reprocessamento explícito
+
 ### Docling indisponível — fallback para pdf-parse
 
 `PARSER_SERVICE_URL` está definido mas o parser não responde na porta 8000. Suba `pnpm parser:dev` ou comente a variável no `.env`.
@@ -223,8 +246,6 @@ Com `PARSER_SERVICE_URL` e o parser rodando, imagens passam pelo Docling. Caso c
 1. Use **Python 3.11 ou 3.12** — Docling ainda não suporta 3.14. O script `parser:setup` tenta `py -3.12` no Windows automaticamente.
 2. Primeira subida baixa modelos (~1 GB) — aguarde alguns minutos.
 3. Docker: `pnpm parser:docker` — exige Docker Desktop com espaço em disco suficiente.
-4. Health: `curl http://localhost:8000/health` — retorna `{"status":"ok"}` quando o serviço está pronto.
-
 4. Health: `curl http://localhost:8000/health` — retorna `{"status":"ok"}` quando o serviço está pronto.
 
 ### `std::bad_alloc` / Docling OOM na página X
@@ -271,9 +292,11 @@ Ver `.env.example` na raiz.
 | `EMBEDDING_MODEL` | `nomic-embed-text` (Ollama) ou `text-embedding-3-small` (OpenAI) |
 | `LLM_MODEL` | Modelo chat (default: `gpt-4o-mini`) |
 | `STORAGE_PATH` | Diretório de uploads (default: `./storage`) |
-| `MAX_UPLOAD_SIZE_MB` | Limite de upload (default: 50) |
+| `MAX_UPLOAD_SIZE_MB` | Limite de upload (default: 150) |
 | `PARSER_SERVICE_URL` | URL do parser Docling (default: `http://localhost:8000`) |
-| `PARSER_SERVICE_TIMEOUT_MS` | Timeout HTTP para o parser (default: 120000) |
+| `PARSER_SERVICE_TIMEOUT_MS` | Timeout HTTP para o parser (default: 7200000 = 2 h) |
+| `PARSER_MAX_UPLOAD_MB` | Limite no serviço parser (default: 150) |
+| `PARSER_DO_OCR` | OCR global no parser — deixe `false` salvo PDFs escaneados |
 
 ## Produção
 

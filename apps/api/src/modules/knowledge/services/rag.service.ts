@@ -9,9 +9,13 @@ import { EmbeddingService } from './embedding.service';
 import { LlmService } from './llm.service';
 
 const RRF_K = 60;
+/** Chunks enviados ao LLM no assistente (busca + resposta). */
+const RAG_ASK_CONTEXT_CHUNKS = 10;
+const RAG_ASK_SEARCH_LIMIT = 15;
+const RAG_CONTEXT_CHARS_PER_CHUNK = 1500;
 
 const RAG_SYSTEM_PROMPT =
-  'Você é um assistente técnico de engenharia civil e instalações. Responda de forma curta e objetiva (máx. 3 parágrafos). Sempre cite a norma ou fonte (ex: "Conforme NBR 5410, item 6.2.1..."). Use apenas o contexto fornecido. Se não houver informação suficiente, diga claramente.';
+  'Você é um assistente técnico de engenharia civil e instalações. Responda de forma curta e objetiva (máx. 3 parágrafos). Sempre cite a norma ou fonte (ex: "Conforme NBR 5410, item 6.2.1..."). Use apenas o contexto fornecido. Se o contexto trazer valores numéricos ou tabelas, cite-os. Se não houver informação suficiente, diga claramente.';
 
 @Injectable()
 export class RagService {
@@ -46,6 +50,46 @@ export class RagService {
     return ordered.map(mapSearchResult);
   }
 
+  /** Busca ampliada para o assistente — funde múltiplas consultas (ex.: tabela de K + pergunta original). */
+  async retrieveChunksForAnswer(
+    query: string,
+    specialty?: EngineeringSpecialty,
+  ): Promise<KnowledgeChunkDocument[]> {
+    const queries = this.expandSearchQueries(query);
+    const scores = new Map<string, number>();
+
+    for (const expandedQuery of queries) {
+      const results = await this.hybridSearch(expandedQuery, specialty, RAG_ASK_SEARCH_LIMIT);
+      results.forEach((result, rank) => {
+        scores.set(result.chunkId, (scores.get(result.chunkId) ?? 0) + 1 / (RRF_K + rank + 1));
+      });
+    }
+
+    const mergedIds = [...scores.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, RAG_ASK_CONTEXT_CHUNKS)
+      .map(([id]) => id);
+
+    if (mergedIds.length === 0) return [];
+
+    const chunks = await this.knowledgeRepository.findChunksByIds(mergedIds);
+    return mergedIds
+      .map((id) => chunks.find((chunk) => chunk._id.toString() === id))
+      .filter((chunk): chunk is KnowledgeChunkDocument => chunk !== undefined);
+  }
+
+  private expandSearchQueries(query: string): string[] {
+    const trimmed = query.trim();
+    const queries = [trimmed];
+
+    if (/coeficiente|flambagem|\bk\b|engastad|rotulad|esbeltez/i.test(trimmed)) {
+      queries.push('tabela coeficiente de flambagem condições de apoio K recomendado');
+      queries.push('valores teóricos e recomendados K barras comprimidas NBR 8800');
+    }
+
+    return [...new Set(queries)];
+  }
+
   async generateAnswer(
     query: string,
     chunks: KnowledgeChunkDocument[],
@@ -61,7 +105,7 @@ export class RagService {
     const context = chunks
       .map((chunk, i) => {
         const doc = chunk.documentId as { title?: string; normReference?: string };
-        return `[${i + 1}] ${doc.title ?? 'Documento'} (${doc.normReference ?? 'fonte interna'})\n${chunk.markdownContent.slice(0, 600)}`;
+        return `[${i + 1}] ${doc.title ?? 'Documento'} (${doc.normReference ?? 'fonte interna'})\n${chunk.markdownContent.slice(0, RAG_CONTEXT_CHARS_PER_CHUNK)}`;
       })
       .join('\n\n---\n\n');
 

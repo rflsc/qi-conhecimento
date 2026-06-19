@@ -17,5 +17,14 @@ class Settings:
     # Processa PDFs em lotes de N páginas (0 = documento inteiro de uma vez)
     page_batch_size: int = int(os.getenv("PARSER_PAGE_BATCH_SIZE", "15"))
 
+    # Extração de estrutura de tabelas (linhas/colunas/células)
+    do_table_structure: bool = os.getenv("PARSER_DO_TABLE_STRUCTURE", "true").lower() == "true"
+
+    # Modo do TableFormer: "accurate" (melhor qualidade, mais lento) ou "fast"
+    table_mode: str = os.getenv("PARSER_TABLE_MODE", "accurate").lower()
+
+    # Casa células detectadas com o texto do PDF — melhora tabelas com texto selecionável
+    table_cell_matching: bool = os.getenv("PARSER_TABLE_CELL_MATCHING", "true").lower() == "true"
+
 
 settings = Settings()

@@ -24,10 +24,27 @@ function parseSseChunk(buffer: string): { events: IngestionProgress[]; rest: str
   return { events, rest };
 }
 
-function pickNewest(a: IngestionProgress | null, b: IngestionProgress | null): IngestionProgress | null {
+function mergeProgress(a: IngestionProgress | null, b: IngestionProgress | null): IngestionProgress | null {
   if (!a) return b;
   if (!b) return a;
-  return new Date(a.updatedAt).getTime() >= new Date(b.updatedAt).getTime() ? a : b;
+
+  const primary = a.logs.length >= b.logs.length ? a : b;
+  const secondary = primary === a ? b : a;
+
+  return {
+    ...primary,
+    embeddingsDone: Math.max(a.embeddingsDone, b.embeddingsDone),
+    chunksCreated: Math.max(a.chunksCreated, b.chunksCreated),
+    totalChunks: Math.max(a.totalChunks, b.totalChunks),
+    embeddingsQueued: Math.max(a.embeddingsQueued, b.embeddingsQueued),
+    percent: Math.max(a.percent, b.percent),
+    parsePagesDone: Math.max(a.parsePagesDone ?? 0, b.parsePagesDone ?? 0) || undefined,
+    parsePagesTotal: Math.max(a.parsePagesTotal ?? 0, b.parsePagesTotal ?? 0) || undefined,
+    updatedAt:
+      new Date(a.updatedAt).getTime() >= new Date(b.updatedAt).getTime() ? a.updatedAt : b.updatedAt,
+    estimatedSecondsRemaining:
+      primary.estimatedSecondsRemaining ?? secondary.estimatedSecondsRemaining ?? null,
+  };
 }
 
 function useIngestionSse(documentId: string | null, enabled: boolean) {
@@ -105,7 +122,7 @@ export function useIngestionProgress(documentId: string | null, enabled: boolean
   const { streamed, connected } = useIngestionSse(documentId, enabled);
 
   const progress = useMemo(
-    () => pickNewest(streamed, polled ?? null),
+    () => mergeProgress(streamed, polled ?? null),
     [streamed, polled],
   );
 

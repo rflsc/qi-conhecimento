@@ -66,6 +66,10 @@ export class IngestionProcessor extends WorkerHost {
     this.progressService.embeddingStarted(documentId, total);
 
     const embedding = await this.embeddingService.embed(chunk.content);
+    if (await this.knowledgeRepository.isDocumentCancelled(documentId)) {
+      this.logger.info({ chunkId, documentId }, 'Embedding descartado — ingestão cancelada');
+      return;
+    }
     if (!embedding) {
       this.progressService.appendEmbeddingWarning(
         documentId,
@@ -76,6 +80,7 @@ export class IngestionProcessor extends WorkerHost {
     }
 
     await this.knowledgeRepository.updateChunkEmbedding(chunkId, embedding, chunkId);
+    await this.progressService.recordEmbeddingDone(documentId);
     this.eventEmitter.emit(DomainEvents.CHUNK_INDEXED, { chunkId, documentId });
     this.logger.info({ chunkId }, 'Embedding gerado');
   }

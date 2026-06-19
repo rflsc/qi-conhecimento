@@ -25,14 +25,19 @@ Entrega concluída: upload PDF/imagem/link, parsers (Docling + fallbacks), embed
 | `RagService` | Busca híbrida (RRF: texto + vetorial) + LLM |
 | `POST /knowledge/documents/upload` | Multipart — PDF ou imagem |
 | `POST /knowledge/documents/import-link` | Importação de URL |
-| `POST /knowledge/documents/{id}/cancel-ingestion` | Cancela ingestão pendente/em processamento |
+| `POST /knowledge/documents/{id}/cancel-ingestion` | Cancela ingestão (parse, chunking ou embeddings pendentes) |
 | `POST /knowledge/documents/{id}/reindex-embeddings` | Reenfileira embeddings dos chunks |
+| `POST /knowledge/documents/{id}/reprocess-with-ocr` | Reprocessa PDF com OCR (Docling) |
+| `POST /knowledge/documents/{id}/dismiss-ocr-retry` | Dispensa oferta de OCR no console |
+| `GET /knowledge/documents/{id}/ingestion-stream` | SSE — progresso em tempo real |
 
 - Embeddings em `chunk.embedding[]` (cosine similarity in-app)
 - `GET /knowledge/stats` inclui `chunksWithEmbeddings` / `chunksWithoutEmbeddings`
 - Chunks expõem `hasEmbedding` na listagem
 - Status de ingestão: `pending` → `processing` → `completed` / `failed` / **`cancelled`**
 - `ingestionError` exposto quando status = `failed` ou `cancelled`
+- `parseQualityWarning` + `offerOcrRetry` quando extração de texto é suspeitamente baixa
+- Docling: timeout dinâmico, progresso por página/lote, fallback automático para `pdf-parse` em timeout
 
 ### Parser Docling (`apps/parser`)
 
@@ -42,9 +47,10 @@ Entrega concluída: upload PDF/imagem/link, parsers (Docling + fallbacks), embed
 
 ### Admin (`apps/admin`)
 
-- **`/import`** — abas PDF, Imagem, Link/HTML
+- **`/import`** — abas PDF, Imagem, Link/HTML; opção fallback `pdf-parse`
 - **Documentos** — status com tooltip de erro; badge `embedding ✓` nas pílulas
-- **Cancelar** — botão para documentos `pending` / `processing`
+- **Cancelar** — parse, chunking ou **embeddings ainda na fila** (status `completed` com pílulas sem vetor)
+- **Console de ingestão** — SSE, progresso Docling por página, barra de embeddings, oferta OCR
 - Dashboard — cards apontam para `/import?type=...`
 
 ### Mensageria
@@ -83,7 +89,7 @@ STORAGE_PATH=./storage
 1. Login admin → **Importar** → PDF de norma
 2. Aguarde **Concluído**; pílulas com `embedding ✓`
 3. **Busca** — query exata e reformulada
-4. Import duplicado/travado → **Cancelar** em Documentos
+4. Import duplicado/travado → **Cancelar** em Documentos (inclui parar fila de embeddings)
 
 ### Reindexar após configurar embeddings
 
@@ -94,7 +100,7 @@ Swagger: `POST /knowledge/documents/{documentId}/reindex-embeddings`
 ```env
 # Parser (opcional — melhor qualidade em PDFs técnicos)
 PARSER_SERVICE_URL=http://localhost:8000
-PARSER_SERVICE_TIMEOUT_MS=120000
+PARSER_SERVICE_TIMEOUT_MS=7200000
 
 # Embeddings — Ollama (grátis) ou OpenAI (pago)
 EMBEDDING_PROVIDER=ollama
@@ -108,7 +114,7 @@ OPENAI_API_KEY=
 LLM_MODEL=gpt-4o-mini
 
 STORAGE_PATH=./storage
-MAX_UPLOAD_SIZE_MB=50
+MAX_UPLOAD_SIZE_MB=150
 ```
 
 ## Próxima fase

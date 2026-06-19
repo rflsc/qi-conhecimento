@@ -9,6 +9,7 @@ storage/
 dump/
 pdf-downloads/
 scripts/pdf-urls.txt
+/*.pdf
 infra/data/
 *.tsbuildinfo
 apps/api/src/**/*.js

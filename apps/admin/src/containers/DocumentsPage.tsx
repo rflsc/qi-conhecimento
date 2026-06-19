@@ -4,16 +4,25 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   useCancelIngestionMutation,
+  useDeleteDocumentMutation,
   useListChunksQuery,
   useListDocumentsQuery,
 } from '@/store/api';
 import { INGESTION_STATUS_LABELS, SOURCE_TYPE_LABELS } from '@/lib/constants';
 import { IngestionConsoleModal } from '@/components/IngestionConsoleModal';
+import { toast } from 'sonner';
 
 type Tab = 'documents' | 'chunks';
 
-function canCancelIngestion(status: string): boolean {
-  return status === 'pending' || status === 'processing';
+function canCancelIngestion(doc: {
+  ingestionStatus: string;
+  embeddingsPending?: boolean;
+}): boolean {
+  return (
+    doc.ingestionStatus === 'pending' ||
+    doc.ingestionStatus === 'processing' ||
+    (doc.ingestionStatus === 'completed' && doc.embeddingsPending === true)
+  );
 }
 
 const PAGE_SIZE = 15;
@@ -24,6 +33,7 @@ export function DocumentsPage() {
   const [documentsPage, setDocumentsPage] = useState(1);
   const [chunksPage, setChunksPage] = useState(1);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [consoleDoc, setConsoleDoc] = useState<{ id: string; title: string } | null>(null);
 
   const documentsQuery = useListDocumentsQuery(
@@ -35,6 +45,7 @@ export function DocumentsPage() {
     { skip: tab !== 'chunks', refetchOnMountOrArgChange: true },
   );
   const [cancelIngestion] = useCancelIngestionMutation();
+  const [deleteDocument] = useDeleteDocumentMutation();
 
   const activeQuery = tab === 'documents' ? documentsQuery : chunksQuery;
   const activePage = tab === 'documents' ? documentsPage : chunksPage;
@@ -58,6 +69,26 @@ export function DocumentsPage() {
       await cancelIngestion(documentId).unwrap();
     } finally {
       setCancellingId(null);
+    }
+  }
+
+  async function handleDelete(documentId: string, title: string) {
+    if (!window.confirm(t('documents.deleteConfirm', { title }))) return;
+
+    setDeletingId(documentId);
+    if (consoleDoc?.id === documentId) setConsoleDoc(null);
+    try {
+      const result = await deleteDocument(documentId).unwrap();
+      toast.success(
+        t('documents.deleted', {
+          chunks: result.deletedChunks,
+          jobs: result.removedJobs,
+        }),
+      );
+    } catch {
+      toast.error(t('documents.deleteFailed'));
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -164,7 +195,7 @@ export function DocumentsPage() {
                         >
                           {t('documents.viewLog')}
                         </button>
-                        {canCancelIngestion(doc.ingestionStatus) ? (
+                        {canCancelIngestion(doc) ? (
                           <button
                             type="button"
                             disabled={cancellingId === doc.id}
@@ -176,6 +207,14 @@ export function DocumentsPage() {
                               : t('documents.cancel')}
                           </button>
                         ) : null}
+                        <button
+                          type="button"
+                          disabled={deletingId === doc.id}
+                          onClick={() => handleDelete(doc.id, doc.title)}
+                          className="text-red-400 hover:text-red-300 text-xs font-medium disabled:opacity-50"
+                        >
+                          {deletingId === doc.id ? t('documents.deleting') : t('documents.delete')}
+                        </button>
                       </div>
                     </td>
                   </tr>

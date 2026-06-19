@@ -10,9 +10,37 @@ from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.document_converter import DocumentConverter, PdfFormatOption
 
+try:  # TableFormerMode mudou de módulo entre versões do Docling
+    from docling.datamodel.pipeline_options import TableFormerMode
+except ImportError:  # pragma: no cover - fallback p/ versões antigas
+    TableFormerMode = None  # type: ignore[assignment]
+
 from .config import settings
+from .progress import complete_job, init_job, update_job
 
 logger = logging.getLogger("qi.parser")
+
+
+def _apply_table_options(pipeline_options: PdfPipelineOptions) -> str:
+    """Configura extração de tabelas no pipeline. Retorna rótulo p/ log."""
+    pipeline_options.do_table_structure = settings.do_table_structure
+    if not settings.do_table_structure:
+        return "off"
+
+    table_opts = pipeline_options.table_structure_options
+    table_opts.do_cell_matching = settings.table_cell_matching
+
+    mode_label = settings.table_mode
+    if TableFormerMode is not None:
+        mode = (
+            TableFormerMode.ACCURATE
+            if settings.table_mode != "fast"
+            else TableFormerMode.FAST
+        )
+        table_opts.mode = mode
+        mode_label = getattr(mode, "name", str(mode)).lower()
+
+    return f"{mode_label}/cell_matching={settings.table_cell_matching}"
 
 
 def get_converter() -> DocumentConverter:
@@ -36,6 +64,8 @@ def _build_converter(do_ocr: bool | None = None) -> DocumentConverter:
         table_batch_size=1,
     )
 
+    table_label = _apply_table_options(pipeline_options)
+
     pdf_format = PdfFormatOption(pipeline_options=pipeline_options)
     if settings.low_memory:
         pdf_format = PdfFormatOption(
@@ -44,17 +74,23 @@ def _build_converter(do_ocr: bool | None = None) -> DocumentConverter:
         )
 
     logger.info(
-        "DocumentConverter ocr=%s low_memory=%s batch=%s",
+        "DocumentConverter ocr=%s low_memory=%s batch=%s tables=%s",
         ocr,
         settings.low_memory,
         settings.page_batch_size,
+        table_label,
     )
     return DocumentConverter(
         format_options={InputFormat.PDF: pdf_format},
     )
 
 
-def convert_to_markdown(file_bytes: bytes, filename: str, do_ocr: bool | None = None) -> tuple[str, str | None]:
+def convert_to_markdown(
+    file_bytes: bytes,
+    filename: str,
+    do_ocr: bool | None = None,
+    job_id: str | None = None,
+) -> tuple[str, str | None]:
     suffix = os.path.splitext(filename)[1] or ".pdf"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(file_bytes)
@@ -62,17 +98,40 @@ def convert_to_markdown(file_bytes: bytes, filename: str, do_ocr: bool | None = 
 
     try:
         if suffix.lower() != ".pdf":
-            return _convert_path(tmp_path)
+            if job_id:
+                init_job(job_id, message=f"Convertendo {filename}…")
+            result = _convert_path(tmp_path, do_ocr=do_ocr, job_id=job_id)
+            if job_id:
+                complete_job(job_id)
+            return result
 
         try:
             page_count = _pdf_page_count(tmp_path)
         except Exception as exc:
             logger.warning("Pdfium não leu metadados do PDF (%s) — convertendo documento inteiro", exc)
-            return _convert_path(tmp_path, do_ocr=do_ocr)
+            if job_id:
+                init_job(job_id, message="Metadados indisponíveis — convertendo documento inteiro…")
+            result = _convert_path(tmp_path, do_ocr=do_ocr, job_id=job_id)
+            if job_id:
+                complete_job(job_id)
+            return result
+
+        if job_id:
+            init_job(job_id, pages_total=page_count, message=f"PDF com {page_count} página(s) — iniciando Docling…")
 
         batch = settings.page_batch_size
         if batch <= 0 or page_count <= batch:
-            return _convert_path(tmp_path, do_ocr=do_ocr)
+            if job_id:
+                update_job(
+                    job_id,
+                    message=f"Processando {page_count} página(s) em um único lote…",
+                    batch_count=1,
+                    batch_index=0,
+                )
+            result = _convert_path(tmp_path, do_ocr=do_ocr, job_id=job_id, page_range=None, pages_total=page_count)
+            if job_id:
+                complete_job(job_id)
+            return result
 
         batch_count = (page_count + batch - 1) // batch
         logger.info(
@@ -81,15 +140,32 @@ def convert_to_markdown(file_bytes: bytes, filename: str, do_ocr: bool | None = 
             batch,
             batch_count,
         )
+        if job_id:
+            update_job(job_id, batch_count=batch_count)
+
         parts: list[str] = []
-        # Reutiliza um único conversor — recriar o pipeline a cada lote recarrega
-        # modelos Docling e pode multiplicar o tempo total por 2–3× em CPU.
         converter = _build_converter(do_ocr)
         try:
             for index, start in enumerate(range(1, page_count + 1, batch), start=1):
                 end = min(start + batch - 1, page_count)
+                if job_id:
+                    update_job(
+                        job_id,
+                        batch_index=index,
+                        batch_start_page=start,
+                        batch_end_page=end,
+                        pages_done=start - 1,
+                        message=f"Lote {index}/{batch_count} — processando págs. {start}–{end} de {page_count}…",
+                    )
                 t0 = time.monotonic()
-                markdown, _ = _convert_path(tmp_path, converter, page_range=(start, end), do_ocr=do_ocr)
+                markdown, _ = _convert_path(
+                    tmp_path,
+                    converter,
+                    page_range=(start, end),
+                    do_ocr=do_ocr,
+                    job_id=job_id,
+                    pages_total=page_count,
+                )
                 elapsed = time.monotonic() - t0
                 logger.info(
                     "Lote %s/%s concluído (págs. %s–%s) em %.1fs",
@@ -99,12 +175,20 @@ def convert_to_markdown(file_bytes: bytes, filename: str, do_ocr: bool | None = 
                     end,
                     elapsed,
                 )
+                if job_id:
+                    update_job(
+                        job_id,
+                        pages_done=end,
+                        message=f"Lote {index}/{batch_count} concluído — págs. {start}–{end} ({end}/{page_count})",
+                    )
                 if markdown.strip():
                     parts.append(markdown.strip())
         finally:
             del converter
 
         full = "\n\n".join(parts)
+        if job_id:
+            complete_job(job_id)
         return full, _extract_title(full)
     finally:
         try:
@@ -126,6 +210,8 @@ def _convert_path(
     converter: DocumentConverter | None = None,
     page_range: tuple[int, int] | None = None,
     do_ocr: bool | None = None,
+    job_id: str | None = None,
+    pages_total: int = 0,
 ) -> tuple[str, str | None]:
     owns_converter = converter is None
     active = converter or _build_converter(do_ocr)

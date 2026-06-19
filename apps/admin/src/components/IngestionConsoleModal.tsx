@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { IngestionLogEntry, IngestionPhase, IngestionProgress } from '@qi-conhecimento/shared-types';
 import { useIngestionProgress } from '@/hooks/useIngestionStream';
 import { INGESTION_STATUS_LABELS } from '@/lib/constants';
-import { useDismissOcrRetryMutation, useReprocessWithOcrMutation } from '@/store/api';
+import { useDismissOcrRetryMutation, useCancelIngestionMutation, useReprocessWithOcrMutation } from '@/store/api';
 import { toast } from 'sonner';
 
 interface Props {
@@ -68,10 +68,18 @@ function embeddingPercent(progress: IngestionProgress): number | null {
   return Math.round((progress.embeddingsDone / progress.totalChunks) * 100);
 }
 
+function parsePagePercent(progress: IngestionProgress): number | null {
+  if (!progress.parsePagesTotal || progress.parsePagesTotal <= 0) return null;
+  return Math.round(((progress.parsePagesDone ?? 0) / progress.parsePagesTotal) * 100);
+}
+
 function ProgressPanel({ progress, t }: { progress: IngestionProgress; t: (key: string, opts?: Record<string, unknown>) => string }) {
   const embedPct = embeddingPercent(progress);
+  const parsePct = parsePagePercent(progress);
   const showEmbeddingBar =
     progress.phase === 'embedding' && progress.totalChunks > 0 && progress.embeddingsDone < progress.totalChunks;
+  const showParseBar =
+    progress.phase === 'parsing' && parsePct != null;
 
   return (
     <div className="space-y-3 border-b border-slate-800 pb-4">
@@ -120,6 +128,29 @@ function ProgressPanel({ progress, t }: { progress: IngestionProgress; t: (key: 
         </div>
       ) : null}
 
+      {showParseBar ? (
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-slate-500">
+            <span>{t('ingestionConsole.parseProgress')}</span>
+            <span className="font-mono text-slate-300">
+              {progress.parsePagesDone ?? 0}/{progress.parsePagesTotal} ({parsePct}%)
+              {progress.parseBatchIndex && progress.parseBatchCount
+                ? ` · ${t('ingestionConsole.parseBatch', {
+                    current: progress.parseBatchIndex,
+                    total: progress.parseBatchCount,
+                  })}`
+                : ''}
+            </span>
+          </div>
+          <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-violet-500 transition-all duration-500 ease-out"
+              style={{ width: `${parsePct ?? 0}%` }}
+            />
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
         <div className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2">
           <p className="text-slate-500">{t('ingestionConsole.stats.chunks')}</p>
@@ -148,13 +179,38 @@ function ProgressPanel({ progress, t }: { progress: IngestionProgress; t: (key: 
   );
 }
 
+function canCancelProgress(progress: IngestionProgress | null): boolean {
+  if (!progress) return false;
+  if (progress.ingestionStatus === 'pending' || progress.ingestionStatus === 'processing') {
+    return true;
+  }
+  return (
+    progress.ingestionStatus === 'completed' &&
+    progress.totalChunks > 0 &&
+    progress.embeddingsDone < progress.totalChunks
+  );
+}
+
 export function IngestionConsoleModal({ documentId, documentTitle, onClose }: Props) {
   const { t } = useTranslation('common');
   const { progress, connected } = useIngestionProgress(documentId, true);
   const logEndRef = useRef<HTMLDivElement>(null);
   const [reprocessWithOcr, { isLoading: isReprocessing }] = useReprocessWithOcrMutation();
   const [dismissOcrRetry, { isLoading: isDismissing }] = useDismissOcrRetryMutation();
+  const [cancelIngestion, { isLoading: isCancelling }] = useCancelIngestionMutation();
   const [ocrActionTaken, setOcrActionTaken] = useState(false);
+
+  const showCancel = canCancelProgress(progress);
+
+  async function handleCancel() {
+    if (!window.confirm(t('documents.cancelConfirm', { title: documentTitle }))) return;
+    try {
+      await cancelIngestion(documentId).unwrap();
+      toast.success(t('documents.cancelled'));
+    } catch {
+      toast.error(t('documents.cancelFailed'));
+    }
+  }
 
   const showOcrOffer =
     Boolean(progress?.offerOcrRetry && progress.parseQualityWarning) && !ocrActionTaken;
@@ -303,12 +359,24 @@ export function IngestionConsoleModal({ documentId, documentTitle, onClose }: Pr
           </div>
         </div>
 
-        <footer className="px-5 py-3 border-t border-slate-800 text-xs text-slate-500">
-          {progress?.phase === 'parsing'
-            ? t('ingestionConsole.parsingHint')
-            : progress?.phase === 'embedding'
-              ? t('ingestionConsole.embeddingHint')
-              : t('ingestionConsole.hint')}
+        <footer className="px-5 py-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-slate-500">
+            {progress?.phase === 'parsing'
+              ? t('ingestionConsole.parsingHint')
+              : progress?.phase === 'embedding'
+                ? t('ingestionConsole.embeddingHint')
+                : t('ingestionConsole.hint')}
+          </p>
+          {showCancel ? (
+            <button
+              type="button"
+              onClick={() => void handleCancel()}
+              disabled={isCancelling}
+              className="text-red-400 hover:text-red-300 text-xs font-medium disabled:opacity-50"
+            >
+              {isCancelling ? t('documents.cancelling') : t('documents.cancel')}
+            </button>
+          ) : null}
         </footer>
       </div>
     </div>

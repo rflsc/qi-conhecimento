@@ -90,6 +90,9 @@ export class DocumentIngestionService {
         const parseResult = await parser.parse(rawInput, {
           allowWeakParserFallback: options?.allowWeakParserFallback,
           doOcr: options?.doOcr,
+          onParseProgress: usesDocling
+            ? (update) => this.progressService.updateParsePageProgress(documentId, update)
+            : undefined,
         });
         markdown = parseResult.markdown;
         parserEngine = parseResult.engine;
@@ -109,6 +112,7 @@ export class DocumentIngestionService {
         }
       } finally {
         stopParseHeartbeat();
+        this.progressService.clearParsePageProgress(documentId);
       }
       const parseSeconds = ((Date.now() - parseStarted) / 1000).toFixed(1);
       const engineLabel = parserEngine ? ` via ${parserEngine}` : '';
@@ -192,7 +196,11 @@ export class DocumentIngestionService {
           chunkId: chunk._id.toString(),
         });
 
-        this.progressService.chunkCreated(documentId, i + 1, segments.length);
+        this.progressService.chunkCreated(documentId, i + 1, segments.length, {
+          chapter: segment.chapter,
+          section: segment.section,
+          normItem: segment.normItem,
+        });
       }
 
       if (segments.length > 0) {
@@ -214,6 +222,7 @@ export class DocumentIngestionService {
           `Parse e pílulas prontos — gerando embeddings (0/${segments.length})`,
           'success',
         );
+        this.progressService.startEmbeddingSync(documentId);
       }
       this.eventEmitter.emit(DomainEvents.DOCUMENT_PROCESSED, { documentId });
       this.logger.info({ documentId, chunks: segments.length }, 'Documento processado');

@@ -48,7 +48,14 @@
     "cancel": "Cancel",
     "cancelling": "Cancelling...",
     "viewLog": "View log",
-    "cancelConfirm": "Cancel ingestion of \"{{title}}\"? Queued jobs will be removed and partial chunks deleted."
+    "cancelConfirm": "Cancel ingestion of \"{{title}}\"? Queued jobs will be removed and partial chunks deleted.",
+    "cancelled": "Ingestion cancelled",
+    "cancelFailed": "Could not cancel ingestion",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "deleteConfirm": "Permanently delete \"{{title}}\"? This removes the document, all chunks, embeddings, and the file on disk. This cannot be undone.",
+    "deleted": "Document removed — {{chunks}} chunk(s) and {{jobs}} queue job(s)",
+    "deleteFailed": "Could not delete the document"
   },
   "ingestionConsole": {
     "title": "Ingestion console",
@@ -66,7 +73,9 @@
     "etaSeconds": "~{{count}}s remaining",
     "etaMinutes": "~{{count}} min remaining",
     "hint": "Parser, chunking and embeddings update in real time via SSE.",
-    "parsingHint": "PDF parsing can take several minutes. The log refreshes every 10 seconds while processing.",
+    "parsingHint": "PDF parsing can take several minutes. During Docling you will see page and batch progress.",
+    "parseProgress": "Docling progress (pages)",
+    "parseBatch": "batch {{current}}/{{total}}",
     "embeddingHint": "Embeddings run in a queue after parsing. Overall progress reaches 100% only when all are done.",
     "lowExtractionTitle": "Very low text extraction",
     "ocrRetryHint": "OCR reads text from scanned PDFs and takes longer. Reprocess this document with OCR?",

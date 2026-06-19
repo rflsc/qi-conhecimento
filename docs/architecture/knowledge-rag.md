@@ -15,6 +15,8 @@ Metadados da fonte ingerida:
 | `normReference` | Ex.: `NBR 8160` |
 | `ingestionStatus` | `pending` → `processing` → `completed` / `failed` / `cancelled` |
 | `ingestionError` | Mensagem de erro ou motivo do cancelamento |
+| `parseQualityWarning` | Aviso quando extração de texto é suspeitamente baixa |
+| `offerOcrRetry` | Oferta de reprocessamento com OCR no admin |
 
 ### KnowledgeChunk
 
@@ -45,8 +47,10 @@ flowchart TD
   H --> I[embedding[] persistido]
   I --> J[ingestionStatus: completed]
   B --> K[Cancelar no admin]
-  K --> L[status: cancelled + jobs removidos]
+  K --> L[status: cancelled + jobs removidos + pílulas apagadas]
 ```
+
+> Após o parse, o documento fica `completed` enquanto embeddings ainda rodam em fila. **Cancelar** continua disponível até todos os vetores serem gerados.
 
 ### Parsers (`apps/api/src/modules/ingestion/parsers/`)
 
@@ -67,9 +71,16 @@ Parser service: [parser-service.md](./parser-service.md)
 
 ### Cancelamento
 
-- Admin → Documentos → **Cancelar** (status `pending` ou `processing`)
-- API remove jobs BullMQ pendentes, soft-delete de pílulas parciais
-- Workers em execução checam `ingestionStatus === cancelled` e abortam
+- Admin → Documentos ou console de ingestão → **Cancelar**
+- Válido em `pending`, `processing` ou `completed` com embeddings ainda na fila
+- API marca `cancelled` **antes** de drenar jobs — workers ativos abortam ao persistir
+- Remove jobs BullMQ (`process-document` + `generate-embeddings`), soft-delete de pílulas parciais
+
+### Qualidade de parse e OCR
+
+- `assessParseQuality` detecta extração muito baixa (ex.: fallback `pdf-parse` em PDF escaneado)
+- Console admin oferece **Reprocessar com OCR** (`POST .../reprocess-with-ocr`) ou **Manter assim**
+- OCR via Docling é lento em CPU — reserve para PDFs sem texto selecionável
 
 ## Embeddings (`EmbeddingService`)
 
@@ -106,8 +117,11 @@ Reindexar documento existente: `POST /knowledge/documents/{id}/reindex-embedding
 | GET | `/knowledge/chunks` | Lista pílulas (`?documentId=` opcional) |
 | POST | `/knowledge/documents/upload` | Upload PDF/imagem (multipart) |
 | POST | `/knowledge/documents/import-link` | Importação de URL |
-| POST | `/knowledge/documents/{id}/cancel-ingestion` | Cancela ingestão |
+| POST | `/knowledge/documents/{id}/cancel-ingestion` | Cancela ingestão (inclui embeddings pendentes) |
 | POST | `/knowledge/documents/{id}/reindex-embeddings` | Reenfileira embeddings |
+| POST | `/knowledge/documents/{id}/reprocess-with-ocr` | Reprocessa PDF com OCR |
+| POST | `/knowledge/documents/{id}/dismiss-ocr-retry` | Dispensa oferta de OCR |
+| GET | `/knowledge/documents/{id}/ingestion-stream` | SSE — progresso da ingestão |
 | POST | `/knowledge/cms` | CMS — documento + Markdown |
 | POST | `/knowledge/documents/manual-content` | Chunk em documento existente |
 | POST | `/knowledge/search` | Busca híbrida (RRF + filtro especialidade) |

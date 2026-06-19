@@ -122,8 +122,11 @@ Trabalho assíncrono via BullMQ: `IngestionProcessor` → `DocumentIngestionServ
 | GET | `/knowledge/chunks` | Lista pílulas de conhecimento |
 | POST | `/knowledge/documents/upload` | Upload PDF/imagem (multipart) |
 | POST | `/knowledge/documents/import-link` | Importação de URL |
-| POST | `/knowledge/documents/{id}/cancel-ingestion` | Cancela ingestão pendente/em processamento |
+| POST | `/knowledge/documents/{id}/cancel-ingestion` | Cancela ingestão (parse ou embeddings pendentes) |
 | POST | `/knowledge/documents/{id}/reindex-embeddings` | Reenfileira embeddings dos chunks |
+| POST | `/knowledge/documents/{id}/reprocess-with-ocr` | Reprocessa PDF com OCR (Docling) |
+| POST | `/knowledge/documents/{id}/dismiss-ocr-retry` | Dispensa oferta de OCR |
+| GET | `/knowledge/documents/{id}/ingestion-stream` | SSE — progresso da ingestão |
 | POST | `/knowledge/cms` | CMS — documento + Markdown |
 | POST | `/knowledge/documents/manual-content` | Chunk em documento existente |
 | POST | `/knowledge/search` | Busca híbrida (RRF texto + vetorial) |

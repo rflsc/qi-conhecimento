@@ -32,6 +32,7 @@ export class PdfParser implements DocumentParser {
     try {
       const result = await this.doclingClient.parse(buffer, 'document.pdf', {
         doOcr: options?.doOcr === true,
+        onProgress: options?.onParseProgress,
       });
       return { ...result, engine: result.engine ?? 'docling', usedWeakFallback: false };
     } catch (error) {

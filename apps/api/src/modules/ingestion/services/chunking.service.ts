@@ -7,7 +7,7 @@ export interface ChunkSegment {
   normItem?: string;
 }
 
-const MAX_CHUNK_CHARS = 2000;
+const MAX_CHUNK_CHARS = 2500;
 
 @Injectable()
 export class ChunkingService {
@@ -17,39 +17,50 @@ export class ChunkingService {
 
     for (const section of sections) {
       if (section.content.length <= MAX_CHUNK_CHARS) {
-        segments.push({
-          chapter: section.heading || documentTitle,
-          section: section.heading,
-          markdownContent: section.content,
-          normItem: this.extractNormItem(section.content),
-        });
+        segments.push(this.buildSegment(section, section.content, documentTitle));
         continue;
       }
 
-      const paragraphs = section.content.split(/\n{2,}/).filter(Boolean);
-      let buffer = section.heading ? `${section.heading}\n\n` : '';
+      const headingPrefix = section.heading ? `${section.heading}\n\n` : '';
+      // section.content já começa com o heading — remove para não duplicá-lo.
+      const body = section.heading
+        ? section.content.slice(section.heading.length).trimStart()
+        : section.content;
+      const blocks = body.split(/\n{2,}/).filter(Boolean);
+      let buffer = headingPrefix;
 
-      for (const paragraph of paragraphs) {
-        if ((buffer + paragraph).length > MAX_CHUNK_CHARS && buffer.trim()) {
-          segments.push({
-            chapter: section.heading || documentTitle,
-            section: section.heading,
-            markdownContent: buffer.trim(),
-            normItem: this.extractNormItem(buffer),
-          });
-          buffer = section.heading ? `${section.heading}\n\n` : '';
+      const flush = () => {
+        const content = buffer.trim();
+        // Nunca emite um chunk que é só o cabeçalho da seção (sem conteúdo útil).
+        if (content && content !== section.heading) {
+          segments.push(this.buildSegment(section, content, documentTitle));
         }
-        buffer += `${paragraph}\n\n`;
+        buffer = headingPrefix;
+      };
+
+      for (const block of blocks) {
+        const isTable = this.isTableBlock(block);
+
+        // Tabela é atômica: se não cabe no buffer atual, fecha o anterior e
+        // mantém a tabela inteira (com o cabeçalho da seção) no próprio chunk.
+        if (isTable) {
+          if (buffer.trim() && buffer.trim() !== section.heading) {
+            flush();
+          }
+          segments.push(
+            this.buildSegment(section, `${headingPrefix}${block}`.trim(), documentTitle),
+          );
+          buffer = headingPrefix;
+          continue;
+        }
+
+        if ((buffer + block).length > MAX_CHUNK_CHARS && buffer.trim() !== section.heading) {
+          flush();
+        }
+        buffer += `${block}\n\n`;
       }
 
-      if (buffer.trim()) {
-        segments.push({
-          chapter: section.heading || documentTitle,
-          section: section.heading,
-          markdownContent: buffer.trim(),
-          normItem: this.extractNormItem(buffer),
-        });
-      }
+      flush();
     }
 
     if (segments.length === 0 && markdown.trim()) {
@@ -60,6 +71,27 @@ export class ChunkingService {
     }
 
     return segments;
+  }
+
+  private buildSegment(
+    section: { heading: string },
+    content: string,
+    documentTitle: string,
+  ): ChunkSegment {
+    return {
+      chapter: section.heading || documentTitle,
+      section: section.heading || undefined,
+      markdownContent: content,
+      normItem: this.extractNormItem(content),
+    };
+  }
+
+  /** Bloco é tabela markdown se a maioria das linhas usa pipes (`|`). */
+  private isTableBlock(block: string): boolean {
+    const lines = block.split('\n').filter((line) => line.trim());
+    if (lines.length < 2) return false;
+    const pipeLines = lines.filter((line) => line.trim().startsWith('|') || line.includes(' | '));
+    return pipeLines.length >= Math.max(2, Math.ceil(lines.length * 0.6));
   }
 
   private splitByHeadings(markdown: string): Array<{ heading: string; content: string }> {

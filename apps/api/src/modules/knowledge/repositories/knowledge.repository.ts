@@ -142,7 +142,8 @@ export class KnowledgeRepository {
   countChunkEmbeddingsByDocument(
     documentId: string,
   ): Promise<{ total: number; withEmbedding: number }> {
-    const filter = { documentId, deletedAt: null };
+    const docObjectId = new Types.ObjectId(documentId);
+    const filter = { documentId: docObjectId, deletedAt: null };
     return Promise.all([
       this.chunkModel.countDocuments(filter).exec(),
       this.chunkModel
@@ -157,6 +158,30 @@ export class KnowledgeRepository {
       .select('_id')
       .exec()
       .then((chunks) => chunks.map((chunk) => chunk._id.toString()));
+  }
+
+  findAllChunkIdsByDocument(documentId: string): Promise<string[]> {
+    const docObjectId = new Types.ObjectId(documentId);
+    return this.chunkModel
+      .find({ documentId: docObjectId })
+      .select('_id')
+      .exec()
+      .then((chunks) => chunks.map((chunk) => chunk._id.toString()));
+  }
+
+  hardDeleteChunksByDocument(documentId: string): Promise<number> {
+    const docObjectId = new Types.ObjectId(documentId);
+    return this.chunkModel
+      .deleteMany({ documentId: docObjectId })
+      .exec()
+      .then((result) => result.deletedCount ?? 0);
+  }
+
+  hardDeleteDocument(id: string): Promise<boolean> {
+    return this.documentModel
+      .deleteOne({ _id: id })
+      .exec()
+      .then((result) => (result.deletedCount ?? 0) > 0);
   }
 
   createChunk(data: Partial<KnowledgeChunkModel>): Promise<KnowledgeChunkDocument> {

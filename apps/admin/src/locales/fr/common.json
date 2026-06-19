@@ -48,7 +48,14 @@
     "cancel": "Annuler",
     "cancelling": "Annulation...",
     "viewLog": "Voir le log",
-    "cancelConfirm": "Annuler l'ingestion de \"{{title}}\" ? Les jobs en file et les pilules partielles seront supprimés."
+    "cancelConfirm": "Annuler l'ingestion de \"{{title}}\" ? Les jobs en file et les pilules partielles seront supprimés.",
+    "cancelled": "Ingestion annulée",
+    "cancelFailed": "Impossible d'annuler l'ingestion",
+    "delete": "Supprimer",
+    "deleting": "Suppression...",
+    "deleteConfirm": "Supprimer définitivement « {{title}} » ? Cela retire le document, toutes les pilules, les embeddings et le fichier sur le disque. Action irréversible.",
+    "deleted": "Document supprimé — {{chunks}} pilule(s) et {{jobs}} job(s) en file",
+    "deleteFailed": "Impossible de supprimer le document"
   },
   "ingestionConsole": {
     "title": "Console d'ingestion",
@@ -66,7 +73,9 @@
     "etaSeconds": "~{{count}}s restantes",
     "etaMinutes": "~{{count}} min restantes",
     "hint": "Parser, chunking et embeddings sont mis à jour en temps réel via SSE.",
-    "parsingHint": "L'analyse PDF peut prendre plusieurs minutes. Le journal se met à jour toutes les 10 secondes.",
+    "parsingHint": "L'analyse PDF peut prendre plusieurs minutes. Pendant Docling, vous verrez la progression par page et lot.",
+    "parseProgress": "Progression Docling (pages)",
+    "parseBatch": "lot {{current}}/{{total}}",
     "embeddingHint": "Les embeddings s'exécutent en file après le parse. La progression globale n'atteint 100% que lorsque tous sont terminés.",
     "lowExtractionTitle": "Extraction de texte très faible",
     "ocrRetryHint": "L'OCR lit le texte des PDF scannés et est plus lent. Retraiter ce document avec OCR ?",

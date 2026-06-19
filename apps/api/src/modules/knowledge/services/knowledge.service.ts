@@ -163,7 +163,20 @@ export class KnowledgeService {
 
   async listDocuments(page: number, limit: number) {
     const [data, total] = await this.knowledgeRepository.findDocuments(page, limit);
-    return { data: data.map(mapDocument), total, page, limit };
+    const enriched = await Promise.all(
+      data.map(async (doc) => {
+        const counts = await this.knowledgeRepository.countChunkEmbeddingsByDocument(
+          doc._id.toString(),
+        );
+        return {
+          ...mapDocument(doc),
+          chunkCount: counts.total,
+          embeddingsDone: counts.withEmbedding,
+          embeddingsPending: counts.total > counts.withEmbedding,
+        };
+      }),
+    );
+    return { data: enriched, total, page, limit };
   }
 
   async listChunks(page: number, limit: number, documentId?: string) {
@@ -181,13 +194,7 @@ export class KnowledgeService {
   }
 
   async publicAsk(dto: SearchKnowledgeDto) {
-    const hybridResults = await this.ragService.hybridSearch(dto.query, dto.specialty, 5);
-    const chunks =
-      hybridResults.length > 0
-        ? await this.knowledgeRepository.findChunksByIds(
-            hybridResults.map((result) => result.chunkId),
-          )
-        : [];
+    const chunks = await this.ragService.retrieveChunksForAnswer(dto.query, dto.specialty);
 
     const citations = chunks.map(mapCitation);
     const answer = await this.ragService.generateAnswer(dto.query, chunks);
@@ -287,25 +294,34 @@ export class KnowledgeService {
     const document = await this.knowledgeRepository.findDocumentById(documentId);
     if (!document) throw new NotFoundException('Document not found');
 
-    if (
-      document.ingestionStatus !== IngestionStatus.PENDING &&
-      document.ingestionStatus !== IngestionStatus.PROCESSING
-    ) {
-      throw new BadRequestException(
-        'Só é possível cancelar documentos pendentes ou em processamento',
-      );
+    if (document.ingestionStatus === IngestionStatus.CANCELLED) {
+      throw new BadRequestException('Ingestão já está cancelada');
     }
 
     const chunkIds = await this.knowledgeRepository.findChunkIdsByDocument(documentId);
-    const removedJobs = await this.removeIngestionJobs(documentId, chunkIds);
-    const removedChunks = await this.knowledgeRepository.softDeleteChunksByDocument(documentId);
+    const embeddingCounts = await this.knowledgeRepository.countChunkEmbeddingsByDocument(documentId);
+    const embeddingsPending = embeddingCounts.total > embeddingCounts.withEmbedding;
+    const cancellable =
+      document.ingestionStatus === IngestionStatus.PENDING ||
+      document.ingestionStatus === IngestionStatus.PROCESSING ||
+      (document.ingestionStatus === IngestionStatus.COMPLETED && embeddingsPending);
 
+    if (!cancellable) {
+      throw new BadRequestException(
+        'Só é possível cancelar documentos pendentes, em processamento ou com embeddings ainda na fila',
+      );
+    }
+
+    // Marca cancelado antes de drenar a fila — jobs ativos respeitam o status ao persistir.
     await this.knowledgeRepository.updateDocumentStatus(
       documentId,
       IngestionStatus.CANCELLED,
       'Cancelado pelo usuário',
     );
     this.progressService.cancel(documentId, 'Ingestão cancelada pelo usuário');
+
+    const removedJobs = await this.removeIngestionJobs(documentId, chunkIds);
+    const removedChunks = await this.knowledgeRepository.softDeleteChunksByDocument(documentId);
 
     const updated = await this.knowledgeRepository.findDocumentById(documentId);
     return {
@@ -404,6 +420,41 @@ export class KnowledgeService {
 
     const updated = await this.knowledgeRepository.findDocumentById(documentId);
     return mapDocument(updated!);
+  }
+
+  async deleteDocument(documentId: string) {
+    const document = await this.knowledgeRepository.findDocumentById(documentId);
+    if (!document) throw new NotFoundException('Document not found');
+
+    const chunkIds = await this.knowledgeRepository.findAllChunkIdsByDocument(documentId);
+    const removedJobs = await this.removeIngestionJobs(documentId, chunkIds);
+    const deletedChunks = await this.knowledgeRepository.hardDeleteChunksByDocument(documentId);
+
+    const hasLocalStorage =
+      document.sourceReference &&
+      !/^https?:\/\//i.test(document.sourceReference) &&
+      (document.sourceType === DocumentSourceType.PDF ||
+        document.sourceType === DocumentSourceType.IMAGE);
+
+    let storageRemoved = false;
+    if (hasLocalStorage) {
+      await this.storageService.deleteDocumentStorage(documentId);
+      storageRemoved = true;
+    }
+
+    const deletedDocument = await this.knowledgeRepository.hardDeleteDocument(documentId);
+    if (!deletedDocument) {
+      throw new NotFoundException('Document not found');
+    }
+
+    this.progressService.purgeDocument(documentId);
+
+    return {
+      documentId,
+      deletedChunks,
+      removedJobs,
+      storageRemoved,
+    };
   }
 
   async getStats() {

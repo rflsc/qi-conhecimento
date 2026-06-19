@@ -48,7 +48,14 @@
     "cancel": "Cancelar",
     "cancelling": "Cancelando...",
     "viewLog": "Ver log",
-    "cancelConfirm": "¿Cancelar la ingestión de \"{{title}}\"? Se eliminarán jobs en cola y píldoras parciales."
+    "cancelConfirm": "¿Cancelar la ingestión de \"{{title}}\"? Se eliminarán jobs en cola y píldoras parciales.",
+    "cancelled": "Ingestión cancelada",
+    "cancelFailed": "No se pudo cancelar la ingestión",
+    "delete": "Eliminar",
+    "deleting": "Eliminando...",
+    "deleteConfirm": "¿Eliminar permanentemente \"{{title}}\"? Se quitan el documento, todas las píldoras, embeddings y el archivo en disco. No se puede deshacer.",
+    "deleted": "Documento eliminado — {{chunks}} píldora(s) y {{jobs}} job(s) en cola",
+    "deleteFailed": "No se pudo eliminar el documento"
   },
   "ingestionConsole": {
     "title": "Consola de ingestión",
@@ -66,7 +73,9 @@
     "etaSeconds": "~{{count}}s restantes",
     "etaMinutes": "~{{count}} min restantes",
     "hint": "Parser, chunking y embeddings se actualizan en tiempo real vía SSE.",
-    "parsingHint": "El parser de PDF puede tardar varios minutos. El log se actualiza cada 10 segundos.",
+    "parsingHint": "El parser de PDF puede tardar varios minutos. Durante Docling verás el progreso por página y lote.",
+    "parseProgress": "Progreso de Docling (páginas)",
+    "parseBatch": "lote {{current}}/{{total}}",
     "embeddingHint": "Los embeddings se ejecutan en cola tras el parse. El progreso general llega al 100% solo cuando todos terminan.",
     "lowExtractionTitle": "Extracción de texto muy baja",
     "ocrRetryHint": "El OCR lee texto en PDFs escaneados y es más lento. ¿Reprocesar este documento con OCR?",

@@ -165,6 +165,16 @@ export const knowledgeApi = createApi({
       }),
       invalidatesTags: ['Documents', 'Chunks', 'Stats'],
     }),
+    deleteDocument: builder.mutation<
+      { documentId: string; deletedChunks: number; removedJobs: number; storageRemoved: boolean },
+      string
+    >({
+      query: (documentId) => ({
+        url: `/knowledge/documents/${documentId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Documents', 'Chunks', 'Stats'],
+    }),
     reprocessWithOcr: builder.mutation<DocumentRow, string>({
       query: (documentId) => ({
         url: `/knowledge/documents/${documentId}/reprocess-with-ocr`,
@@ -196,6 +206,7 @@ export const {
   useUploadDocumentMutation,
   useImportLinkMutation,
   useCancelIngestionMutation,
+  useDeleteDocumentMutation,
   useReprocessWithOcrMutation,
   useDismissOcrRetryMutation,
   useGetIngestionProgressQuery,

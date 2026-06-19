@@ -64,6 +64,11 @@ export interface IngestionProgress {
   parseQualityWarning?: string;
   /** Exibe opção de reprocessar o PDF com OCR no console de ingestão. */
   offerOcrRetry?: boolean;
+  /** Progresso do Docling por página (durante fase parsing). */
+  parsePagesDone?: number;
+  parsePagesTotal?: number;
+  parseBatchIndex?: number;
+  parseBatchCount?: number;
   logs: IngestionLogEntry[];
 }
 
@@ -109,6 +114,9 @@ export interface KnowledgeDocument {
   author?: string;
   ingestionStatus: IngestionStatus;
   ingestionError?: string;
+  chunkCount?: number;
+  embeddingsDone?: number;
+  embeddingsPending?: boolean;
   createdAt: string;
   updatedAt: string;
 }
