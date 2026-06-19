@@ -23,6 +23,7 @@
 | Autenticação, seed e login no admin | [architecture/auth.md](./architecture/auth.md) |
 | Frontends (web/admin) | [architecture/frontend.md](./architecture/frontend.md) |
 | Hub de conhecimento e RAG | [architecture/knowledge-rag.md](./architecture/knowledge-rag.md) |
+| **Eval RAG (regressão)** | `pnpm --filter @qi-conhecimento/api eval:rag` — [knowledge-rag.md#suite-de-eval-rag](./architecture/knowledge-rag.md#suite-de-eval-rag) |
 | **Docling — evolução e roadmap** | [architecture/docling.md](./architecture/docling.md) |
 | Parser service (FastAPI + Docling) | [architecture/parser-service.md](./architecture/parser-service.md) |
 | Assistente de campo (WhatsApp/Telegram) | [architecture/messaging.md](./architecture/messaging.md) |

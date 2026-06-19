@@ -95,16 +95,22 @@ class Settings:
 settings = Settings()
 
 
+def _parallel_workers_explicit() -> bool:
+    raw = os.getenv("PARSER_PARALLEL_WORKERS")
+    return raw is not None and raw.strip() != ""
+
+
 def parallel_page_limit() -> int:
-    """Acima deste nº de páginas, força workers=1 (exceto se perfil high_memory elevar o limite)."""
+    """Acima deste nº de páginas, força workers=1 no modo auto."""
     return int(_preset("parallel_page_limit"))
 
 
 def resolve_parallel_workers(page_count: int = 0) -> int:
-    """Workers efetivos — perfil high_memory permite 2 workers até parallel_page_limit."""
+    """Workers efetivos. PARSER_PARALLEL_WORKERS no .env tem prioridade (sem downgrade auto)."""
     configured = settings.parallel_workers
     limit = parallel_page_limit()
     auto_max = int(_preset("parallel_auto_max"))
+    explicit = _parallel_workers_explicit()
 
     if configured >= 1:
         workers = configured
@@ -118,7 +124,8 @@ def resolve_parallel_workers(page_count: int = 0) -> int:
         cpu = os.cpu_count() or 2
         workers = max(1, min(auto_max, cpu // 2))
 
-    if limit > 0 and page_count > limit and workers > 1:
+    # Modo auto: PDF longo → 1 worker. Com PARSER_PARALLEL_WORKERS explícito, respeita o valor.
+    if not explicit and limit > 0 and page_count > limit and workers > 1:
         return 1
 
     return workers

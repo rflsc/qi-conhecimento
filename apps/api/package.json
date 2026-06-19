@@ -3,13 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "predev": "pnpm --filter @qi-conhecimento/shared-types build && node ../../scripts/kill-port.mjs 3100",
+    "predev": "pnpm --filter @qi-conhecimento/shared-types build && pnpm --filter @qi-conhecimento/shared-utils build && node ../../scripts/kill-port.mjs 3100",
     "build": "nest build",
     "dev": "nodemon",
     "start": "node dist/main",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "eval:rag": "node eval/run-rag-eval.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.2",

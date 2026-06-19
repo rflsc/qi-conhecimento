@@ -149,7 +149,12 @@ export function KnowledgeSearch() {
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="font-medium">{result.documentTitle}</h3>
                   <span className="bg-emerald-500/10 text-emerald-400 rounded-full px-2 py-0.5 text-xs">
-                    {buildCitationLabel(result.normReference, result.normItem)}
+                    {buildCitationLabel(
+                      result.normReference,
+                      result.normItem,
+                      result.pageStart,
+                      result.tableCaption,
+                    )}
                   </span>
                   <span className="bg-slate-800 text-slate-400 rounded-full px-2 py-0.5 text-xs">
                     {t(`specialties.${result.specialty}`)}
@@ -200,9 +205,14 @@ export function KnowledgeSearch() {
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-medium">{citation.documentTitle}</h3>
-                    <span className="bg-emerald-500/10 text-emerald-400 rounded-full px-2 py-0.5 text-xs">
-                      {buildCitationLabel(citation.normReference, citation.normItem)}
-                    </span>
+                  <span className="bg-emerald-500/10 text-emerald-400 rounded-full px-2 py-0.5 text-xs">
+                    {buildCitationLabel(
+                      citation.normReference,
+                      citation.normItem,
+                      citation.pageStart,
+                      citation.tableCaption,
+                    )}
+                  </span>
                   </div>
                   <p className="text-slate-300 text-sm whitespace-pre-wrap">{citation.excerpt}</p>
                 </article>

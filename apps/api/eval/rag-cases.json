@@ -1,0 +1,42 @@
+[
+  {
+    "id": "nbr8800-k-engastado-rotulado",
+    "description": "Engastado-rotulado deve cair no caso (b) da Tabela H.1, K recomendado 0,80.",
+    "query": "Qual o K recomendado para barra engastada-rotulada?",
+    "expectAnswer": ["0,80"],
+    "expectAnswerAny": ["caso (b)", "(b)"],
+    "rejectAnswer": ["1,2", "caso (c)"],
+    "expectCitation": {
+      "normReference": "NBR 8800",
+      "tableCaption": "H.1",
+      "pageStart": 142
+    },
+    "rejectCitationText": ["treliça", "G.2.3", "G.2.4"],
+    "maxCitations": 3
+  },
+  {
+    "id": "nbr8800-k-rotacao-translacao-impedidas",
+    "description": "Rotação e translação impedidas = caso (a): K teórico 0,5 / recomendado 0,65.",
+    "query": "Qual o coeficiente de flambagem K quando a rotação e a translação estão impedidas nas duas extremidades?",
+    "expectAnswer": ["0,65"],
+    "expectAnswerAny": ["caso (a)", "(a)"],
+    "expectCitation": {
+      "normReference": "NBR 8800",
+      "tableCaption": "H.1"
+    },
+    "maxCitations": 3
+  },
+  {
+    "id": "nbr8800-k-rotacao-impedida-translacao-livre",
+    "description": "Rotação impedida e translação livre = caso (c): K recomendado 1,2. Testa a desambiguação (b) vs (c).",
+    "query": "Qual o K recomendado quando a rotação é impedida e a translação é livre?",
+    "expectAnswer": ["1,2"],
+    "expectAnswerAny": ["caso (c)", "(c)"],
+    "rejectAnswer": ["0,80"],
+    "expectCitation": {
+      "normReference": "NBR 8800",
+      "tableCaption": "H.1"
+    },
+    "maxCitations": 3
+  }
+]

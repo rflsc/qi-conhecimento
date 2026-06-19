@@ -12,6 +12,12 @@ A API NestJS chama via `DoclingClient` quando `PARSER_SERVICE_URL` está no `.en
 | `POST` | `/v1/parse` | `multipart/form-data` — `file`, opcional `do_ocr`, `job_id` |
 | `GET` | `/v1/parse/progress/{job_id}` | Progresso (páginas, lote, mensagem) |
 
+Resposta de `POST /v1/parse`: `{ markdown, title?, engine?, blocks[] }`.
+
+Cada item em `blocks`: `type` (`heading` \| `paragraph` \| `table` \| `list`), `text`/`markdown`, `pageStart`, `pageEnd`, `caption`, `tableSource` (`docling` \| `text_recovery`), `headingPath[]`.
+
+Ver [docs/architecture/parser-service.md](../../docs/architecture/parser-service.md) para exemplo JSON completo.
+
 ## Rodar localmente (recomendado)
 
 Na **raiz do monorepo**:

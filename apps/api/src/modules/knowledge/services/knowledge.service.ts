@@ -197,7 +197,9 @@ export class KnowledgeService {
   async publicAsk(dto: SearchKnowledgeDto) {
     const chunks = await this.ragService.retrieveChunksForAnswer(dto.query, dto.specialty);
 
-    const citations = chunks.map(mapCitation);
+    const citations = this.ragService
+      .selectCitationsForDisplay(chunks, dto.query, 5)
+      .map(mapCitation);
     const answer = await this.ragService.generateAnswer(dto.query, chunks);
 
     return { query: dto.query, answer, citations };

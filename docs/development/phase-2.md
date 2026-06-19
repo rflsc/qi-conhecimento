@@ -13,7 +13,7 @@ Entrega concluída: upload PDF/imagem/link, parsers (Docling + fallbacks), embed
 | `PdfParser` | Docling quando `PARSER_SERVICE_URL` definido; fallback `pdf-parse` |
 | `ImageParser` | Docling quando disponível; fallback OpenAI Vision |
 | `HtmlParser` | Extração de conteúdo com Cheerio (link/HTML) |
-| `ChunkingService` | Divisão por `##` com limite de 2000 chars |
+| `ChunkingService` | `splitFromBlocks()` (Docling) ou `splitMarkdown()` (fallback) |
 | `DocumentIngestionService` | Orquestra parse → chunks → fila embeddings |
 | `IngestionProcessor` | BullMQ: `process-document`, `generate-embeddings` |
 
@@ -23,7 +23,10 @@ Entrega concluída: upload PDF/imagem/link, parsers (Docling + fallbacks), embed
 | --- | --- |
 | `EmbeddingService` | Provedor `ollama` (local) ou `openai` (API) |
 | `LlmService` | Provedor `anthropic` ou `openai` para respostas RAG |
-| `RagService` | Busca híbrida (RRF: texto + vetorial) + LLM |
+| `RagService` | Busca híbrida (RRF) + rerank + filtro de citações + LLM |
+| `POST /knowledge/public-ask` | RAG público (web) — resposta + citações filtradas |
+| `POST /knowledge/public-search` | Busca híbrida pública (web) |
+| `apps/api/eval/` | Suite de regressão RAG — `pnpm eval:rag` |
 | `POST /knowledge/documents/upload` | Multipart — PDF ou imagem |
 | `POST /knowledge/documents/import-link` | Importação de URL |
 | `POST /knowledge/documents/{id}/cancel-ingestion` | Cancela ingestão (parse, chunking ou embeddings pendentes) |
@@ -91,6 +94,16 @@ STORAGE_PATH=./storage
 2. Aguarde **Concluído**; pílulas com `embedding ✓`
 3. **Busca** — query exata e reformulada
 4. Import duplicado/travado → **Cancelar** em Documentos (inclui parar fila de embeddings)
+
+### Eval RAG (regressão)
+
+Requer API + LLM configurado + NBR 8800 ingerida via Docling:
+
+```bash
+pnpm --filter @qi-conhecimento/api eval:rag
+```
+
+Saída esperada: `3/3 passaram`. Casos em `apps/api/eval/rag-cases.json`. Ver [knowledge-rag.md](../architecture/knowledge-rag.md#suite-de-eval-rag).
 
 ### Reindexar após configurar embeddings
 

@@ -30,12 +30,13 @@ sequenceDiagram
             DC->>FS: GET /v1/parse/progress/{job_id}
         end
         DC->>FS: multipart file
-        FS-->>DC: { markdown, title }
+        FS-->>DC: { markdown, title?, blocks[] }
     else indisponível ou timeout
         P->>P: fallback pdf-parse ou Vision
     end
-    P-->>D: { markdown }
-    D->>D: chunking + embeddings
+    P-->>D: { markdown, blocks? }
+    D->>D: splitFromBlocks ou splitMarkdown → chunks enriquecidos
+    D->>D: embeddings
 ```
 
 ## Contrato HTTP
@@ -44,11 +45,30 @@ sequenceDiagram
 | --- | --- | --- |
 | `GET` | `/health` | `{ "status": "ok", "engine": "docling" }` |
 | `POST` | `/v1/parse` | `multipart/form-data` — campos `file`, opcional `do_ocr`, `job_id` |
-| `GET` | `/v1/parse/progress/{job_id}` | Progresso do parse (páginas, lote atual) |
+| `GET` | `/v1/parse/progress/{job_id}` | Progresso (páginas, lote, mensagem) |
 
-Resposta de parse: `{ "markdown", "title?", "engine?", "blocks?" }`.
+Resposta de `POST /v1/parse`:
 
-Cada item em `blocks` descreve um elemento estruturado extraído pelo Docling:
+```json
+{
+  "markdown": "...",
+  "title": "NBR 8800",
+  "engine": "docling",
+  "blocks": [
+    {
+      "type": "table",
+      "caption": "Tabela H.1 - Coeficiente de flambagem K...",
+      "markdown": "| Caso | ... |",
+      "pageStart": 142,
+      "pageEnd": 142,
+      "tableSource": "text_recovery",
+      "headingPath": ["H.1 Na flambagem por flexão"]
+    }
+  ]
+}
+```
+
+Campos de cada bloco em `blocks`:
 
 | Campo | Tipo | Descrição |
 | --- | --- | --- |
@@ -94,8 +114,8 @@ Erros: `413`, `422`, `500` — ver [apps/parser/README.md](../../apps/parser/REA
 | `PARSER_THREADS_PER_WORKER` | `0` (auto) | Threads torch por worker |
 
 > **Paralelismo:** cada worker carrega sua própria cópia dos modelos Docling
-> (~2–3 GB RAM). Em máquinas <16 GB, mantenha `PARSER_PARALLEL_WORKERS=1`. O ganho
-> escala com o nº de páginas; o custo de carga dos modelos é pago uma vez por worker.
+> (~2–3 GB RAM). `PARSER_PARALLEL_WORKERS` no `.env` tem **prioridade** (sem downgrade automático).
+> Com 2 workers + PDF longo + `pnpm dev` aberto, monitore RAM — ver [local-setup.md](../development/local-setup.md#stdbad_alloc--docling-oom-na-página-x).
 
 ### Perfis (`PARSER_PROFILE`)
 
@@ -149,8 +169,11 @@ Defina `PARSER_SERVICE_URL=http://localhost:8000` no `.env` e reinicie a API.
 
 ## Próximos passos
 
-Ver roadmap completo em [docling.md](./docling.md#próximos-passos). Prioridades imediatas:
+Ver roadmap em [docling.md](./docling.md#próximos-passos). Itens já entregues (metadados `blocks` → chunks, citações RAG enriquecidas) estão documentados em [knowledge-rag.md](./knowledge-rag.md).
 
-- Expor `pages`/metadados de tabela no contrato para enriquecer chunks
+Prioridades imediatas:
+
 - Health check do parser no boot da API com aviso quando indisponível
-- Commitar e estabilizar perfis RAM, paralelismo e table image recovery (v4)
+- Badge no admin quando ingestão caiu em fallback `pdf-parse`
+- Boost de retrieval por `contentType=table` em perguntas numéricas (além do rerank heurístico atual)
+- Expandir `apps/api/eval/rag-cases.json` ao importar novas normas

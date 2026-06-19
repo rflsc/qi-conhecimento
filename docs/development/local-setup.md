@@ -43,6 +43,15 @@ pnpm dev
 
 O script `predev` libera automaticamente as portas **3100, 3101 e 3102** antes de subir os apps (evita `EADDRINUSE` ao reiniciar).
 
+Cada app também rebuilda pacotes compartilhados antes do dev:
+
+| App | `predev` rebuilda |
+| --- | --- |
+| API | `@qi-conhecimento/shared-types`, `@qi-conhecimento/shared-utils` |
+| Web | `@qi-conhecimento/api-client` |
+
+Após alterar tipos em `shared-types`, `shared-utils` ou `api-client`, reinicie `pnpm dev` ou rode o build manual do pacote.
+
 | App | Porta | Comando individual |
 | --- | --- | --- |
 | API | 3100 | `pnpm --filter @qi-conhecimento/api dev` |
@@ -189,6 +198,18 @@ STORAGE_PATH=./storage
 4. **Busca** — teste query reformulada (ex.: `"quanto afastar tubo da parede"`)
 5. Swagger → `POST /messaging/query` *(resposta LLM exige `ANTHROPIC_API_KEY` ou `OPENAI_API_KEY` — ver `LLM_PROVIDER` no `.env`)*
 
+### Eval RAG (regressão)
+
+Com a API no ar e a NBR 8800 importada com metadados Docling:
+
+```bash
+pnpm --filter @qi-conhecimento/api eval:rag
+```
+
+Valida 3 casos da Tabela H.1 (engastado-rotulado, casos a e c) contra `POST /knowledge/public-ask` — resposta, citações e ausência de ruído. Detalhes: [knowledge-rag.md](../architecture/knowledge-rag.md#suite-de-eval-rag).
+
+Exemplo de pergunta manual na web (http://localhost:3101): *"Qual o K recomendado para barra engastada-rotulada?"* — resposta esperada: caso **(b)**, K **0,80**, citação Tabela H.1 p. 142.
+
 ### Cancelar ingestão ou embeddings em andamento
 
 Admin → **Documentos** → **Cancelar** (ou **Ver log** → Cancelar no rodapé do console).
@@ -242,11 +263,15 @@ A API não encontrou o `.env` da raiz. Verifique que o arquivo existe na raiz do
 
 ### `Property 'CANCELLED' does not exist on type 'IngestionStatus'`
 
-Rebuild do pacote compartilhado após alterações em `packages/shared-types`:
+Rebuild do pacote compartilhado após alterações em `packages/shared-types`, `shared-utils` ou `api-client`:
 
 ```bash
 pnpm --filter @qi-conhecimento/shared-types build
+pnpm --filter @qi-conhecimento/shared-utils build
+pnpm --filter @qi-conhecimento/api-client build
 ```
+
+Ou reinicie `pnpm dev` — o `predev` de cada app rebuilda os pacotes necessários.
 
 ### Docling excedeu tempo limite / caiu para pdf-parse
 
@@ -288,17 +313,17 @@ Se ainda ocorrer:
 
 Falta de RAM ao renderizar páginas pesadas (comum em normas NBR com **100+ páginas** e tabelas).
 
-1. **Reinicie o parser** após ajustar o `.env` (ou variáveis do terminal)
-2. Garanta **`PARSER_PARALLEL_WORKERS=1`** — paralelo multiplica RAM (~2–3 GB por worker)
+1. **Reinicie o parser** após ajustar o `.env`
+2. **`PARSER_PARALLEL_WORKERS=2`** duplica RAM (~2–3 GB por worker) — com `pnpm dev` aberto, PDFs longos (ex.: NBR 8800, 279 p.) podem exigir fechar outros apps ou usar 1 worker temporariamente
 3. Reduza lotes:
    ```env
    PARSER_PAGE_BATCH_SIZE=4
    PARSER_IMAGES_SCALE=1.0
    ```
-4. PDFs **>150 páginas** reduzem o lote automaticamente para 4; **>60** para 6
-5. Modo tabela mais leve: `PARSER_TABLE_MODE=fast`
+4. PDFs **>150 páginas** reduzem o lote automaticamente (perfil `high_memory`: cap 4)
+5. `PARSER_TABLE_MODE=accurate` consome mais RAM que `fast` — prefira `accurate` se couber na memória
 6. Feche Ollama/Docker extras; reinicie `pnpm parser:dev`
-7. Último recurso: `PARSER_DO_TABLE_STRUCTURE=false` — usa `table_image_recovery` via texto do PDF
+7. Último recurso: `PARSER_DO_TABLE_STRUCTURE=false` — mantém `table_image_recovery` via texto do PDF
 
 ### Docker não está rodando
 

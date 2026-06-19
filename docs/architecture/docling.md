@@ -57,21 +57,22 @@ flowchart TB
     DC["DoclingClient"]
     Progress["IngestionProgressService"]
     Quality["assessParseQuality"]
-    Chunk["ChunkingService"]
+    Chunk["ChunkingService — splitFromBlocks"]
   end
 
   subgraph parser [apps/parser — FastAPI + Docling]
     Parse["POST /v1/parse"]
     Poll["GET /v1/parse/progress/{job_id}"]
     Engine["DocumentConverter + TableFormer"]
+    Blocks["block_extractor — blocks[]"]
     Enrich["table_enrichment — recuperação NBR"]
   end
 
   Import --> Upload --> Queue --> DIS --> PP --> DC
   DC -->|multipart + job_id| Parse
   DC -->|poll 3s| Poll
-  Parse --> Engine --> Enrich
-  Parse -->|markdown| DC --> PP --> DIS
+  Parse --> Engine --> Blocks --> Enrich
+  Parse -->|markdown + blocks| DC --> PP --> DIS
   DIS --> Quality --> Chunk
   Progress --> Console
   DC --> Progress
@@ -88,6 +89,7 @@ flowchart TB
 | Qualidade | `apps/api/src/modules/ingestion/utils/parse-quality.util.ts` | Detecta extração suspeita → oferta OCR |
 | Serviço Python | `apps/parser/app/main.py` | Rotas FastAPI |
 | Pipeline | `apps/parser/app/parser.py` | Lotes, backends, TableFormer |
+| Blocos estruturados | `apps/parser/app/block_extractor.py` | `blocks[]` — página, tipo, caption, headingPath |
 | Paralelismo | `apps/parser/app/parallel.py` | `ProcessPoolExecutor` para lotes |
 | Tabelas NBR | `apps/parser/app/table_enrichment.py` | Recupera dados da camada de texto do PDF |
 | Perfis RAM | `apps/parser/app/config.py` | Presets `default` / `low_memory` / `high_memory` |
@@ -156,7 +158,9 @@ Com `PARSER_PARALLEL_WORKERS=2` (perfil `high_memory`) ou auto:
 - Progresso reportado pelo processo pai conforme lotes terminam
 - `PARSER_THREADS_PER_WORKER` limita threads torch por worker
 
-Regra de segurança: PDFs acima de `parallel_page_limit` (30 no `default`, 400 no `high_memory`) forçam **1 worker**.
+Regra de segurança (modo **auto**): PDFs acima de `parallel_page_limit` (30 no `default`, 400 no `high_memory`) forçam **1 worker**.
+
+Com **`PARSER_PARALLEL_WORKERS` explícito no `.env`**, o valor é respeitado sem downgrade automático — útil em máquinas com RAM livre; em PDFs longos com `pnpm dev` aberto, monitore OOM.
 
 ### 7. Progresso e console admin
 
@@ -230,9 +234,7 @@ Foco: PDFs grandes e PDFs escaneados sem perder a ingestão.
 | **Cancelamento** | Válido enquanto embeddings ainda rodam |
 | **Docs troubleshooting** | OOM, timeout, parser offline |
 
-### v4 — Performance e normas técnicas (em desenvolvimento — working tree)
-
-Melhorias no código atual (ainda não commitadas em parte):
+### v4 — Performance e normas técnicas (18/06/2026)
 
 | Item | Arquivo | Detalhe |
 | --- | --- | --- |
@@ -242,6 +244,17 @@ Melhorias no código atual (ainda não commitadas em parte):
 | **Table image recovery** | `table_enrichment.py` | Tabelas NBR a partir da camada de texto |
 | **Caps dinâmicos de lote** | `config.py` | Redução automática por nº de páginas |
 | **`dev-parser.mjs`** | script | Carrega `.env` da raiz (`PARSER_PROFILE`, etc.) |
+
+### v5 — Metadados estruturados e citações RAG (19/06/2026)
+
+| Item | Arquivo | Detalhe |
+| --- | --- | --- |
+| **`blocks[]` no contrato parse** | `block_extractor.py`, `schemas.py` | heading, paragraph, table, list + `pageStart`, `caption`, `headingPath`, `tableSource` |
+| **Chunks enriquecidos** | `knowledge-chunk.schema.ts`, `chunking.service.ts` | `pageStart`, `pageEnd`, `contentType`, `tableCaption`, `tableSource`, `headingPath` |
+| **Chunking por blocos** | `ChunkingService.splitFromBlocks()` | Tabelas atômicas; fallback `splitMarkdown()` se sem blocks ou pdf-parse |
+| **Citações RAG** | `rag.service.ts`, `buildCitationLabel()` | Label com norma + tabela + página; rerank H.1; filtro/dedup de citações; prompt Tabela H.1 |
+| **UI web** | `KnowledgeSearch.tsx` | Assistente público — resposta + citações filtradas |
+| **Eval RAG** | `apps/api/eval/` | 3 casos NBR 8800 contra `/knowledge/public-ask` — `pnpm eval:rag` |
 
 ```mermaid
 timeline
@@ -256,6 +269,8 @@ timeline
         Progresso SSE : Admin vê páginas e lotes
     section v4 — Normas NBR
         Perfis + paralelo + tabelas : RAM, velocidade, NBR 8800
+    section v5 — Metadados
+        blocks + chunks + citações : página, tabela, RAG, eval
 ```
 
 ---
@@ -271,6 +286,7 @@ timeline
 | Lotes de páginas | ✓ | — |
 | Workers paralelos | ✓ (perfil) | — |
 | Progresso tempo real (SSE) | ✓ | ✗ |
+| Metadados de página/tabela nos chunks | ✓ | — |
 | Fallback fraco | `pdf-parse` | Vision API |
 | Perfis RAM (`PARSER_PROFILE`) | ✓ | ✓ |
 | Health check admin | ✓ (`GET /knowledge/parser/status`) | ✓ |
@@ -295,8 +311,8 @@ timeline
 
 ### Produto / contrato
 
-- Resposta de parse expõe só `{ markdown, title?, engine? }` — **sem** metadados de página ou bounding boxes
-- Chunking ignora proveniência Docling (capítulo, nº da página, id da tabela)
+- Resposta de parse expõe `{ markdown, title?, engine?, blocks[] }` — metadados propagados aos chunks quando Docling processa (não em fallback `pdf-parse`)
+- Documentos ingeridos **antes** da v5 não têm `pageStart` / `tableCaption` — reimporte para popular metadados
 - Imagens não recebem `job_id` nem `do_ocr` da API hoje
 
 ---
@@ -336,44 +352,50 @@ Tabela completa de variáveis: [parser-service.md](./parser-service.md) e [local
 
 ## Próximos passos
 
-Roadmap organizado por prioridade. Itens marcados com *(doc)* já constam em docs anteriores; os demais derivam de gaps código/produto.
+Roadmap organizado por prioridade.
 
-### Curto prazo — contrato e observabilidade
+### Curto prazo — observabilidade
 
 | # | Item | Motivação | Onde implementar |
 | --- | --- | --- | --- |
-| 1 | **Expor metadados no contrato de parse** *(doc)* | Enriquecer chunks com página, seção e id de tabela | `apps/parser` response + `ChunkingService` |
-| 2 | **Health check do parser no boot da API** *(doc)* | Log/aviso quando `PARSER_SERVICE_URL` definido mas serviço offline | `DoclingClient.checkHealth()` no `onModuleInit` |
-| 3 | **Commitar e revisar v4** | `parallel.py`, `table_enrichment.py`, perfis — estabilizar antes de produção | `apps/parser` |
-| 4 | **Sinalizar fallback pdf-parse no admin** | Usuário deve saber quando timeout trocou o engine | Badge no console + `engine` no documento |
+| 1 | **Health check do parser no boot da API** | Log/aviso quando `PARSER_SERVICE_URL` definido mas serviço offline | `DoclingClient.checkHealth()` no `onModuleInit` |
+| 2 | **Sinalizar fallback pdf-parse no admin** | Usuário deve saber quando timeout trocou o engine | Badge no console + `engine` no documento |
+| 3 | **Boost retrieval `contentType=table`** | Perguntas numéricas priorizarem tabelas no índice vetorial/texto | `RagService.hybridSearch` |
 
 ### Médio prazo — qualidade RAG
 
 | # | Item | Motivação |
 | --- | --- | --- |
-| 5 | **Proveniência no chunking** | Propagar `chapter`, `section`, `normItem`, `page` do Docling para `KnowledgeChunk` |
-| 6 | **Progresso para imagens** | `job_id` + poll no `ImageParser` (parse de imagem também demora com OCR) |
-| 7 | **OCR configurável para imagens** | Passar `do_ocr` da API para imagens escaneadas |
-| 8 | **Melhorar table recovery** | Generalizar além de NBR H.1; validar com NBR 8160, 5410, 8800 |
-| 9 | **Testes de regressão** | PDFs fixture (10, 60, 150, 279 págs.) com snapshot de Markdown/chunks |
+| 4 | **Progresso para imagens** | `job_id` + poll no `ImageParser` |
+| 5 | **OCR configurável para imagens** | Passar `do_ocr` da API para imagens escaneadas |
+| 6 | **Melhorar table recovery** | Generalizar além de NBR H.1; validar NBR 8160, 5410, 8800 |
+| 7 | **Testes de regressão** | RAG eval entregue (`apps/api/eval/`); pendente: fixtures de parse (Markdown/blocks por PDF) |
 
 ### Médio prazo — operação
 
 | # | Item | Motivação |
 | --- | --- | --- |
-| 10 | **Docker compose com perfis** | Repassar `PARSER_PROFILE` e vars de tabela no `docker-compose.dev.yml` |
-| 11 | **Deploy parser em produção** | Serviço Render/Docker separado; hoje opcional (pdf-parse na API) |
-| 12 | **Persistência de progresso** | Redis ou estado compartilhado — sobreviver restart do parser |
-| 13 | **Fila no parser** | Evitar bloquear worker FastAPI em PDFs de 2 h; job assíncrono com webhook |
+| 8 | **Docker compose com perfis** | Repassar `PARSER_PROFILE` no `docker-compose.dev.yml` |
+| 9 | **Deploy parser em produção** | Serviço Render/Docker separado |
+| 10 | **Persistência de progresso** | Redis — sobreviver restart do parser |
+| 11 | **Fila no parser** | Job assíncrono para PDFs de 2 h |
 
 ### Longo prazo — produto
 
 | # | Item | Motivação |
 | --- | --- | --- |
-| 14 | **Chunking semântico** | Usar estrutura Docling (sections, tables) em vez de só split por `##` |
-| 15 | **Multimodal RAG** | Figuras e tabelas como assets referenciáveis nas citações |
-| 16 | **GPU / OCR acelerado** | Reduzir tempo de OCR em PDFs escaneados (Docling + CUDA ou serviço dedicado) |
-| 17 | **Parser como plugin** | Suportar outros engines (MinerU, Unstructured) com interface comum |
+| 12 | **Multimodal RAG** | Figuras e tabelas como assets referenciáveis |
+| 13 | **GPU / OCR acelerado** | Reduzir tempo de OCR em PDFs escaneados |
+| 14 | **Parser como plugin** | MinerU, Unstructured com interface comum |
+
+### Entregue (v5)
+
+| Item | Detalhe |
+| --- | --- |
+| Metadados no contrato parse | `blocks[]` com página, tipo, caption, `tableSource` |
+| Proveniência nos chunks | `pageStart`, `tableCaption`, `contentType`, `headingPath` |
+| Chunking estrutural | `splitFromBlocks()` com tabelas atômicas |
+| Citações enriquecidas | `buildCitationLabel(norm, item, page, table)` + rerank tabelas K |
 
 ### Fora do escopo Docling (Fase 3)
 

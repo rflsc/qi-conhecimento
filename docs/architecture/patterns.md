@@ -25,6 +25,11 @@
 
 - Plain text derivado de Markdown via `stripMarkdownToPlain()` (`shared-utils`)
 - Busca híbrida: RRF entre `$text` MongoDB e cosine similarity em `embedding[]`
+- Assistente: `retrieveChunksForAnswer` → `rankChunksForAnswer` → `generateAnswer` + `selectCitationsForDisplay`
+- System prompt inclui mapeamento Tabela H.1 (NBR 8800) — caso (b) para engastado-rotulado
+- Citações filtradas/deduplicadas na UI; metadados `pageStart` / `tableCaption` quando ingeridos via Docling
+- `buildCitationLabel(norm, item, page, table)` em `shared-utils`
+- Regressão: `pnpm --filter @qi-conhecimento/api eval:rag` — casos em `apps/api/eval/rag-cases.json`
 - Embeddings: Ollama (`nomic-embed-text`) ou OpenAI — ver `EmbeddingService`; concorrência via `EMBEDDING_CONCURRENCY`
 - LLM com fallback template quando nenhum provedor LLM está configurado (`ANTHROPIC_API_KEY` / `OPENAI_API_KEY`)
 - Mapper `_id` → `id` em todas as respostas HTTP
@@ -43,9 +48,10 @@ Desative em produção: `SEED_ADMIN_ENABLED=false`, `SEED_KNOWLEDGE_ENABLED=fals
 - Gerenciador: pnpm workspaces + Turborepo
 - **`pnpm dev`** executa `predev` antes de subir os apps
 - `scripts/kill-dev-ports.mjs` libera portas 3100–3102 (evita `EADDRINUSE`)
+- **`predev` por app:** API rebuilda `shared-types` + `shared-utils`; Web rebuilda `api-client`
 - `pnpm parser:setup` / `pnpm parser:dev` — parser Docling local (Python 3.12)
 - `pnpm dev:all` — API + admin + web + parser
-- Após alterar `packages/shared-types`: `pnpm --filter @qi-conhecimento/shared-types build`
+- Após alterar pacotes compartilhados manualmente: `pnpm --filter @qi-conhecimento/<pkg> build`
 - Variáveis compartilhadas no `.env` da raiz — não duplicar por app
 - Next.js apps carregam root `.env` via `loadEnvConfig` no `next.config.js`
 - Artefatos `.js` compilados em `apps/api/src/` são ignorados no git e não devem existir (quebram `nest start --watch`)
