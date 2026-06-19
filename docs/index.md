@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | **Fase 1** | Admin conectado à API — CMS, listagem, busca texto | Concluída |
 | **Fase 2** | Upload PDF/imagem/link, parsers, embeddings, RAG + LLM | Concluída |
-| **Fase 3** | WhatsApp completo, Whisper, Telegram, histórico no admin | Planejada |
+| **Fase 3** | Canais via Qi Agents + API key + histórico `/queries` no admin | Em andamento |
 
 ## Mapa rápido
 
@@ -18,6 +18,8 @@
 | **Fluxo completo Docling + Ollama** | [development/phase-2.md](./development/phase-2.md) |
 | **Fase 1 — admin conectado à API** | [development/phase-1.md](./development/phase-1.md) |
 | **Fase 2 — ingestão multimodal + RAG** | [development/phase-2.md](./development/phase-2.md) |
+| **Fase 3 — assistente de campo (Qi Agents)** | [development/phase-3.md](./development/phase-3.md) |
+| **Integração Qi Agents ↔ API** | [integrations/qi-agents.md](./integrations/qi-agents.md) |
 | Entender o produto e escopo de negócio | [scope/product-vision.md](./scope/product-vision.md) |
 | Arquitetura da API e módulos NestJS | [architecture/api.md](./architecture/api.md) |
 | Autenticação, seed e login no admin | [architecture/auth.md](./architecture/auth.md) |
@@ -26,7 +28,7 @@
 | **Eval RAG (regressão)** | `pnpm --filter @qi-conhecimento/api eval:rag` — [knowledge-rag.md#suite-de-eval-rag](./architecture/knowledge-rag.md#suite-de-eval-rag) |
 | **Docling — evolução e roadmap** | [architecture/docling.md](./architecture/docling.md) |
 | Parser service (FastAPI + Docling) | [architecture/parser-service.md](./architecture/parser-service.md) |
-| Assistente de campo (WhatsApp/Telegram) | [architecture/messaging.md](./architecture/messaging.md) |
+| Assistente de campo (RAG + Qi Agents) | [architecture/messaging.md](./architecture/messaging.md) |
 | Design system (tema escuro) | [architecture/design-system.md](./architecture/design-system.md) |
 | Padrões transversais | [architecture/patterns.md](./architecture/patterns.md) |
 | Decisões arquiteturais (ADRs) | [decisions/000-template.md](./decisions/000-template.md) |
@@ -46,4 +48,4 @@
 
 1. **Hub de Entrada Multimodal** — `apps/admin` + módulos `knowledge` e `ingestion` na API
 2. **Esteira RAG** — filas BullMQ, parsers Docling, embeddings Ollama/OpenAI, busca híbrida + LLM Anthropic/OpenAI
-3. **Interface de Campo** — módulo `messaging` + integrações WhatsApp/Telegram (parcial)
+3. **Interface de Campo** — `POST /messaging/query` (RAG); canais WhatsApp/Telegram no **Qi Agents**

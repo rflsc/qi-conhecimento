@@ -86,6 +86,6 @@ Redux Toolkit + RTK Query em `src/store/api.ts`, com JWT via cookie `access_toke
 
 Detalhes: [development/phase-1.md](../development/phase-1.md), [development/phase-2.md](../development/phase-2.md)
 
-## Próximas entregas (Fase 3+)
+## Próximas entregas (Fase 3)
 
-WhatsApp, transcrição de áudio, bot Telegram — ver [scope/product-vision.md](../scope/product-vision.md).
+Canais via **[Qi Agents](../integrations/qi-agents.md)**; neste repo: API key em `/messaging/query` e admin `/queries`. Ver [phase-3.md](../development/phase-3.md).

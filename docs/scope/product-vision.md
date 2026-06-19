@@ -44,12 +44,13 @@ Responsável pela ingestão, categorização e preparação de dados:
 - Respostas curtas com citação obrigatória (ex: "Conforme NBR 5410, item 6.2.1...")
 - Link/imagem da fonte original quando relevante
 
-**Implementação atual (parcial):**
+**Implementação atual:**
 
-- `POST /messaging/query` — RAG completo (busca híbrida + LLM)
-- Webhook WhatsApp GET (verificação Meta) — POST ainda stub
-- Schema `FieldQuery` com `citations[]`
-- Pendente: envio real, áudio, Telegram
+- `POST /messaging/query` — RAG completo (busca híbrida + LLM + `citations[]`)
+- Persistência em `field_queries` (`channel`, `externalUserId`, etc.)
+- **Canais WhatsApp/Telegram** — projeto **[Qi Agents](../../integrations/qi-agents.md)** (webhooks, áudio, envio)
+- Webhooks `/messaging/whatsapp/*` neste repo — legado/stub; **não usar** para novos canais
+- Pendente aqui: API key serviço-a-serviço, admin `/queries`
 
 ## 3. Fluxo de Valor do Dado
 
@@ -58,16 +59,18 @@ flowchart LR
   A[Ingestão no Admin] --> B[Padronização Markdown]
   B --> C[Chunking + Tags]
   C --> D[Embeddings + Índice]
-  D --> E[Consulta via WhatsApp]
-  E --> F[Busca Híbrida RAG]
-  F --> G[Resposta com Citação]
+  D --> E[Qi Agents — WhatsApp/Telegram]
+  E --> F[POST /messaging/query]
+  F --> G[Busca Híbrida RAG]
+  G --> H[Resposta com Citação]
 ```
 
 1. Administrador insere norma PDF, foto de tabela e procedimento interno
 2. Esteira extrai, fatia e gera metadados
 3. Conteúdo e embeddings são persistidos no MongoDB
-4. Engenheiro pergunta via áudio no WhatsApp *(Fase 3)*
-5. Motor recupera chunks, filtra por especialidade e responde com item da norma
+4. Engenheiro pergunta via WhatsApp/Telegram (**Qi Agents** recebe; áudio → texto se necessário)
+5. Qi Agents chama `POST /messaging/query`; motor recupera chunks e responde com item da norma
+6. Qi Agents formata e envia a mensagem ao usuário
 
 ## 4. Roadmap técnico
 
@@ -85,11 +88,22 @@ flowchart LR
 - [x] RAG com LLM (`RagService`)
 - [x] Upload admin PDF/imagem/link
 
-### Fase 3 (próxima)
+### Fase 3 (em andamento)
 
-- [ ] Integração Meta WhatsApp Cloud API completa
-- [ ] Transcrição de áudio (Whisper ou equivalente)
-- [ ] Bot Telegram
-- [ ] Histórico de consultas de campo no admin
+Arquitetura com **[Qi Agents](../../integrations/qi-agents.md)** como camada de canais.
 
-Guias: [phase-1.md](../development/phase-1.md) · [phase-2.md](../development/phase-2.md)
+**Qi Agents (projeto externo):**
+
+- [ ] Canal WhatsApp → `POST /messaging/query`
+- [ ] Canal Telegram → mesmo endpoint
+- [ ] Transcrição de áudio antes da chamada API
+- [ ] Formatação e envio da resposta ao usuário
+
+**Qi Conhecimento (este repositório):**
+
+- [x] `POST /messaging/query` — RAG + citações + `field_queries`
+- [x] Documentação de integração
+- [ ] API key serviço-a-serviço
+- [ ] Histórico de consultas de campo no admin (`/queries`)
+
+Guias: [phase-1.md](../development/phase-1.md) · [phase-2.md](../development/phase-2.md) · [phase-3.md](../development/phase-3.md) · [qi-agents.md](../integrations/qi-agents.md)

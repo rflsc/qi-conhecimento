@@ -8,7 +8,7 @@ Ecossistema de Conhecimento Técnico para Engenharia Civil e Instalações — H
 
 1. **Hub de Entrada Multimodal** — backoffice admin para ingestão (PDF, imagem, link, CMS)
 2. **Motor RAG** — padronização Markdown, chunking, embeddings, busca híbrida + LLM
-3. **Assistente de Obra** — WhatsApp/Telegram com respostas citadas *(parcial)*
+3. **Assistente de Obra** — RAG via `POST /messaging/query`; canais WhatsApp/Telegram no **[Qi Agents](docs/integrations/qi-agents.md)**
 
 ## Stack
 
@@ -91,19 +91,21 @@ Mapa completo: [docs/index.md](./docs/index.md)
 | Setup local e troubleshooting | [docs/development/local-setup.md](./docs/development/local-setup.md) |
 | Fase 1 — admin + CMS + busca | [docs/development/phase-1.md](./docs/development/phase-1.md) |
 | Fase 2 — ingestão + RAG + LLM | [docs/development/phase-2.md](./docs/development/phase-2.md) |
+| Fase 3 — assistente de campo (Qi Agents) | [docs/development/phase-3.md](./docs/development/phase-3.md) |
+| Integração Qi Agents ↔ API | [docs/integrations/qi-agents.md](./docs/integrations/qi-agents.md) |
 | Visão de produto | [docs/scope/product-vision.md](./docs/scope/product-vision.md) |
 | Conhecimento e RAG | [docs/architecture/knowledge-rag.md](./docs/architecture/knowledge-rag.md) |
 | API (módulos e endpoints) | [docs/architecture/api.md](./docs/architecture/api.md) |
 | Autenticação e seed | [docs/architecture/auth.md](./docs/architecture/auth.md) |
 | Frontends | [docs/architecture/frontend.md](./docs/architecture/frontend.md) |
-| Mensageria / campo | [docs/architecture/messaging.md](./docs/architecture/messaging.md) |
+| Mensageria / RAG de campo | [docs/architecture/messaging.md](./docs/architecture/messaging.md) |
 
 ## Estrutura do monorepo
 
 ```
 qi-conhecimento/
 ├── apps/
-│   ├── api/       → Backend NestJS + RAG + mensageria
+│   ├── api/       → Backend NestJS + RAG (`/messaging/query` para Qi Agents)
 │   ├── web/       → Landing pública
 │   └── admin/     → Hub de entrada multimodal
 ├── packages/      → Tipos, validators, utils, api-client
@@ -119,11 +121,12 @@ qi-conhecimento/
 | --- | --- | --- |
 | 1 | Admin conectado à API — CMS, listagem, busca texto | Concluída |
 | 2 | Upload PDF/imagem/link, parsers, embeddings, RAG + LLM | Concluída |
-| 3 | WhatsApp completo, Whisper, Telegram | Planejada |
+| 3 | Canais via Qi Agents + histórico no admin | Em andamento |
 
 ## Próximos passos (Fase 3)
 
-- Integração Meta WhatsApp Cloud API completa
-- Transcrição de áudio (Whisper)
-- Bot Telegram
-- Histórico de consultas de campo no admin
+Canais WhatsApp/Telegram ficam no **[Qi Agents](docs/integrations/qi-agents.md)** — este projeto expõe o RAG em `POST /messaging/query`.
+
+**Qi Agents:** conectar canal → `/messaging/query`; áudio, webhooks e envio.
+
+**Qi Conhecimento:** API key serviço-a-serviço; admin `/queries`; ver [phase-3.md](docs/development/phase-3.md).

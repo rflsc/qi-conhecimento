@@ -399,7 +399,7 @@ Roadmap organizado por prioridade.
 
 ### Fora do escopo Docling (Fase 3)
 
-WhatsApp Cloud API, Whisper (áudio), Telegram e histórico de consultas no admin — ver [scope/product-vision.md](../scope/product-vision.md) e [messaging.md](./messaging.md). Não alteram o pipeline Docling diretamente.
+Canais WhatsApp/Telegram, webhooks e áudio ficam no **Qi Agents** — ver [integrations/qi-agents.md](../integrations/qi-agents.md) e [phase-3.md](../development/phase-3.md). Pendente no qi-conhecimento: API key e admin `/queries`. Não alteram o pipeline Docling.
 
 ---
 

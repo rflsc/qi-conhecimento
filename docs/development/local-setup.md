@@ -196,7 +196,7 @@ STORAGE_PATH=./storage
 2. Envie um PDF de norma
 3. **Documentos** — aguarde **Concluído**; aba **Pílulas** mostra `embedding ✓`
 4. **Busca** — teste query reformulada (ex.: `"quanto afastar tubo da parede"`)
-5. Swagger → `POST /messaging/query` *(resposta LLM exige `ANTHROPIC_API_KEY` ou `OPENAI_API_KEY` — ver `LLM_PROVIDER` no `.env`)*
+5. Swagger → `POST /messaging/query` *(resposta LLM exige `ANTHROPIC_API_KEY` ou `OPENAI_API_KEY` — ver `LLM_PROVIDER` no `.env`)* — endpoint usado pelo **[Qi Agents](../integrations/qi-agents.md)** para canais WhatsApp/Telegram
 
 ### Eval RAG (regressão)
 

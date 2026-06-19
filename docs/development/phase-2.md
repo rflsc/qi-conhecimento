@@ -60,6 +60,7 @@ Entrega concluída: upload PDF/imagem/link, parsers (Docling + fallbacks), embed
 ### Mensageria
 
 - `POST /messaging/query` usa `RagService` (busca híbrida + LLM com fallback template)
+- Canais WhatsApp/Telegram: projeto **Qi Agents** — ver [integrations/qi-agents.md](../integrations/qi-agents.md)
 
 ## Como testar
 
@@ -137,4 +138,4 @@ MAX_UPLOAD_SIZE_MB=150
 
 ## Próxima fase
 
-Fase 3: WhatsApp Cloud API completa, transcrição de áudio (Whisper), bot Telegram — ver [scope/product-vision.md](../scope/product-vision.md).
+[Fase 3](./phase-3.md) — assistente de campo via **Qi Agents** (canais) + API key e `/queries` no admin. Integração: [qi-agents.md](../integrations/qi-agents.md).

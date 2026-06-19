@@ -38,7 +38,7 @@ Habilitado em `main.ts` para os frontends locais:
 | `health` | Health check (`GET /health`) |
 | `knowledge` | Documentos, chunks, CMS, busca híbrida, RAG, embeddings |
 | `ingestion` | Storage, parsers, Docling client, chunking, processador BullMQ |
-| `messaging` | Assistente de campo, webhooks WhatsApp (Pilar 3) |
+| `messaging` | Assistente de campo — `POST /messaging/query` (RAG para Qi Agents) |
 
 ### Estrutura `knowledge`
 
@@ -94,7 +94,7 @@ Trabalho assíncrono via BullMQ: `IngestionProcessor` → `DocumentIngestionServ
 | --- | --- | --- |
 | `ingestion` | `process-document` | Parse → chunking → enqueue embeddings |
 | `ingestion` | `generate-embeddings` | Ollama/OpenAI → `chunk.embedding[]` |
-| `messaging` | `send-field-response` | (futuro) envio assíncrono |
+| `messaging` | `send-field-response` | Fora de escopo — envio fica no Qi Agents |
 
 ## Collections MongoDB
 
@@ -134,10 +134,12 @@ Trabalho assíncrono via BullMQ: `IngestionProcessor` → `DocumentIngestionServ
 
 ### Mensageria
 
+Canais WhatsApp/Telegram: **[Qi Agents](../integrations/qi-agents.md)**. Detalhes: [messaging.md](./messaging.md)
+
 | Método | Path | Descrição |
 | --- | --- | --- |
-| POST | `/messaging/query` | Consulta RAG (campo simulado) |
-| GET | `/messaging/whatsapp/webhook` | Verificação Meta |
-| POST | `/messaging/whatsapp/webhook` | Recebimento (stub) |
+| POST | `/messaging/query` | Consulta RAG — backend para Qi Agents |
+| GET | `/messaging/whatsapp/webhook` | Legado (verificação Meta) |
+| POST | `/messaging/whatsapp/webhook` | Legado (stub — não usar) |
 
-Detalhes RAG: [knowledge-rag.md](./knowledge-rag.md) · Parser: [parser-service.md](./parser-service.md) · Mensageria: [messaging.md](./messaging.md)
+Detalhes RAG: [knowledge-rag.md](./knowledge-rag.md) · Parser: [parser-service.md](./parser-service.md)
