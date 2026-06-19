@@ -25,8 +25,8 @@
 
 - Plain text derivado de Markdown via `stripMarkdownToPlain()` (`shared-utils`)
 - Busca híbrida: RRF entre `$text` MongoDB e cosine similarity em `embedding[]`
-- Embeddings: Ollama (`nomic-embed-text`) ou OpenAI — ver `EmbeddingService`
-- LLM com fallback template quando `OPENAI_API_KEY` ausente
+- Embeddings: Ollama (`nomic-embed-text`) ou OpenAI — ver `EmbeddingService`; concorrência via `EMBEDDING_CONCURRENCY`
+- LLM com fallback template quando nenhum provedor LLM está configurado (`ANTHROPIC_API_KEY` / `OPENAI_API_KEY`)
 - Mapper `_id` → `id` em todas as respostas HTTP
 
 ## Seeds (dev)

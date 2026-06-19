@@ -4,12 +4,26 @@ import { PinoLogger } from 'nestjs-pino';
 import * as http from 'node:http';
 import * as https from 'node:https';
 import { randomBytes, randomUUID } from 'node:crypto';
+import { ParseBlock, TableExtractionSource } from '@qi-conhecimento/shared-types';
 import { ParseProgressUpdate, ParseResult } from '../parsers/parser.interface';
+
+interface ParseServiceBlock {
+  type: string;
+  text?: string;
+  markdown?: string;
+  level?: number;
+  caption?: string;
+  pageStart?: number;
+  pageEnd?: number;
+  tableSource?: string;
+  headingPath?: string[];
+}
 
 interface ParseServiceResponse {
   markdown: string;
   title?: string;
   engine?: string;
+  blocks?: ParseServiceBlock[];
 }
 
 interface ParseProgressResponse {
@@ -131,7 +145,12 @@ export class DoclingClient {
         options?.doOcr,
         pollProgress ? jobId : undefined,
       );
-      return { markdown: data.markdown, title: data.title, engine: data.engine ?? 'docling' };
+      return {
+        markdown: data.markdown,
+        title: data.title,
+        engine: data.engine ?? 'docling',
+        blocks: this.normalizeBlocks(data.blocks),
+      };
     } finally {
       if (pollTimer) clearInterval(pollTimer);
     }
@@ -301,6 +320,32 @@ export class DoclingClient {
       req.on('error', () => resolve(null));
       req.end();
     });
+  }
+
+  private normalizeBlocks(raw?: ParseServiceResponse['blocks']): ParseBlock[] | undefined {
+    if (!raw?.length) return undefined;
+
+    return raw
+      .map((block) => ({
+        type: block.type as ParseBlock['type'],
+        text: block.text,
+        markdown: block.markdown,
+        level: block.level,
+        caption: block.caption,
+        pageStart: block.pageStart ?? undefined,
+        pageEnd: block.pageEnd ?? undefined,
+        tableSource: this.normalizeTableSource(block.tableSource),
+        headingPath: block.headingPath?.length ? block.headingPath : undefined,
+      }))
+      .filter(
+        (block) =>
+          block.type === 'heading' || Boolean(block.text?.trim() || block.markdown?.trim()),
+      );
+  }
+
+  private normalizeTableSource(value?: string): TableExtractionSource | undefined {
+    if (value === 'text_recovery' || value === 'docling') return value;
+    return undefined;
   }
 
   private mapProgressResponse(progress: ParseProgressResponse): ParseProgressUpdate {

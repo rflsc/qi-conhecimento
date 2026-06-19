@@ -61,7 +61,7 @@ flowchart TD
 | `link` / `html` | `HtmlParser` | `cheerio` — fetch URL + extração de conteúdo |
 | `manual_text` | — | CMS grava Markdown direto (sem fila de parse) |
 
-Parser service: [parser-service.md](./parser-service.md)
+Parser service: [parser-service.md](./parser-service.md) · Evolução Docling: [docling.md](./docling.md)
 
 ### Chunking
 
@@ -92,6 +92,21 @@ Parser service: [parser-service.md](./parser-service.md)
 Auto-detecção: sem `EMBEDDING_PROVIDER`, usa OpenAI se houver chave; senão Ollama.
 
 Reindexar documento existente: `POST /knowledge/documents/{id}/reindex-embeddings`
+
+Concorrência do worker BullMQ (`EMBEDDING_CONCURRENCY`): default **2** (Ollama) ou **5** (OpenAI); máximo 20.
+
+## LLM (`LlmService`)
+
+Respostas enriquecidas em `RagService.generateAnswer()` e `POST /messaging/query`.
+
+| Provedor | Config | Modelo default |
+| --- | --- | --- |
+| **Anthropic** | `LLM_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` | `claude-haiku-4-5` |
+| **OpenAI** | `LLM_PROVIDER=openai`, `OPENAI_API_KEY` | `gpt-4o-mini` |
+
+Auto-detecção: sem `LLM_PROVIDER`, usa Anthropic se houver `ANTHROPIC_API_KEY`; senão OpenAI se houver `OPENAI_API_KEY`.
+
+Sem provedor LLM: resposta em template com citação do chunk principal.
 
 ## Busca híbrida (`RagService`)
 
@@ -142,11 +157,14 @@ PARSER_SERVICE_URL=http://localhost:8000
 EMBEDDING_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434
 EMBEDDING_MODEL=nomic-embed-text
-OPENAI_API_KEY=                 # LLM; embeddings se provider=openai
-LLM_MODEL=gpt-4o-mini
+# EMBEDDING_CONCURRENCY=2          # default: 2 ollama, 5 openai
+OPENAI_API_KEY=                    # embeddings (openai) ou LLM (openai)
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=                 # LLM (anthropic)
+LLM_MODEL=claude-haiku-4-5
 STORAGE_PATH=./storage
-MAX_UPLOAD_SIZE_MB=50
-SEED_KNOWLEDGE_ENABLED=true     # 3 procedimentos piloto (dev)
+MAX_UPLOAD_SIZE_MB=150
+SEED_KNOWLEDGE_ENABLED=true        # 3 procedimentos piloto (dev)
 ```
 
 Guia de teste: [development/phase-2.md](../development/phase-2.md)

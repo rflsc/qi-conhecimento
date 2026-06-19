@@ -2,6 +2,8 @@
 
 Microserviço Python que converte documentos técnicos (PDF, imagens) em **Markdown estruturado**, preservando tabelas e hierarquia de seções. A API NestJS chama via `DoclingClient` quando `PARSER_SERVICE_URL` está definido; faz **fallback automático** para `pdf-parse` / Vision API se indisponível ou em timeout.
 
+> **Documentação completa:** evolução, pipeline, limitações e roadmap em [docling.md](./docling.md).
+
 Código: [`apps/parser`](../../apps/parser/README.md).
 
 ## Por que um serviço separado
@@ -44,7 +46,22 @@ sequenceDiagram
 | `POST` | `/v1/parse` | `multipart/form-data` — campos `file`, opcional `do_ocr`, `job_id` |
 | `GET` | `/v1/parse/progress/{job_id}` | Progresso do parse (páginas, lote atual) |
 
-Resposta de parse: `{ "markdown", "title?", "engine?" }`.
+Resposta de parse: `{ "markdown", "title?", "engine?", "blocks?" }`.
+
+Cada item em `blocks` descreve um elemento estruturado extraído pelo Docling:
+
+| Campo | Tipo | Descrição |
+| --- | --- | --- |
+| `type` | `heading` \| `paragraph` \| `table` \| `list` | Tipo do bloco |
+| `text` | string? | Texto (parágrafos/listas) |
+| `markdown` | string? | Markdown (tabelas) |
+| `level` | number? | Nível do heading (1–6) |
+| `caption` | string? | Caption da tabela |
+| `pageStart` / `pageEnd` | number? | Página(s) no PDF |
+| `tableSource` | `docling` \| `text_recovery`? | Origem da tabela |
+| `headingPath` | string[]? | Hierarquia de seções pai |
+
+A API NestJS usa `blocks` para enriquecer chunks (`pageStart`, `tableCaption`, `contentType`, etc.) e melhorar citações no RAG.
 
 Erros: `413`, `422`, `500` — ver [apps/parser/README.md](../../apps/parser/README.md).
 
@@ -65,11 +82,32 @@ Erros: `413`, `422`, `500` — ver [apps/parser/README.md](../../apps/parser/REA
 | `PARSER_PORT` | `8000` | Porta |
 | `PARSER_MAX_UPLOAD_MB` | `150` | Limite de upload |
 | `PARSER_DO_OCR` | `false` | OCR global em PDFs escaneados (lento; preferir reprocessamento sob demanda) |
-| `PARSER_LOW_MEMORY` | `true` | Backend pypdfium2 — evita OOM em normas longas |
-| `PARSER_PAGE_BATCH_SIZE` | `15` | Páginas por lote (`0` = arquivo inteiro). Conversor Docling é **reutilizado** entre lotes |
-| `PARSER_DO_TABLE_STRUCTURE` | `true` | Extrai estrutura de tabelas |
+| `PARSER_LOW_MEMORY` | `true` | Backend pypdfium2 — **ignorado** quando `PARSER_DO_TABLE_STRUCTURE=true` |
+| `PARSER_PROFILE` | `default` | `default` \| `low_memory` \| `high_memory` |
+| `PARSER_PAGE_BATCH_SIZE` | conforme perfil | Sobrescreve tamanho do lote |
+| `PARSER_PARALLEL_WORKERS` | conforme perfil | Sobrescreve workers paralelos |
+| `PARSER_DO_TABLE_STRUCTURE` | `true` | Extração de tabelas (TableFormer) |
 | `PARSER_TABLE_MODE` | `accurate` | TableFormer: `accurate` ou `fast` |
 | `PARSER_TABLE_CELL_MATCHING` | `true` | Casa células com texto do PDF |
+| `PARSER_TABLE_IMAGE_RECOVERY` | `true` | Recupera tabelas exportadas como imagem via camada de texto |
+| `PARSER_IMAGES_SCALE` | `1.0` | Escala das imagens de página (2.0 ≈ 4× RAM) |
+| `PARSER_THREADS_PER_WORKER` | `0` (auto) | Threads torch por worker |
+
+> **Paralelismo:** cada worker carrega sua própria cópia dos modelos Docling
+> (~2–3 GB RAM). Em máquinas <16 GB, mantenha `PARSER_PARALLEL_WORKERS=1`. O ganho
+> escala com o nº de páginas; o custo de carga dos modelos é pago uma vez por worker.
+
+### Perfis (`PARSER_PROFILE`)
+
+Definidos no `.env` da raiz — lidos pelo `apps/parser` via `pnpm parser:dev` (`scripts/dev-parser.mjs` repassa todas as variáveis do `.env`).
+
+| Perfil | RAM típica | Workers | Lote base | PDF 279 págs |
+| --- | --- | --- | --- | --- |
+| `default` | 8–16 GB | 1 (auto) | 8 → 4 | 1 worker, lote 4 |
+| `low_memory` | ≤8 GB | 1 | 4 → 3 | 1 worker, lote 3 |
+| `high_memory` | 16–32 GB | 2 | 12 → 8 | 2 workers, lote 8 |
+
+`PARSER_PARALLEL_WORKERS` e `PARSER_PAGE_BATCH_SIZE` **sobrescrevem** o perfil.
 
 ## Como rodar
 
@@ -83,7 +121,7 @@ curl http://localhost:8000/health
 
 Primeira subida baixa modelos Docling (~1 GB). **Não** rode Docker e `parser:dev` na mesma porta 8000.
 
-`parser:dev` repassa `PARSER_LOW_MEMORY` e `PARSER_PAGE_BATCH_SIZE` do ambiente (não lê `.env` automaticamente — exporte ou defina no shell se precisar).
+`pnpm parser:dev` carrega o `.env` da raiz do monorepo e repassa `PARSER_PROFILE`, `PARSER_PARALLEL_WORKERS`, `PARSER_PAGE_BATCH_SIZE` e demais variáveis `PARSER_*` ao processo Python. No log de subida aparecem perfil e paralelismo efetivos.
 
 ### Docker (opcional)
 
@@ -111,5 +149,8 @@ Defina `PARSER_SERVICE_URL=http://localhost:8000` no `.env` e reinicie a API.
 
 ## Próximos passos
 
+Ver roadmap completo em [docling.md](./docling.md#próximos-passos). Prioridades imediatas:
+
 - Expor `pages`/metadados de tabela no contrato para enriquecer chunks
 - Health check do parser no boot da API com aviso quando indisponível
+- Commitar e estabilizar perfis RAM, paralelismo e table image recovery (v4)

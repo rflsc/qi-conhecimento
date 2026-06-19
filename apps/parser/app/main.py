@@ -73,7 +73,7 @@ async def parse(
     clean_job_id = job_id.strip() if job_id else None
 
     try:
-        markdown, title = await run_in_threadpool(
+        markdown, title, blocks = await run_in_threadpool(
             convert_to_markdown,
             data,
             file.filename or "document.pdf",
@@ -97,4 +97,5 @@ async def parse(
         markdown=markdown,
         title=title,
         engine="docling+ocr" if ocr_used else "docling",
+        blocks=blocks,
     )

@@ -37,6 +37,12 @@ export function mapChunk(chunk: KnowledgeChunkDocument) {
     normItem: chunk.normItem,
     tags: chunk.tags,
     hasEmbedding: Boolean(chunk.embeddingId),
+    pageStart: chunk.pageStart,
+    pageEnd: chunk.pageEnd,
+    contentType: chunk.contentType,
+    headingPath: chunk.headingPath,
+    tableCaption: chunk.tableCaption,
+    tableSource: chunk.tableSource,
     createdAt: timestamps.createdAt?.toISOString() ?? new Date().toISOString(),
   };
 }
@@ -52,6 +58,9 @@ export function mapSearchResult(chunk: KnowledgeChunkDocument) {
     specialty: chunk.specialty as EngineeringSpecialty,
     excerpt: chunk.markdownContent.slice(0, 400),
     tags: chunk.tags,
+    pageStart: chunk.pageStart,
+    tableCaption: chunk.tableCaption,
+    contentType: chunk.contentType,
   };
 }
 
@@ -65,6 +74,9 @@ export function mapCitation(chunk: KnowledgeChunkDocument) {
     chunkId: chunk._id.toString(),
     excerpt: chunk.markdownContent.slice(0, 280),
     sourceUrl: document.sourceReference,
+    pageStart: chunk.pageStart,
+    pageEnd: chunk.pageEnd,
+    tableCaption: chunk.tableCaption,
   };
 }
 

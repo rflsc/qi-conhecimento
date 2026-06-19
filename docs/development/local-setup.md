@@ -9,7 +9,8 @@ Guia para rodar o monorepo **qi-conhecimento** em desenvolvimento.
 - Docker Desktop (MongoDB + Redis)
 - [Ollama](https://ollama.com) *(recomendado para embeddings locais — grátis)*
 - Python 3.12 *(opcional — parser Docling local)*
-- Chave OpenAI *(opcional — LLM e OCR sem Docling)*
+- Chave Anthropic ou OpenAI *(opcional — respostas RAG enriquecidas)*
+- Chave OpenAI *(opcional — LLM OpenAI, OCR sem Docling, embeddings cloud)*
 
 ## 1. Instalação
 
@@ -52,6 +53,8 @@ O script `predev` libera automaticamente as portas **3100, 3101 e 3102** antes d
 ### Parser Docling (recomendado para PDFs técnicos)
 
 O serviço Python em `apps/parser` extrai Markdown de PDFs e imagens com [Docling](https://github.com/docling-project/docling). A API usa quando `PARSER_SERVICE_URL` está definido no `.env`.
+
+Documentação detalhada: [architecture/docling.md](../architecture/docling.md) (evolução, pipeline, roadmap).
 
 **Setup local (Windows — preferível ao Docker):**
 
@@ -107,6 +110,26 @@ EMBEDDING_MODEL=nomic-embed-text
 Sem provedor de embedding, a busca usa só palavra-chave (`$text`). Com Ollama, busca híbrida (texto + vetorial) funciona sem `OPENAI_API_KEY`.
 
 Para reindexar chunks importados antes de configurar embeddings: Swagger → `POST /knowledge/documents/{id}/reindex-embeddings`.
+
+### LLM para respostas RAG (opcional)
+
+Por padrão em dev (`.env.example`), o provedor é **Anthropic**:
+
+```env
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+LLM_MODEL=claude-haiku-4-5
+```
+
+Alternativa OpenAI:
+
+```env
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+LLM_MODEL=gpt-4o-mini
+```
+
+Sem chave LLM, busca e ingestão funcionam; respostas usam template com citação do chunk principal.
 
 ## 4. Primeiro acesso (admin)
 
@@ -164,7 +187,7 @@ STORAGE_PATH=./storage
 2. Envie um PDF de norma
 3. **Documentos** — aguarde **Concluído**; aba **Pílulas** mostra `embedding ✓`
 4. **Busca** — teste query reformulada (ex.: `"quanto afastar tubo da parede"`)
-5. Swagger → `POST /messaging/query` *(resposta LLM exige `OPENAI_API_KEY`)*
+5. Swagger → `POST /messaging/query` *(resposta LLM exige `ANTHROPIC_API_KEY` ou `OPENAI_API_KEY` — ver `LLM_PROVIDER` no `.env`)*
 
 ### Cancelar ingestão ou embeddings em andamento
 
@@ -248,18 +271,34 @@ Com `PARSER_SERVICE_URL` e o parser rodando, imagens passam pelo Docling. Caso c
 3. Docker: `pnpm parser:docker` — exige Docker Desktop com espaço em disco suficiente.
 4. Health: `curl http://localhost:8000/health` — retorna `{"status":"ok"}` quando o serviço está pronto.
 
+### `Page backend was unloaded` / `Stage table failed`
+
+Incompatibilidade conhecida: backend **pypdfium2** (`PARSER_LOW_MEMORY=true`) + **TableFormer** no pipeline threaded do Docling. O estágio de tabelas reabre a imagem da página (scale 2.0) após o layout, mas o backend já foi descarregado.
+
+**Correção automática (desde a versão atual):** com `PARSER_DO_TABLE_STRUCTURE=true` (padrão), o parser usa **Docling-Parse** em vez de pypdfium2.
+
+Se ainda ocorrer:
+
+1. Reinicie `pnpm parser:dev`
+2. Reduza `PARSER_PAGE_BATCH_SIZE=8` se houver OOM (`std::bad_alloc`)
+3. Em máquinas com ≥16 GB RAM: `PARSER_LOW_MEMORY=false` no ambiente do parser
+4. Desative tabelas só como último recurso: `PARSER_DO_TABLE_STRUCTURE=false`
+
 ### `std::bad_alloc` / Docling OOM na página X
 
-Falta de RAM ao processar página com imagem/tabela pesada (comum em normas NBR longas).
+Falta de RAM ao renderizar páginas pesadas (comum em normas NBR com **100+ páginas** e tabelas).
 
-1. Feche apps pesados (Ollama, Docker extra) ou reinicie o parser
-2. No `.env` ou ambiente do parser (padrão já otimizado):
+1. **Reinicie o parser** após ajustar o `.env` (ou variáveis do terminal)
+2. Garanta **`PARSER_PARALLEL_WORKERS=1`** — paralelo multiplica RAM (~2–3 GB por worker)
+3. Reduza lotes:
    ```env
-   PARSER_LOW_MEMORY=true
-   PARSER_PAGE_BATCH_SIZE=10
+   PARSER_PAGE_BATCH_SIZE=4
+   PARSER_IMAGES_SCALE=1.0
    ```
-3. Reinicie `pnpm parser:dev`
-4. Se persistir: comente `PARSER_SERVICE_URL` — a API usa `pdf-parse` (menos qualidade, zero Docling)
+4. PDFs **>150 páginas** reduzem o lote automaticamente para 4; **>60** para 6
+5. Modo tabela mais leve: `PARSER_TABLE_MODE=fast`
+6. Feche Ollama/Docker extras; reinicie `pnpm parser:dev`
+7. Último recurso: `PARSER_DO_TABLE_STRUCTURE=false` — usa `table_image_recovery` via texto do PDF
 
 ### Docker não está rodando
 
@@ -286,21 +325,37 @@ Ver `.env.example` na raiz.
 | `NEXT_PUBLIC_API_URL` | URL da API consumida pelo admin/web |
 | `SEED_ADMIN_*` | Usuário admin inicial (dev) |
 | `SEED_KNOWLEDGE_ENABLED` | Procedimentos piloto NBR (dev) |
-| `OPENAI_API_KEY` | LLM, OCR (fallback sem Docling) |
+| `OPENAI_API_KEY` | Embeddings (se `openai`), OCR (fallback sem Docling), LLM (se `openai`) |
 | `EMBEDDING_PROVIDER` | `ollama` (local/grátis) ou `openai` (pago) |
+| `EMBEDDING_CONCURRENCY` | Jobs paralelos de embedding (default: 2 ollama, 5 openai) |
 | `OLLAMA_BASE_URL` | URL do Ollama (default: `http://localhost:11434`) |
 | `EMBEDDING_MODEL` | `nomic-embed-text` (Ollama) ou `text-embedding-3-small` (OpenAI) |
-| `LLM_MODEL` | Modelo chat (default: `gpt-4o-mini`) |
+| `LLM_PROVIDER` | `anthropic` ou `openai` — auto-detecta pela key se omitido |
+| `ANTHROPIC_API_KEY` | LLM Anthropic (default em dev: `claude-haiku-4-5`) |
+| `LLM_MODEL` | Modelo chat (default: `claude-haiku-4-5` ou `gpt-4o-mini` conforme provedor) |
 | `STORAGE_PATH` | Diretório de uploads (default: `./storage`) |
 | `MAX_UPLOAD_SIZE_MB` | Limite de upload (default: 150) |
 | `PARSER_SERVICE_URL` | URL do parser Docling (default: `http://localhost:8000`) |
 | `PARSER_SERVICE_TIMEOUT_MS` | Timeout HTTP para o parser (default: 7200000 = 2 h) |
 | `PARSER_MAX_UPLOAD_MB` | Limite no serviço parser (default: 150) |
 | `PARSER_DO_OCR` | OCR global no parser — deixe `false` salvo PDFs escaneados |
+| `PARSER_PROFILE` | `default` \| `low_memory` \| `high_memory` — ver tabela abaixo |
+
+### Perfil do parser (`PARSER_PROFILE`)
+
+Lido pelo `apps/parser` (via `pnpm parser:dev`, que carrega o `.env` da raiz).
+
+| Perfil | RAM típica | Workers | Lote | PDF 279 págs |
+|--------|------------|---------|------|----------------|
+| `default` | 8–16 GB | 1 (auto) | 8 → 4 | 1 worker, lote 4 |
+| `low_memory` | ≤8 GB | 1 | 4 → 3 | 1 worker, lote 3 |
+| `high_memory` | 16–32 GB | 2 | 12 → 8 | 2 workers, lote 8 |
+
+Variáveis explícitas (`PARSER_PARALLEL_WORKERS`, `PARSER_PAGE_BATCH_SIZE`) **sobrescrevem** o perfil.
 
 ## Produção
 
 - Defina `SEED_ADMIN_ENABLED=false` e `SEED_KNOWLEDGE_ENABLED=false`
 - Troque `JWT_SECRET` e senhas do seed
-- Configure `OPENAI_API_KEY` de produção
+- Configure `OPENAI_API_KEY` (embeddings) e `ANTHROPIC_API_KEY` ou `OPENAI_API_KEY` (LLM)
 - Não commite o arquivo `.env`

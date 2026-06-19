@@ -3,7 +3,7 @@
 ## Stack
 
 - NestJS 11 · MongoDB (Mongoose) · Redis (BullMQ) · Passport JWT · nestjs-pino · Swagger `/api`
-- OpenAI (`openai`) · Ollama (embeddings locais) · Docling via HTTP · `pdf-parse` · `cheerio`
+- OpenAI · Anthropic · Ollama (embeddings locais) · Docling via HTTP · `pdf-parse` · `cheerio`
 - Porta padrão: **3100** (`PORT` no `.env`)
 
 ## Configuração de ambiente
@@ -49,6 +49,7 @@ apps/api/src/modules/knowledge/
 │   ├── knowledge.service.ts      # CRUD + upload + cancel + reindex
 │   ├── knowledge-seed.service.ts
 │   ├── embedding.service.ts      # Ollama ou OpenAI
+│   ├── llm.service.ts            # Anthropic ou OpenAI
 │   └── rag.service.ts            # busca híbrida + LLM
 ├── repositories/knowledge.repository.ts
 └── schemas/

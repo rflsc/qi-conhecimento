@@ -3,7 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PinoLogger } from 'nestjs-pino';
-import { DocumentSourceType, IngestionStatus } from '@qi-conhecimento/shared-types';
+import { DocumentSourceType, IngestionStatus, ParseBlock } from '@qi-conhecimento/shared-types';
 import { stripMarkdownToPlain } from '@qi-conhecimento/shared-utils';
 import { DomainEvents } from '@events/domain-events';
 import { JOB_NAMES, QUEUE_NAMES } from '@queues/queues.constants';
@@ -24,6 +24,7 @@ export class DocumentIngestionService {
     private readonly eventEmitter: EventEmitter2,
     private readonly progressService: IngestionProgressService,
     @InjectQueue(QUEUE_NAMES.INGESTION) private readonly ingestionQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.EMBEDDING) private readonly embeddingQueue: Queue,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(DocumentIngestionService.name);
@@ -86,6 +87,8 @@ export class DocumentIngestionService {
 
       let markdown: string;
       let parserEngine: string | undefined;
+      let parseBlocks: ParseBlock[] | undefined;
+      let usedWeakFallback = false;
       try {
         const parseResult = await parser.parse(rawInput, {
           allowWeakParserFallback: options?.allowWeakParserFallback,
@@ -96,6 +99,8 @@ export class DocumentIngestionService {
         });
         markdown = parseResult.markdown;
         parserEngine = parseResult.engine;
+        parseBlocks = parseResult.blocks;
+        usedWeakFallback = parseResult.usedWeakFallback === true;
         if (parseResult.engine) {
           this.progressService.setParserEngine(documentId, parseResult.engine);
         }
@@ -162,7 +167,14 @@ export class DocumentIngestionService {
         throw new Error('Parser não extraiu conteúdo');
       }
 
-      const segments = this.chunkingService.splitMarkdown(markdown, document.title);
+      const blockSegments =
+        parseBlocks?.length && !usedWeakFallback
+          ? this.chunkingService.splitFromBlocks(parseBlocks, document.title)
+          : [];
+      const segments =
+        blockSegments.length > 0
+          ? blockSegments
+          : this.chunkingService.splitMarkdown(markdown, document.title);
       const tags = document.normReference ? [document.normReference.toLowerCase()] : [];
       this.progressService.setTotalChunks(documentId, segments.length);
       this.progressService.setPhase(
@@ -172,6 +184,8 @@ export class DocumentIngestionService {
           ? `Dividindo em pílulas de conhecimento (${segments.length} segmentos)`
           : 'Nenhum segmento gerado pelo chunking',
       );
+
+      const chunkIds: string[] = [];
 
       for (let i = 0; i < segments.length; i++) {
         const segment = segments[i];
@@ -189,18 +203,31 @@ export class DocumentIngestionService {
           chapter: segment.chapter,
           section: segment.section,
           normItem: segment.normItem,
+          pageStart: segment.pageStart,
+          pageEnd: segment.pageEnd,
+          contentType: segment.contentType,
+          headingPath: segment.headingPath,
+          tableCaption: segment.tableCaption,
+          tableSource: segment.tableSource,
           deletedAt: null,
         });
 
-        await this.ingestionQueue.add(JOB_NAMES.GENERATE_EMBEDDINGS, {
-          chunkId: chunk._id.toString(),
-        });
+        chunkIds.push(chunk._id.toString());
 
         this.progressService.chunkCreated(documentId, i + 1, segments.length, {
           chapter: segment.chapter,
           section: segment.section,
           normItem: segment.normItem,
         });
+      }
+
+      if (chunkIds.length > 0) {
+        await this.embeddingQueue.addBulk(
+          chunkIds.map((chunkId) => ({
+            name: JOB_NAMES.GENERATE_EMBEDDINGS,
+            data: { chunkId },
+          })),
+        );
       }
 
       if (segments.length > 0) {
@@ -240,7 +267,7 @@ export class DocumentIngestionService {
   }
 
   async generateEmbedding(chunkId: string): Promise<void> {
-    await this.ingestionQueue.add(JOB_NAMES.GENERATE_EMBEDDINGS, { chunkId });
+    await this.embeddingQueue.add(JOB_NAMES.GENERATE_EMBEDDINGS, { chunkId });
   }
 
   private async loadSource(

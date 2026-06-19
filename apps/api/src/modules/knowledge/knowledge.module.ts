@@ -22,7 +22,10 @@ import { KnowledgeChunkModel, KnowledgeChunkSchema } from './schemas/knowledge-c
       { name: KnowledgeDocumentModel.name, schema: KnowledgeDocumentSchema },
       { name: KnowledgeChunkModel.name, schema: KnowledgeChunkSchema },
     ]),
-    BullModule.registerQueue({ name: QUEUE_NAMES.INGESTION }),
+    BullModule.registerQueue(
+      { name: QUEUE_NAMES.INGESTION },
+      { name: QUEUE_NAMES.EMBEDDING },
+    ),
     forwardRef(() => IngestionModule),
   ],
   controllers: [KnowledgeController],

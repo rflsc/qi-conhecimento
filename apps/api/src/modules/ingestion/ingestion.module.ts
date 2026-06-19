@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { QUEUE_NAMES } from '@queues/queues.constants';
 import { KnowledgeModule } from '@modules/knowledge/knowledge.module';
 import { IngestionProcessor } from './processors/ingestion.processor';
+import { EmbeddingProcessor } from './processors/embedding.processor';
 import { PdfParser } from './parsers/pdf.parser';
 import { ImageParser } from './parsers/image.parser';
 import { HtmlParser } from './parsers/html.parser';
@@ -15,11 +16,15 @@ import { IngestionProgressService } from './services/ingestion-progress.service'
 
 @Module({
   imports: [
-    BullModule.registerQueue({ name: QUEUE_NAMES.INGESTION }),
+    BullModule.registerQueue(
+      { name: QUEUE_NAMES.INGESTION },
+      { name: QUEUE_NAMES.EMBEDDING },
+    ),
     forwardRef(() => KnowledgeModule),
   ],
   providers: [
     IngestionProcessor,
+    EmbeddingProcessor,
     StorageService,
     ChunkingService,
     DocumentIngestionService,

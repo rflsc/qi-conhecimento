@@ -32,6 +32,7 @@ export class KnowledgeService {
     private readonly progressService: IngestionProgressService,
     private readonly doclingClient: DoclingClient,
     @InjectQueue(QUEUE_NAMES.INGESTION) private readonly ingestionQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.EMBEDDING) private readonly embeddingQueue: Queue,
   ) {}
 
   async createDocument(dto: CreateKnowledgeDocumentDto) {
@@ -122,7 +123,7 @@ export class KnowledgeService {
       deletedAt: null,
     });
 
-    await this.ingestionQueue.add(JOB_NAMES.GENERATE_EMBEDDINGS, {
+    await this.embeddingQueue.add(JOB_NAMES.GENERATE_EMBEDDINGS, {
       chunkId: chunk._id.toString(),
     });
 
@@ -153,7 +154,7 @@ export class KnowledgeService {
 
     await this.knowledgeRepository.updateDocumentStatus(dto.documentId, IngestionStatus.COMPLETED);
 
-    await this.ingestionQueue.add(JOB_NAMES.GENERATE_EMBEDDINGS, {
+    await this.embeddingQueue.add(JOB_NAMES.GENERATE_EMBEDDINGS, {
       chunkId: chunk._id.toString(),
     });
 
@@ -213,7 +214,7 @@ export class KnowledgeService {
 
     await Promise.all(
       chunkIds.map((chunkId) =>
-        this.ingestionQueue.add(JOB_NAMES.GENERATE_EMBEDDINGS, { chunkId }),
+        this.embeddingQueue.add(JOB_NAMES.GENERATE_EMBEDDINGS, { chunkId }),
       ),
     );
 
@@ -333,10 +334,13 @@ export class KnowledgeService {
 
   private async removeIngestionJobs(documentId: string, chunkIds: string[]): Promise<number> {
     const chunkIdSet = new Set(chunkIds);
-    const jobs = await this.ingestionQueue.getJobs(['waiting', 'delayed', 'paused', 'active']);
+    const [ingestionJobs, embeddingJobs] = await Promise.all([
+      this.ingestionQueue.getJobs(['waiting', 'delayed', 'paused', 'active']),
+      this.embeddingQueue.getJobs(['waiting', 'delayed', 'paused', 'active']),
+    ]);
     let removed = 0;
 
-    for (const job of jobs) {
+    for (const job of [...ingestionJobs, ...embeddingJobs]) {
       const isProcessJob =
         job.name === JOB_NAMES.PROCESS_DOCUMENT && job.data.documentId === documentId;
       const isEmbeddingJob =

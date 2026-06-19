@@ -1,6 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-import { EngineeringSpecialty } from '@qi-conhecimento/shared-types';
+import {
+  ChunkContentType,
+  EngineeringSpecialty,
+  TableExtractionSource,
+} from '@qi-conhecimento/shared-types';
 
 export type KnowledgeChunkDocument = HydratedDocument<KnowledgeChunkModel>;
 
@@ -30,6 +34,24 @@ export class KnowledgeChunkModel {
 
   @Prop({ trim: true, index: true })
   normItem?: string;
+
+  @Prop({ type: Number, index: true })
+  pageStart?: number;
+
+  @Prop({ type: Number })
+  pageEnd?: number;
+
+  @Prop({ trim: true, enum: ['paragraph', 'table', 'list', 'mixed'] })
+  contentType?: ChunkContentType;
+
+  @Prop({ type: [String], default: undefined })
+  headingPath?: string[];
+
+  @Prop({ trim: true })
+  tableCaption?: string;
+
+  @Prop({ trim: true, enum: ['docling', 'text_recovery'] })
+  tableSource?: TableExtractionSource;
 
   @Prop({ type: [String], default: [] })
   tags!: string[];

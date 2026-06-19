@@ -25,7 +25,7 @@ sequenceDiagram
 
 1. Consulta recebida (`queryText`, `specialtyFilter` opcional)
 2. `RagService.hybridSearch()` — fusão RRF (texto + vetorial)
-3. `RagService.generateAnswer()` — LLM OpenAI com contexto dos chunks
+3. `RagService.generateAnswer()` — LLM Anthropic ou OpenAI com contexto dos chunks
 4. Fallback sem API key: template `"Conforme NBR X: excerpt..."`
 5. Registro em `field_queries` com array de `citations`
 
@@ -54,8 +54,10 @@ Resposta inclui `answer` e `citations[]` com `documentTitle`, `normReference`, `
 
 | Variável | Uso |
 | --- | --- |
-| `OPENAI_API_KEY` | LLM para respostas enriquecidas |
-| `LLM_MODEL` | Modelo chat (default: `gpt-4o-mini`) |
+| `LLM_PROVIDER` | `anthropic` ou `openai` — auto-detecta pela key se omitido |
+| `ANTHROPIC_API_KEY` | LLM Anthropic (default: `claude-haiku-4-5`) |
+| `OPENAI_API_KEY` | LLM OpenAI ou embeddings/OCR |
+| `LLM_MODEL` | Modelo chat (default conforme provedor) |
 | `WHATSAPP_VERIFY_TOKEN` | Verificação webhook Meta |
 | `WHATSAPP_ACCESS_TOKEN` | Envio de mensagens (futuro) |
 | `WHATSAPP_PHONE_NUMBER_ID` | ID do número WhatsApp (futuro) |

@@ -23,6 +23,7 @@
 | Autenticação, seed e login no admin | [architecture/auth.md](./architecture/auth.md) |
 | Frontends (web/admin) | [architecture/frontend.md](./architecture/frontend.md) |
 | Hub de conhecimento e RAG | [architecture/knowledge-rag.md](./architecture/knowledge-rag.md) |
+| **Docling — evolução e roadmap** | [architecture/docling.md](./architecture/docling.md) |
 | Parser service (FastAPI + Docling) | [architecture/parser-service.md](./architecture/parser-service.md) |
 | Assistente de campo (WhatsApp/Telegram) | [architecture/messaging.md](./architecture/messaging.md) |
 | Design system (tema escuro) | [architecture/design-system.md](./architecture/design-system.md) |
@@ -43,5 +44,5 @@
 ## Pilares do produto
 
 1. **Hub de Entrada Multimodal** — `apps/admin` + módulos `knowledge` e `ingestion` na API
-2. **Esteira RAG** — filas BullMQ, parsers Docling, embeddings Ollama/OpenAI, busca híbrida + LLM
+2. **Esteira RAG** — filas BullMQ, parsers Docling, embeddings Ollama/OpenAI, busca híbrida + LLM Anthropic/OpenAI
 3. **Interface de Campo** — módulo `messaging` + integrações WhatsApp/Telegram (parcial)

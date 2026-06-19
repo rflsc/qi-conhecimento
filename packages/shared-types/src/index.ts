@@ -27,6 +27,24 @@ export enum IngestionStatus {
   CANCELLED = 'cancelled',
 }
 
+export type ChunkContentType = 'paragraph' | 'table' | 'list' | 'mixed';
+
+export type TableExtractionSource = 'docling' | 'text_recovery';
+
+export type ParseBlockType = 'heading' | 'paragraph' | 'table' | 'list';
+
+export interface ParseBlock {
+  type: ParseBlockType;
+  text?: string;
+  markdown?: string;
+  level?: number;
+  caption?: string;
+  pageStart?: number;
+  pageEnd?: number;
+  tableSource?: TableExtractionSource;
+  headingPath?: string[];
+}
+
 export type IngestionPhase =
   | 'queued'
   | 'loading_source'
@@ -132,7 +150,26 @@ export interface KnowledgeChunk {
   normItem?: string;
   tags: string[];
   embeddingId?: string;
+  pageStart?: number;
+  pageEnd?: number;
+  contentType?: ChunkContentType;
+  headingPath?: string[];
+  tableCaption?: string;
+  tableSource?: TableExtractionSource;
   createdAt: string;
+}
+
+export interface KnowledgeCitation {
+  documentId: string;
+  documentTitle: string;
+  normReference?: string;
+  normItem?: string;
+  chunkId: string;
+  excerpt: string;
+  sourceUrl?: string;
+  pageStart?: number;
+  pageEnd?: number;
+  tableCaption?: string;
 }
 
 export interface FieldQuery {
@@ -145,16 +182,6 @@ export interface FieldQuery {
   answer?: string;
   citations: KnowledgeCitation[];
   createdAt: string;
-}
-
-export interface KnowledgeCitation {
-  documentId: string;
-  documentTitle: string;
-  normReference?: string;
-  normItem?: string;
-  chunkId: string;
-  excerpt: string;
-  sourceUrl?: string;
 }
 
 export interface ApiErrorResponse {

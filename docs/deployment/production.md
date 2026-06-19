@@ -87,7 +87,8 @@ O repositório inclui:
 | `MONGODB_URI` | Connection string do Atlas |
 | `REDIS_URL` | URL **Upstash** ([upstash.com](https://upstash.com) — grátis) |
 | `OPENAI_API_KEY` | Para embeddings |
-| `ANTHROPIC_API_KEY` | Para respostas RAG |
+| `LLM_PROVIDER` | `anthropic` (recomendado) ou `openai` |
+| `ANTHROPIC_API_KEY` | Para respostas RAG (se `LLM_PROVIDER=anthropic`) |
 | `CORS_ORIGINS` | URLs Vercel |
 
 `JWT_SECRET` é gerado automaticamente.

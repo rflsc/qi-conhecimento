@@ -60,6 +60,8 @@ export class MessagingService {
       chunkId: chunk._id.toString(),
       excerpt: chunk.markdownContent.slice(0, 280),
       sourceUrl: document.sourceReference,
+      pageStart: chunk.pageStart,
+      tableCaption: chunk.tableCaption,
     };
   }
 }

@@ -53,12 +53,25 @@ py -3.12 -m venv .venv
 
 | Variável | Default | Uso |
 | --- | --- | --- |
+| `PARSER_PROFILE` | `default` | `default` \| `low_memory` \| `high_memory` (32 GB → `high_memory`) |
 | `PARSER_DO_OCR` | `false` | OCR em PDFs escaneados (lento, mais RAM) |
-| `PARSER_LOW_MEMORY` | `true` | Backend pypdfium2 — evita `std::bad_alloc` |
-| `PARSER_PAGE_BATCH_SIZE` | `15` | Páginas por lote (`0` = arquivo inteiro) |
-| `PARSER_DO_TABLE_STRUCTURE` | `true` | Extrai estrutura de tabelas (linhas/colunas/células) |
-| `PARSER_TABLE_MODE` | `accurate` | TableFormer: `accurate` (melhor) ou `fast` (mais rápido) |
-| `PARSER_TABLE_CELL_MATCHING` | `true` | Casa células com texto do PDF (PDF com texto selecionável) |
+| `PARSER_PAGE_BATCH_SIZE` | conforme perfil | Sobrescreve páginas por lote |
+| `PARSER_PARALLEL_WORKERS` | conforme perfil | `1` = sequencial; `2` no `high_memory` |
+| `PARSER_IMAGES_SCALE` | `1.0` | Escala das imagens (2.0 ≈ 4× RAM) |
+| `PARSER_THREADS_PER_WORKER` | `0` (auto) | Threads torch por worker |
+| `PARSER_DO_TABLE_STRUCTURE` | `true` | TableFormer |
+| `PARSER_TABLE_MODE` | `accurate` | `accurate` \| `fast` |
+| `PARSER_TABLE_IMAGE_RECOVERY` | `true` | Recupera tabelas via texto do PDF |
+
+### Perfis (`PARSER_PROFILE`)
+
+| Perfil | Workers | Lote base | PDF longo (279 p.) |
+| --- | --- | --- | --- |
+| `default` | 1 | 8 | lote 4, 1 worker |
+| `low_memory` | 1 | 4 | lote 3, 1 worker |
+| `high_memory` | 2 | 12 | lote 8, 2 workers |
+
+O `pnpm parser:dev` carrega `PARSER_PROFILE` do `.env` da raiz do monorepo.
 
 PDFs longos são processados em lotes (`PARSER_PAGE_BATCH_SIZE`); o conversor Docling é reutilizado entre lotes. Envie `job_id` no POST e consulte `/v1/parse/progress/{job_id}` para acompanhar páginas processadas.
 
@@ -70,4 +83,4 @@ PARSER_SERVICE_TIMEOUT_MS=7200000
 PARSER_MAX_UPLOAD_MB=150
 ```
 
-Documentação: [docs/architecture/parser-service.md](../../docs/architecture/parser-service.md)
+Documentação: [docs/architecture/parser-service.md](../../docs/architecture/parser-service.md) · [docs/architecture/docling.md](../../docs/architecture/docling.md) (evolução e roadmap)

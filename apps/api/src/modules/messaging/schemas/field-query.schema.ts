@@ -18,6 +18,12 @@ export class CitationSubdocument {
   @Prop()
   normItem?: string;
 
+  @Prop()
+  pageStart?: number;
+
+  @Prop()
+  tableCaption?: string;
+
   @Prop({ required: true })
   chunkId!: string;
 

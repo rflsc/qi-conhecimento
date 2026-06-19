@@ -1,10 +1,12 @@
 import type {
   AuthTokens,
+  ChunkContentType,
   EngineeringSpecialty,
   FieldQuery,
   KnowledgeCitation,
   KnowledgeDocument,
   PaginatedResponse,
+  TableExtractionSource,
   User,
 } from '@qi-conhecimento/shared-types';
 import type {
@@ -32,6 +34,11 @@ export interface KnowledgeChunkRow {
   specialty: EngineeringSpecialty;
   chapter?: string;
   tags: string[];
+  pageStart?: number;
+  pageEnd?: number;
+  contentType?: ChunkContentType;
+  tableCaption?: string;
+  tableSource?: TableExtractionSource;
   createdAt: string;
 }
 
@@ -43,6 +50,9 @@ export interface KnowledgeSearchResult {
   normItem?: string;
   specialty: EngineeringSpecialty;
   excerpt: string;
+  pageStart?: number;
+  tableCaption?: string;
+  contentType?: ChunkContentType;
   tags: string[];
 }
 

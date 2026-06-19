@@ -13,10 +13,22 @@ export function truncate(text: string, maxLength: number): string {
   return `${text.slice(0, maxLength - 3)}...`;
 }
 
-export function buildCitationLabel(normReference?: string, normItem?: string): string {
-  if (normReference && normItem) return `${normReference}, item ${normItem}`;
-  if (normReference) return normReference;
-  return 'Fonte interna';
+export function buildCitationLabel(
+  normReference?: string,
+  normItem?: string,
+  pageStart?: number,
+  tableCaption?: string,
+): string {
+  const parts: string[] = [];
+
+  if (normReference && normItem) parts.push(`${normReference}, item ${normItem}`);
+  else if (normReference) parts.push(normReference);
+  else parts.push('Fonte interna');
+
+  if (tableCaption) parts.push(tableCaption);
+  if (pageStart) parts.push(`p. ${pageStart}`);
+
+  return parts.join(', ');
 }
 
 export function cosineSimilarity(a: number[], b: number[]): number {

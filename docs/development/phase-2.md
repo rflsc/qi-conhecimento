@@ -22,6 +22,7 @@ Entrega concluída: upload PDF/imagem/link, parsers (Docling + fallbacks), embed
 | Componente | Descrição |
 | --- | --- |
 | `EmbeddingService` | Provedor `ollama` (local) ou `openai` (API) |
+| `LlmService` | Provedor `anthropic` ou `openai` para respostas RAG |
 | `RagService` | Busca híbrida (RRF: texto + vetorial) + LLM |
 | `POST /knowledge/documents/upload` | Multipart — PDF ou imagem |
 | `POST /knowledge/documents/import-link` | Importação de URL |
@@ -110,8 +111,12 @@ EMBEDDING_MODEL=nomic-embed-text
 # EMBEDDING_MODEL=text-embedding-3-small
 
 # LLM (opcional — respostas enriquecidas)
-OPENAI_API_KEY=
-LLM_MODEL=gpt-4o-mini
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=
+LLM_MODEL=claude-haiku-4-5
+# LLM_PROVIDER=openai
+# OPENAI_API_KEY=sk-...
+# LLM_MODEL=gpt-4o-mini
 
 STORAGE_PATH=./storage
 MAX_UPLOAD_SIZE_MB=150

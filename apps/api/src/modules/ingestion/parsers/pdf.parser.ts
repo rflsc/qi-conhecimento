@@ -34,7 +34,7 @@ export class PdfParser implements DocumentParser {
         doOcr: options?.doOcr === true,
         onProgress: options?.onParseProgress,
       });
-      return { ...result, engine: result.engine ?? 'docling', usedWeakFallback: false };
+      return { ...result, engine: result.engine ?? 'docling', usedWeakFallback: false, blocks: result.blocks };
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'erro desconhecido';
       const timedOut = detail.includes('tempo limite');

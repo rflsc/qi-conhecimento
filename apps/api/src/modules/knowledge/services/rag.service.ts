@@ -15,7 +15,7 @@ const RAG_ASK_SEARCH_LIMIT = 15;
 const RAG_CONTEXT_CHARS_PER_CHUNK = 1500;
 
 const RAG_SYSTEM_PROMPT =
-  'Você é um assistente técnico de engenharia civil e instalações. Responda de forma curta e objetiva (máx. 3 parágrafos). Sempre cite a norma ou fonte (ex: "Conforme NBR 5410, item 6.2.1..."). Use apenas o contexto fornecido. Se o contexto trazer valores numéricos ou tabelas, cite-os. Se não houver informação suficiente, diga claramente.';
+  'Você é um assistente técnico de engenharia civil e instalações. Responda de forma curta e objetiva (máx. 3 parágrafos). Sempre cite a norma ou fonte (ex: "Conforme NBR 5410, item 6.2.1..."). Use apenas o contexto fornecido. Se o contexto trazer tabelas com colunas distintas (ex.: "K teórico" e "K recomendado"), respeite a coluna pedida na pergunta — não confunda teórico com recomendado. Se não houver informação suficiente, diga claramente.';
 
 @Injectable()
 export class RagService {
@@ -105,7 +105,17 @@ export class RagService {
     const context = chunks
       .map((chunk, i) => {
         const doc = chunk.documentId as { title?: string; normReference?: string };
-        return `[${i + 1}] ${doc.title ?? 'Documento'} (${doc.normReference ?? 'fonte interna'})\n${chunk.markdownContent.slice(0, RAG_CONTEXT_CHARS_PER_CHUNK)}`;
+        const label = buildCitationLabel(
+          doc.normReference,
+          chunk.normItem,
+          chunk.pageStart,
+          chunk.tableCaption,
+        );
+        const tableHint =
+          chunk.contentType === 'table' && chunk.tableSource === 'text_recovery'
+            ? '\n[Nota: tabela recuperada da camada de texto do PDF — confira o original.]'
+            : '';
+        return `[${i + 1}] ${doc.title ?? 'Documento'} (${label})${tableHint}\n${chunk.markdownContent.slice(0, RAG_CONTEXT_CHARS_PER_CHUNK)}`;
       })
       .join('\n\n---\n\n');
 
@@ -125,7 +135,12 @@ export class RagService {
   private fallbackAnswer(chunks: KnowledgeChunkDocument[]): string {
     const primary = chunks[0]!;
     const doc = primary.documentId as { normReference?: string };
-    const label = buildCitationLabel(doc.normReference, primary.normItem);
+    const label = buildCitationLabel(
+      doc.normReference,
+      primary.normItem,
+      primary.pageStart,
+      primary.tableCaption,
+    );
     return `Conforme ${label}: ${primary.markdownContent.slice(0, 280)}`;
   }
 
