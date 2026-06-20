@@ -59,7 +59,7 @@ Cadastre no admin do qi-agents (**Integrações → API Source**):
 | --- | --- |
 | Nome | Qi Conhecimento API |
 | `baseUrl` | `https://<api-qi-conhecimento>` ou `http://localhost:3100` (dev) |
-| `timeoutMs` | **120000** — `public-ask` leva ~45–90s no Render |
+| `timeoutMs` | **120000** — `public-ask` leva ~20–90s (Render free + LLM); use ack/typing no qi-agents |
 | Endpoint `toolName` | ex. `consultar_norma` |
 | Path | `POST /knowledge/public-ask` |
 | Body | `query`, `specialty` (ex.: `"civil"`) |

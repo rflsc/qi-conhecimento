@@ -25,6 +25,9 @@ const RAG_SYSTEM_PROMPT =
 
 @Injectable()
 export class RagService {
+  /** Liga após a 1ª falha do índice nativo; evita reprovar o $vectorSearch a cada query. */
+  private vectorIndexFallbackActive = false;
+
   constructor(
     private readonly knowledgeRepository: KnowledgeRepository,
     private readonly embeddingService: EmbeddingService,
@@ -34,18 +37,39 @@ export class RagService {
     this.logger.setContext(RagService.name);
   }
 
-  async hybridSearch(query: string, specialty?: EngineeringSpecialty, limit = 10) {
+  async hybridSearch(
+    query: string,
+    specialty?: EngineeringSpecialty,
+    limit = 10,
+    candidateLoader?: () => Promise<KnowledgeChunkDocument[]>,
+  ) {
+    const t0 = performance.now();
     const textChunks = await this.knowledgeRepository.searchByText(query, specialty, limit);
     const textIds = textChunks.map((c) => c._id.toString());
+    const tText = performance.now();
 
     let vectorIds: string[] = [];
+    let tEmbed = tText;
+    let tVector = tText;
     if (this.embeddingService.isAvailable) {
       const queryEmbedding = await this.embeddingService.embed(query);
+      tEmbed = performance.now();
       if (queryEmbedding) {
-        const vectorChunks = await this.searchByVector(queryEmbedding, specialty, limit);
-        vectorIds = vectorChunks.map((c) => c._id.toString());
+        vectorIds = await this.searchByVector(queryEmbedding, specialty, limit, candidateLoader);
       }
+      tVector = performance.now();
     }
+
+    this.logger.info(
+      {
+        query: query.slice(0, 48),
+        textMs: Math.round(tText - t0),
+        embedMs: Math.round(tEmbed - tText),
+        vectorMs: Math.round(tVector - tEmbed),
+        totalMs: Math.round(performance.now() - t0),
+      },
+      'timing:hybridSearch',
+    );
 
     const mergedIds = this.reciprocalRankFusion(textIds, vectorIds, limit);
     const chunks = await this.knowledgeRepository.findChunksByIds(mergedIds);
@@ -61,15 +85,37 @@ export class RagService {
     query: string,
     specialty?: EngineeringSpecialty,
   ): Promise<KnowledgeChunkDocument[]> {
+    const t0 = performance.now();
     const queries = this.expandSearchQueries(query);
     const scores = new Map<string, number>();
 
+    // No fallback brute-force, os candidatos com embedding são iguais para todas as
+    // queries expandidas (mesma specialty). Carrega uma vez e reusa, evitando recarregar
+    // ~1100 embeddings do Mongo a cada query. Memoizado: a 1ª chamada que precisar carrega.
+    let candidatesPromise: Promise<KnowledgeChunkDocument[]> | null = null;
+    const candidateLoader = () => {
+      if (!candidatesPromise) {
+        candidatesPromise = this.knowledgeRepository.findChunksWithEmbeddings(specialty);
+      }
+      return candidatesPromise;
+    };
+
     for (const expandedQuery of queries) {
-      const results = await this.hybridSearch(expandedQuery, specialty, RAG_ASK_SEARCH_LIMIT);
+      const results = await this.hybridSearch(
+        expandedQuery,
+        specialty,
+        RAG_ASK_SEARCH_LIMIT,
+        candidateLoader,
+      );
       results.forEach((result, rank) => {
         scores.set(result.chunkId, (scores.get(result.chunkId) ?? 0) + 1 / (RRF_K + rank + 1));
       });
     }
+
+    this.logger.info(
+      { queryCount: queries.length, totalMs: Math.round(performance.now() - t0) },
+      'timing:retrieveChunksForAnswer',
+    );
 
     const mergedIds = [...scores.entries()]
       .sort((a, b) => b[1] - a[1])
@@ -166,10 +212,12 @@ export class RagService {
     const trimmed = query.trim();
     const queries = [trimmed];
 
+    // Uma única variante focada na Tabela H.1 cobre o caso de K sem multiplicar o
+    // retrieval por 4 (corta ~50–75% do tempo de busca). Original + variante = 2 queries.
     if (/coeficiente|flambagem|\bk\b|engastad|rotulad|esbeltez/i.test(trimmed)) {
-      queries.push('Tabela H.1 coeficiente de flambagem K recomendado barras isoladas');
-      queries.push('tabela coeficiente de flambagem condições de apoio K recomendado');
-      queries.push('valores teóricos e recomendados K barras comprimidas NBR 8800');
+      queries.push(
+        'Tabela H.1 coeficiente de flambagem K recomendado barras isoladas condições de apoio NBR 8800',
+      );
     }
 
     return [...new Set(queries)];
@@ -187,6 +235,7 @@ export class RagService {
       return this.fallbackAnswer(chunks);
     }
 
+    const tCtx = performance.now();
     const context = chunks
       .map((chunk, i) => {
         const doc = chunk.documentId as { title?: string; normReference?: string };
@@ -203,11 +252,22 @@ export class RagService {
         return `[${i + 1}] ${doc.title ?? 'Documento'} (${label})${tableHint}\n${chunk.markdownContent.slice(0, RAG_CONTEXT_CHARS_PER_CHUNK)}`;
       })
       .join('\n\n---\n\n');
+    const tContextBuilt = performance.now();
 
     try {
       const answer = await this.llmService.complete(
         RAG_SYSTEM_PROMPT,
         `Contexto técnico:\n${context}\n\nPergunta: ${query}`,
+      );
+
+      this.logger.info(
+        {
+          chunkCount: chunks.length,
+          contextChars: context.length,
+          contextBuildMs: Math.round(tContextBuilt - tCtx),
+          llmMs: Math.round(performance.now() - tContextBuilt),
+        },
+        'timing:generateAnswer',
       );
 
       return answer ?? this.fallbackAnswer(chunks);
@@ -229,12 +289,45 @@ export class RagService {
     return `Conforme ${label}: ${primary.markdownContent.slice(0, 280)}`;
   }
 
+  /**
+   * Top-K por similaridade. Tenta o índice nativo Atlas Vector Search ($vectorSearch)
+   * e, se indisponível (índice não criado), faz fallback para cosseno em memória.
+   * Retorna ids ordenados por relevância.
+   */
   private async searchByVector(
     queryEmbedding: number[],
     specialty?: EngineeringSpecialty,
     limit = 10,
-  ): Promise<KnowledgeChunkDocument[]> {
-    const candidates = await this.knowledgeRepository.findChunksWithEmbeddings(specialty);
+    candidateLoader?: () => Promise<KnowledgeChunkDocument[]>,
+  ): Promise<string[]> {
+    if (!this.vectorIndexFallbackActive) {
+      const tIdx = performance.now();
+      try {
+        const ids = await this.knowledgeRepository.vectorSearch(queryEmbedding, specialty, limit);
+        if (ids.length > 0) {
+          this.logger.info(
+            { hits: ids.length, vectorSearchMs: Math.round(performance.now() - tIdx) },
+            'timing:searchByVector:index',
+          );
+          return ids;
+        }
+        // Resultado vazio: índice provavelmente ainda não existe/indexou — usa fallback.
+        this.vectorIndexFallbackActive = true;
+        this.logger.warn('Atlas Vector Search retornou vazio — ativando fallback brute-force');
+      } catch (error) {
+        this.vectorIndexFallbackActive = true;
+        this.logger.warn(
+          { error: error instanceof Error ? error.message : String(error) },
+          'Atlas Vector Search indisponível — ativando fallback brute-force',
+        );
+      }
+    }
+
+    const tLoad = performance.now();
+    const candidates = candidateLoader
+      ? await candidateLoader()
+      : await this.knowledgeRepository.findChunksWithEmbeddings(specialty);
+    const tLoaded = performance.now();
     const scored = candidates
       .map((chunk) => ({
         chunk,
@@ -243,7 +336,16 @@ export class RagService {
       .filter((item) => item.score > 0)
       .sort((a, b) => b.score - a.score);
 
-    return scored.slice(0, limit).map((item) => item.chunk);
+    this.logger.info(
+      {
+        candidateCount: candidates.length,
+        loadMs: Math.round(tLoaded - tLoad),
+        cosineMs: Math.round(performance.now() - tLoaded),
+      },
+      'timing:searchByVector:bruteforce',
+    );
+
+    return scored.slice(0, limit).map((item) => item.chunk._id.toString());
   }
 
   private reciprocalRankFusion(textIds: string[], vectorIds: string[], limit: number): string[] {

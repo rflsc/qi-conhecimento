@@ -125,11 +125,73 @@ Sem provedor LLM: resposta em template com citação do chunk principal.
 ## Busca híbrida (`RagService`)
 
 1. **Texto** — MongoDB `$text` em `content`, `markdownContent`, `tags`
-2. **Vetorial** — cosine similarity entre query embedding e `chunk.embedding[]`
+2. **Vetorial** — Atlas **`$vectorSearch`** no índice `knowledge_vector_index` (campo `embedding`); fallback automático para cosseno em memória se o índice não existir ou estiver indisponível
 3. **Fusão** — Reciprocal Rank Fusion (RRF, k=60)
-4. **Expansão de query** — em perguntas sobre K/flambagem, consultas adicionais buscam Tabela H.1 e condições de apoio
+4. **Expansão de query** — em perguntas sobre K/flambagem, **1 variante** adicional (original + Tabela H.1 = **2 buscas**, não 4)
 5. **Rerank** — `rankChunksForAnswer()` prioriza tabelas, Tabela H.1, linhas do caso (b) e metadados (`pageStart`, `tableCaption`)
 6. **Filtro** — opcional por `specialty`
+
+### Atlas Vector Search
+
+O caminho vetorial preferido usa o pipeline nativo do MongoDB Atlas (`KnowledgeRepository.vectorSearch()`):
+
+| Item | Valor |
+| --- | --- |
+| Coleção | `knowledge_chunks` |
+| Índice | `knowledge_vector_index` (constante `KNOWLEDGE_VECTOR_INDEX`) |
+| Campo vetorial | `embedding` |
+| Similaridade | `cosine` |
+| Filtros indexados | `specialty`, `deletedAt` |
+| Dimensões | **1536** (`text-embedding-3-small`) ou **768** (`nomic-embed-text`) — deve bater com o modelo em uso |
+
+**Criar o índice** (Atlas M0 free suporta Vector Search):
+
+```bash
+node scripts/create-vector-index.mjs
+```
+
+Ou no Robo 3T / mongosh (database `qi-conhecimento`):
+
+```js
+db.runCommand({
+  createSearchIndexes: "knowledge_chunks",
+  indexes: [{
+    name: "knowledge_vector_index",
+    type: "vectorSearch",
+    definition: {
+      fields: [
+        { type: "vector", path: "embedding", numDimensions: 1536, similarity: "cosine" },
+        { type: "filter", path: "specialty" },
+        { type: "filter", path: "deletedAt" }
+      ]
+    }
+  }]
+})
+```
+
+Confirme status `READY`:
+
+```js
+db.knowledge_chunks.aggregate([{ $listSearchIndexes: {} }])
+```
+
+**Fallback brute-force:** se o índice ainda não existir, retornar vazio ou falhar na 1ª query, `RagService` liga `vectorIndexFallbackActive` e passa a calcular cosseno em JS sobre todos os chunks com embedding. Nesse modo, `retrieveChunksForAnswer()` **carrega os candidatos uma vez** e reusa nas queries expandidas (evita recarregar ~1100 embeddings do Mongo a cada busca).
+
+**Após criar o índice:** reinicie a API se ela já tiver ligado o fallback antes do índice ficar `READY`.
+
+### Performance e observabilidade
+
+Logs `timing:*` em `rag.service.ts` (nível `info`):
+
+| Log | O que mede |
+| --- | --- |
+| `timing:hybridSearch` | texto, embed da query, vetorial, total por busca |
+| `timing:searchByVector:index` | hits + ms do `$vectorSearch` |
+| `timing:searchByVector:bruteforce` | candidatos carregados, load Mongo, cosseno JS |
+| `timing:retrieveChunksForAnswer` | `queryCount` (1 ou 2) + total |
+| `timing:generateAnswer` | montagem de contexto + chamada LLM |
+
+No Render free tier, o gargalo costuma ser **LLM + CPU limitada** (~0,1 vCPU), não só o retrieval. Com índice vetorial + 2 queries expandidas, o retrieval cai de dezenas de segundos para sub-segundo na maioria dos casos.
 
 ### Assistente público (`public-ask`)
 
@@ -138,7 +200,7 @@ Pipeline completo em `KnowledgeService.publicAsk()`:
 ```mermaid
 flowchart LR
   Q[Query do usuário] --> E[expandSearchQueries]
-  E --> H[hybridSearch × N queries]
+  E --> H[hybridSearch × 1–2 queries]
   H --> R[RRF + rankChunksForAnswer]
   R --> C[selectCitationsForDisplay]
   R --> L[generateAnswer — LLM]
@@ -148,7 +210,7 @@ flowchart LR
 
 | Etapa | Método | Descrição |
 | --- | --- | --- |
-| Retrieval | `retrieveChunksForAnswer()` | Até 10 chunks para contexto do LLM |
+| Retrieval | `retrieveChunksForAnswer()` | 1–2 `hybridSearch` (expansão K) → até 10 chunks |
 | Rerank | `rankChunksForAnswer()` | Tabelas e Tabela H.1 sobem em perguntas sobre K |
 | Resposta | `generateAnswer()` | LLM com system prompt enriquecido (Tabela H.1) |
 | Citações | `selectCitationsForDisplay()` | Filtra, deduplica e limita cards na UI |

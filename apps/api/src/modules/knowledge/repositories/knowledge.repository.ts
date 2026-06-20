@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model, PipelineStage, Types } from 'mongoose';
 import { EngineeringSpecialty, IngestionStatus } from '@qi-conhecimento/shared-types';
+
+/** Nome do índice Atlas Vector Search no campo `embedding` da coleção `knowledge_chunks`. */
+export const KNOWLEDGE_VECTOR_INDEX = 'knowledge_vector_index';
 import {
   KnowledgeDocumentEntity,
   KnowledgeDocumentModel,
@@ -120,6 +123,40 @@ export class KnowledgeRepository {
     if (specialty) filter['specialty'] = specialty;
 
     return this.chunkModel.find(filter).populate('documentId').select('+embedding').exec();
+  }
+
+  /**
+   * Busca por similaridade usando o índice Atlas Vector Search (`$vectorSearch`).
+   * Retorna apenas os ids ordenados por relevância — o conteúdo é re-hidratado depois
+   * via `findChunksByIds` (que também filtra `deletedAt`).
+   * Lança erro se o índice não existir/estiver indisponível (o chamador faz fallback).
+   */
+  async vectorSearch(
+    queryEmbedding: number[],
+    specialty?: EngineeringSpecialty,
+    limit = 10,
+  ): Promise<string[]> {
+    const filter: Record<string, unknown> = { deletedAt: null };
+    if (specialty) filter['specialty'] = specialty;
+
+    const pipeline: PipelineStage[] = [
+      {
+        $vectorSearch: {
+          index: KNOWLEDGE_VECTOR_INDEX,
+          path: 'embedding',
+          queryVector: queryEmbedding,
+          numCandidates: Math.max(limit * 10, 100),
+          limit,
+          filter,
+        },
+      } as unknown as PipelineStage,
+      { $project: { _id: 1 } },
+    ];
+
+    const results = await this.chunkModel
+      .aggregate<{ _id: Types.ObjectId }>(pipeline)
+      .exec();
+    return results.map((r) => r._id.toString());
   }
 
   countDocuments(): Promise<number> {

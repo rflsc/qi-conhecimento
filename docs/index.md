@@ -25,6 +25,7 @@
 | Autenticação, seed e login no admin | [architecture/auth.md](./architecture/auth.md) |
 | Frontends (web/admin) | [architecture/frontend.md](./architecture/frontend.md) |
 | Hub de conhecimento e RAG | [architecture/knowledge-rag.md](./architecture/knowledge-rag.md) |
+| **Índice vetorial Atlas (M0)** | [knowledge-rag.md#atlas-vector-search](./architecture/knowledge-rag.md#atlas-vector-search) · `node scripts/create-vector-index.mjs` |
 | **Eval RAG (regressão)** | `pnpm --filter @qi-conhecimento/api eval:rag` — [knowledge-rag.md#suite-de-eval-rag](./architecture/knowledge-rag.md#suite-de-eval-rag) |
 | **Docling — evolução e roadmap** | [architecture/docling.md](./architecture/docling.md) |
 | Parser service (FastAPI + Docling) | [architecture/parser-service.md](./architecture/parser-service.md) |

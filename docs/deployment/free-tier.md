@@ -43,7 +43,8 @@ Variáveis **obrigatórias** no Render:
 
 ## Limitações do tier grátis
 
-- API **hiberna** após ~15 min sem uso — 1ª requisição demora ~30–60s
+- API **hiberna** após ~15 min sem uso — 1ª requisição demora ~30–60s (cold start)
+- `POST /knowledge/public-ask` pode levar **~45–90s** no Render free (CPU + LLM); com índice vetorial Atlas e ack no Qi Agents, o usuário vê feedback imediato enquanto processa
 - **Uploads de PDF** não persistem entre redeploys (sem disco pago)
 - Upstash free tem limite diário de comandos — suficiente para testes
 - OpenAI/Anthropic são pay-as-you-go *(só paga se usar as keys)*
@@ -58,6 +59,16 @@ Variáveis **obrigatórias** no Render:
    ```
    mongodb+srv://USER:PASS@cluster.mongodb.net/qi-conhecimento?retryWrites=true&w=majority
    ```
+
+4. **Índice Vector Search** (recomendado — acelera muito o RAG no tier M0 grátis):
+
+   Com embeddings já gerados no banco:
+
+   ```bash
+   node scripts/create-vector-index.mjs
+   ```
+
+   Aguarde status `READY` (`db.knowledge_chunks.aggregate([{ $listSearchIndexes: {} }])`) e **reinicie a API** após a indexação. Detalhes: [knowledge-rag.md#atlas-vector-search](../architecture/knowledge-rag.md#atlas-vector-search).
 
 ---
 

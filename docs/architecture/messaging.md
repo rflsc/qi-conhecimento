@@ -92,7 +92,7 @@ sequenceDiagram
 
   M->>R: retrieveChunksForAnswer + generateAnswer
 
-  R->>DB: $text + cosine similarity (RRF)
+  R->>DB: $text + $vectorSearch (fallback: cosseno JS) — RRF
 
   R-->>M: chunks + answer
 
@@ -106,7 +106,7 @@ sequenceDiagram
 
 1. Qi Agents envia `queryText`, `channel`, `externalUserId` (e opcionalmente `specialtyFilter`, `transcribedFromAudio`)
 
-2. `RagService.retrieveChunksForAnswer()` — fusão RRF (texto + vetorial)
+2. `RagService.retrieveChunksForAnswer()` — 1–2 buscas híbridas (texto + `$vectorSearch`) + fusão RRF
 
 3. `RagService.generateAnswer()` — LLM Anthropic ou OpenAI com contexto dos chunks
 
