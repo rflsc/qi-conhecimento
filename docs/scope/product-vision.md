@@ -50,7 +50,7 @@ Responsável pela ingestão, categorização e preparação de dados:
 - Persistência em `field_queries` (`channel`, `externalUserId`, etc.)
 - **Canais WhatsApp/Telegram** — projeto **[Qi Agents](../../integrations/qi-agents.md)** (webhooks, áudio, envio)
 - Webhooks `/messaging/whatsapp/*` neste repo — legado/stub; **não usar** para novos canais
-- Pendente aqui: API key serviço-a-serviço, admin `/queries`
+- Service key `X-Service-Key` em `/messaging/query` + admin `/queries` (histórico) — entregues
 
 ## 3. Fluxo de Valor do Dado
 
@@ -103,7 +103,7 @@ Arquitetura com **[Qi Agents](../../integrations/qi-agents.md)** como camada de 
 
 - [x] `POST /messaging/query` — RAG + citações + `field_queries`
 - [x] Documentação de integração
-- [ ] API key serviço-a-serviço
-- [ ] Histórico de consultas de campo no admin (`/queries`)
+- [x] API key serviço-a-serviço (`X-Service-Key`)
+- [x] Histórico de consultas de campo no admin (`/queries`)
 
 Guias: [phase-1.md](../development/phase-1.md) · [phase-2.md](../development/phase-2.md) · [phase-3.md](../development/phase-3.md) · [qi-agents.md](../integrations/qi-agents.md)

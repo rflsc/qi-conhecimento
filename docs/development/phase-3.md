@@ -30,9 +30,10 @@ A Fase 3 entrega o **Pilar 3** (interface de campo) com arquitetura **distribuí
 
 - [x] Endpoint RAG para canais
 - [x] Documentação de integração
-- [ ] API key serviço-a-serviço em `/messaging/query`
-- [ ] Admin `/queries` — listagem de `field_queries`
+- [x] API key serviço-a-serviço em `/messaging/query` (`X-Service-Key` / `SERVICE_API_KEY`)
+- [x] Admin `/queries` — listagem de `field_queries` (`GET /messaging/queries`)
 - [ ] (Opcional) Endpoint com `messageText` pré-formatado para WhatsApp
+- [ ] (Opcional) Rate limit por `externalUserId` / IP
 
 ### Explicitamente fora de escopo (Qi Conhecimento)
 
@@ -63,9 +64,15 @@ Resposta esperada: `answer` citando NBR 8800 (se norma ingerida) + `citations[]`
 ### 2. Conectar qi-agents
 
 1. API qi-conhecimento acessível pelo qi-agents (local: `localhost:3100`; prod: URL pública).
-2. Criar canal no qi-agents apontando para `/messaging/query`.
-3. Enviar mensagem de teste pelo WhatsApp ou Telegram.
-4. Confirmar registro em `field_queries` (MongoDB `qi-conhecimento`).
+2. No **qi-agent**, rode o seed (tools + agente) e configure a API no **admin → Integrações** (URL, API Key se necessário, timeout ≥ 120000):
+
+```bash
+pnpm --filter @qi/api seed:qiconhecimento
+```
+
+3. Criar/verificar canal Telegram ou WhatsApp no admin do qi-agent.
+4. Enviar mensagem de teste pelo canal.
+5. Confirmar resposta com citação; se usar `/messaging/query`, ver registro em `field_queries` (MongoDB `qi-conhecimento`) e painel admin `/queries`.
 
 ### 3. Regressão RAG (opcional)
 

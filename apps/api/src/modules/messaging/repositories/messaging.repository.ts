@@ -17,4 +17,16 @@ export class MessagingRepository {
   findById(id: string): Promise<FieldQueryDocument | null> {
     return this.fieldQueryModel.findOne({ _id: id, deletedAt: null }).exec();
   }
+
+  findPaginated(page: number, limit: number): Promise<[FieldQueryDocument[], number]> {
+    return Promise.all([
+      this.fieldQueryModel
+        .find({ deletedAt: null })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec(),
+      this.fieldQueryModel.countDocuments({ deletedAt: null }).exec(),
+    ]);
+  }
 }

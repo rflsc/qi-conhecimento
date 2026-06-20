@@ -128,6 +128,8 @@ sequenceDiagram
 
 | POST | `/messaging/query` | **Principal** — consulta RAG para canais (Qi Agents) |
 
+| GET | `/messaging/queries` | Histórico `field_queries` (admin/editor) — painel `/queries` |
+
 | GET | `/messaging/whatsapp/webhook` | Legado — verificação Meta (não usar com Qi Agents) |
 
 | POST | `/messaging/whatsapp/webhook` | Legado — stub (não usar com Qi Agents) |
@@ -184,6 +186,8 @@ Resposta inclui `answer` e `citations[]` com `documentTitle`, `normReference`, `
 
 | `EMBEDDING_PROVIDER` | `ollama` ou `openai` — busca híbrida no RAG |
 
+| `SERVICE_API_KEY` | Service key da integração Qi Agents (`X-Service-Key`). Vazio em dev = rota aberta |
+
 
 
 Credenciais WhatsApp/Telegram (`WHATSAPP_*`, `TELEGRAM_*`) configuram-se no **Qi Agents**, não neste projeto.
@@ -202,9 +206,9 @@ Credenciais WhatsApp/Telegram (`WHATSAPP_*`, `TELEGRAM_*`) configuram-se no **Qi
 
 | Integração documentada com Qi Agents | ✅ |
 
-| API key serviço-a-serviço | Planejado |
+| API key serviço-a-serviço (`X-Service-Key`) | ✅ |
 
-| Admin `/queries` — histórico | Planejado |
+| Admin `/queries` — histórico (`GET /messaging/queries`) | ✅ |
 
 
 

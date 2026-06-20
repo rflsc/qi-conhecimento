@@ -10,6 +10,7 @@ import type {
   FieldQuery,
   IngestionProgress,
   IngestionStatus,
+  MessagingChannel,
   PaginatedResponse,
 } from '@qi-conhecimento/shared-types';
 import type { CreateCmsEntryInput, ImportLinkDocumentInput, SearchKnowledgeInput, UploadDocumentInput } from '@qi-conhecimento/shared-validators';
@@ -51,6 +52,18 @@ export interface SearchResultRow {
   tags: string[];
 }
 
+export interface FieldQueryRow {
+  id: string;
+  channel: MessagingChannel;
+  externalUserId: string;
+  queryText: string;
+  transcribedFromAudio: boolean;
+  specialtyFilter?: EngineeringSpecialty;
+  answer?: string;
+  citations: FieldQuery['citations'];
+  createdAt: string | null;
+}
+
 export interface KnowledgeStats {
   documents: number;
   chunks: number;
@@ -89,7 +102,7 @@ const baseQueryWithAuth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQuery
 export const knowledgeApi = createApi({
   reducerPath: 'knowledgeApi',
   baseQuery: baseQueryWithAuth,
-  tagTypes: ['Documents', 'Chunks', 'Stats'],
+  tagTypes: ['Documents', 'Chunks', 'Stats', 'FieldQueries'],
   endpoints: (builder) => ({
     getStats: builder.query<KnowledgeStats, void>({
       query: () => '/knowledge/stats',
@@ -192,6 +205,16 @@ export const knowledgeApi = createApi({
     getIngestionProgress: builder.query<IngestionProgress, string>({
       query: (documentId) => `/knowledge/documents/${documentId}/ingestion-progress`,
     }),
+    listFieldQueries: builder.query<
+      PaginatedResponse<FieldQueryRow>,
+      { page?: number; limit?: number } | void
+    >({
+      query: (args) => {
+        const { page = 1, limit = 20 } = args ?? {};
+        return `/messaging/queries?page=${page}&limit=${limit}`;
+      },
+      providesTags: ['FieldQueries'],
+    }),
   }),
 });
 
@@ -210,4 +233,5 @@ export const {
   useReprocessWithOcrMutation,
   useDismissOcrRetryMutation,
   useGetIngestionProgressQuery,
+  useListFieldQueriesQuery,
 } = knowledgeApi;

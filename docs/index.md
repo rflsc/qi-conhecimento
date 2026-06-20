@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | **Fase 1** | Admin conectado à API — CMS, listagem, busca texto | Concluída |
 | **Fase 2** | Upload PDF/imagem/link, parsers, embeddings, RAG + LLM | Concluída |
-| **Fase 3** | Canais via Qi Agents + API key + histórico `/queries` no admin | Em andamento |
+| **Fase 3** | Canais via Qi Agents + service key + histórico `/queries` no admin | Quase concluída — falta teste ponta-a-ponta no canal |
 
 ## Mapa rápido
 
@@ -20,6 +20,7 @@
 | **Fase 2 — ingestão multimodal + RAG** | [development/phase-2.md](./development/phase-2.md) |
 | **Fase 3 — assistente de campo (Qi Agents)** | [development/phase-3.md](./development/phase-3.md) |
 | **Integração Qi Agents ↔ API** | [integrations/qi-agents.md](./integrations/qi-agents.md) |
+| **Histórico consultas de campo (`/queries`)** | [architecture/messaging.md](./architecture/messaging.md) · `GET /messaging/queries` |
 | Entender o produto e escopo de negócio | [scope/product-vision.md](./scope/product-vision.md) |
 | Arquitetura da API e módulos NestJS | [architecture/api.md](./architecture/api.md) |
 | Autenticação, seed e login no admin | [architecture/auth.md](./architecture/auth.md) |

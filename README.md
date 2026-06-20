@@ -121,12 +121,12 @@ qi-conhecimento/
 | --- | --- | --- |
 | 1 | Admin conectado à API — CMS, listagem, busca texto | Concluída |
 | 2 | Upload PDF/imagem/link, parsers, embeddings, RAG + LLM | Concluída |
-| 3 | Canais via Qi Agents + histórico no admin | Em andamento |
+| 3 | Canais via Qi Agents + histórico no admin | Quase concluída |
 
 ## Próximos passos (Fase 3)
 
 Canais WhatsApp/Telegram ficam no **[Qi Agents](docs/integrations/qi-agents.md)** — este projeto expõe o RAG em `POST /messaging/query`.
 
-**Qi Agents:** conectar canal → `/messaging/query`; áudio, webhooks e envio.
+**Qi Agents:** conectar canal → `/messaging/query` (header `X-Service-Key`); áudio, webhooks e envio.
 
-**Qi Conhecimento:** API key serviço-a-serviço; admin `/queries`; ver [phase-3.md](docs/development/phase-3.md).
+**Qi Conhecimento:** service key (`X-Service-Key`) e admin `/queries` entregues; ver [phase-3.md](docs/development/phase-3.md).

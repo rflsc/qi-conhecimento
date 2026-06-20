@@ -65,7 +65,16 @@ Cadastre no admin do qi-agents (**Integrações → API Source**):
 | Body | `query`, `specialty` (ex.: `"civil"`) |
 | `passThroughResponse` | **true** — repassa o campo `answer` sem 2ª passagem do Claude |
 
-Vincule a source ao agente via **`apiSourceIds`**. Documentação completa no repositório qi-agents: `docs/architecture/api-tools.md`.
+Vincule a source ao agente via **`apiSourceIds`**. Documentação completa no repositório qi-agent: `docs/architecture/api-tools.md`.
+
+**Seed automatizado (qi-agent)** — cria endpoints + agente; **URL e chave configure no admin**:
+
+```bash
+pnpm --filter @qi/api seed:admin          # 1ª vez — copie DEFAULT_WORKSPACE_ID para .env
+pnpm --filter @qi/api seed:qiconhecimento # tools + agente (não substitui URL/auth já cadastradas)
+```
+
+No **qi-agent → Integrações → Qi Conhecimento API**: `baseUrl`, autenticação **API Key** com header `X-Service-Key` (mesmo valor que `SERVICE_API_KEY` no qi-conhecimento, se usar `/messaging/query`).
 
 **Resposta da API (`public-ask`):**
 
@@ -194,13 +203,20 @@ Use **MongoDB separado** por projeto:
 
 Não restaure dumps de um projeto no banco do outro. Ver `pnpm cleanup:qi-agents` se collections do conhecimento aparecerem no banco errado.
 
-## Segurança (recomendado para produção)
+## Segurança (serviço-a-serviço)
 
-Hoje `POST /messaging/query` é `@PublicAccess()` — qualquer cliente pode chamar.
+`POST /messaging/query` é protegido por **service key** (`@ServiceAccess()`):
 
-Antes de expor em produção:
+- Configure `SERVICE_API_KEY` no qi-conhecimento (ver `.env.production.example`).
+- O qi-agents deve enviar o header **`X-Service-Key: <SERVICE_API_KEY>`** em cada chamada.
+- Sem `SERVICE_API_KEY` configurada (dev), a rota fica **aberta** para facilitar testes locais.
+- Usuários autenticados do admin (JWT) também passam — usado pelo botão de teste no painel.
 
-- [ ] API key serviço-a-serviço (ex.: header `X-Service-Key`)
+> `POST /knowledge/public-ask` permanece **público** (é o endpoint da landing page web). Para o canal do qi-agents, **prefira `/messaging/query`**: além de aceitar a service key, ele persiste em `field_queries` e alimenta o painel admin `/queries`.
+
+Ainda recomendado antes de produção:
+
+- [x] API key serviço-a-serviço (header `X-Service-Key`)
 - [ ] Restringir origem no qi-agents (chamada server-side, não browser)
 - [ ] Rate limit por `externalUserId` ou IP do qi-agents
 
@@ -222,8 +238,8 @@ Webhooks em `/messaging/whatsapp/*` permanecem como **legado/stub**; novos canai
 | --- | --- |
 | `POST /messaging/query` (RAG + citações) | ✅ Entregue |
 | Integração documentada com qi-agents | ✅ Este guia |
-| API key serviço-a-serviço | Planejado |
-| Admin `/queries` — histórico de consultas | Planejado |
+| API key serviço-a-serviço (`X-Service-Key`) | ✅ Entregue |
+| Admin `/queries` — histórico de consultas | ✅ Entregue (`GET /messaging/queries`) |
 
 ## Referências
 

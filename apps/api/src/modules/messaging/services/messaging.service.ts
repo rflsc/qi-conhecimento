@@ -5,6 +5,7 @@ import { RagService } from '@modules/knowledge/services/rag.service';
 import { KnowledgeRepository } from '@modules/knowledge/repositories/knowledge.repository';
 import { FieldQueryDto } from '../dtos/messaging.dto';
 import { MessagingRepository } from '../repositories/messaging.repository';
+import { FieldQueryDocument } from '../schemas/field-query.schema';
 import { KnowledgeChunkDocument } from '@modules/knowledge/schemas/knowledge-chunk.schema';
 import { KnowledgeDocumentEntity } from '@modules/knowledge/schemas/knowledge-document.schema';
 
@@ -45,9 +46,35 @@ export class MessagingService {
     return record;
   }
 
+  async listFieldQueries(page = 1, limit = 20) {
+    const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+    const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 100) : 20;
+    const [data, total] = await this.messagingRepository.findPaginated(safePage, safeLimit);
+    return {
+      data: data.map((record) => this.toFieldQueryRow(record)),
+      total,
+      page: safePage,
+      limit: safeLimit,
+    };
+  }
+
   verifyWhatsApp(mode: string, token: string, challenge: string, verifyToken: string) {
     if (mode === 'subscribe' && token === verifyToken) return challenge;
     return null;
+  }
+
+  private toFieldQueryRow(record: FieldQueryDocument) {
+    return {
+      id: record._id.toString(),
+      channel: record.channel,
+      externalUserId: record.externalUserId,
+      queryText: record.queryText,
+      transcribedFromAudio: record.transcribedFromAudio,
+      specialtyFilter: record.specialtyFilter,
+      answer: record.answer,
+      citations: record.citations ?? [],
+      createdAt: (record as unknown as { createdAt?: Date }).createdAt?.toISOString() ?? null,
+    };
   }
 
   private toCitation(chunk: KnowledgeChunkDocument) {
