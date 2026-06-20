@@ -13,6 +13,7 @@
     "dump:local": "node scripts/dump-local.mjs",
     "restore:atlas": "node scripts/restore-to-atlas.mjs",
     "cleanup:qi-agents": "node scripts/cleanup-qi-agents.mjs",
+    "inspect:chunks": "node scripts/inspect-chunk-pages.mjs",
     "infra:up": "docker compose -f infra/docker-compose.dev.yml up -d mongodb redis",
     "build": "turbo build",
     "lint": "turbo lint",

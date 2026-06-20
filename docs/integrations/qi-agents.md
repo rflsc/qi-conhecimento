@@ -11,6 +11,7 @@ O **Qi Conhecimento** expõe o **cérebro RAG** via `POST /messaging/query` — 
 | Responsabilidade | Qi Agents | Qi Conhecimento |
 | --- | --- | --- |
 | Webhook WhatsApp / Telegram | ✅ | ❌ (stubs legados, não usar) |
+| Ack + typing durante consulta lenta | ✅ | ❌ |
 | Transcrição de áudio (Whisper etc.) | ✅ | ❌ |
 | Envio de mensagem ao usuário | ✅ | ❌ |
 | RAG (busca + LLM + citações) | ❌ | ✅ |
@@ -26,27 +27,61 @@ flowchart LR
     WA[WhatsApp]
     TG[Telegram]
     WH[Webhooks]
-    Audio[Áudio → texto]
+    Ack[Ack + typing]
     Send[Envio]
   end
 
   subgraph cerebro [Qi Conhecimento API]
+    Ask["POST /knowledge/public-ask"]
     Query["POST /messaging/query"]
     RAG[RagService]
-    DB[(field_queries)]
   end
 
   WA --> WH
   TG --> WH
-  WH --> Audio
-  Audio --> Query
-  Query --> RAG --> DB
-  Query --> Send
+  WH --> Ack
+  Ack --> Ask
+  Ask --> RAG
+  RAG --> Send
   Send --> WA
   Send --> TG
 ```
 
 ## Configuração no Qi Agents
+
+Há **dois modos** de integração. O modo recomendado para agentes normativos (Telegram/WhatsApp com Claude + tools) usa **API Source dinâmica** e pass-through.
+
+### Modo A — API Source + tool (recomendado)
+
+Cadastre no admin do qi-agents (**Integrações → API Source**):
+
+| Campo | Valor |
+| --- | --- |
+| Nome | Qi Conhecimento API |
+| `baseUrl` | `https://<api-qi-conhecimento>` ou `http://localhost:3100` (dev) |
+| `timeoutMs` | **120000** — `public-ask` leva ~45–90s no Render |
+| Endpoint `toolName` | ex. `consultar_norma` |
+| Path | `POST /knowledge/public-ask` |
+| Body | `query`, `specialty` (ex.: `"civil"`) |
+| `passThroughResponse` | **true** — repassa o campo `answer` sem 2ª passagem do Claude |
+
+Vincule a source ao agente via **`apiSourceIds`**. Documentação completa no repositório qi-agents: `docs/architecture/api-tools.md`.
+
+**Resposta da API (`public-ask`):**
+
+```json
+{
+  "query": "...",
+  "answer": "Conforme NBR 8800, Tabela H.1...",
+  "citations": [{ "normReference": "NBR 8800", "pageStart": 142, ... }]
+}
+```
+
+Com pass-through, o texto de `answer` vai direto ao canal. Sem pass-through, o Claude pode parafrasear ou distorcer valores normativos.
+
+**Latência e UX:** enquanto a API responde, o qi-agents envia ack imediato (*"Recebi sua pergunta…"*) e indicador de digitação (Telegram + WhatsApp). Ver `architecture/channels.md` no qi-agents.
+
+### Modo B — `POST /messaging/query` (legado / canais simples)
 
 1. Crie um canal (WhatsApp ou Telegram) no qi-agents.
 2. Aponte o **backend HTTP** para a API de conhecimento:
@@ -59,7 +94,7 @@ flowchart LR
 3. Mapeie a mensagem do usuário para o body JSON abaixo.
 4. Use `answer` + `citations[]` da resposta para montar a mensagem enviada ao canal.
 
-### Contrato de request
+### Contrato de request (modo B — `/messaging/query`)
 
 ```json
 {
@@ -81,7 +116,7 @@ flowchart LR
 
 **Dica:** fixe `specialtyFilter` por canal no qi-agents (ex.: canal “Elétrica” → `eletrica`).
 
-### Contrato de response
+### Contrato de response (modo B)
 
 A API retorna um registro `FieldQuery` (JSON com `id`):
 
