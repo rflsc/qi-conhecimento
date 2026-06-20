@@ -24,7 +24,9 @@ export class MessagingService {
       dto.specialtyFilter,
     );
 
-    const citations = chunks.map((chunk) => this.toCitation(chunk));
+    const citations = this.ragService
+      .selectCitationsForDisplay(chunks, dto.queryText, 5)
+      .map((chunk) => this.toCitation(chunk));
     const answer = await this.ragService.generateAnswer(dto.queryText, chunks);
 
     const record = await this.messagingRepository.create({

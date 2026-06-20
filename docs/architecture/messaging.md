@@ -110,11 +110,13 @@ sequenceDiagram
 
 3. `RagService.generateAnswer()` — LLM Anthropic ou OpenAI com contexto dos chunks
 
-4. Fallback sem API key: template `"Conforme NBR X: excerpt..."`
+4. `RagService.selectCitationsForDisplay()` — filtra e deduplica citações (ex.: Tabela H.1 em perguntas sobre K)
 
-5. Registro em `field_queries` com array de `citations`
+5. Fallback sem API key: template `"Conforme NBR X: excerpt..."`
 
-6. Qi Agents formata `answer` + citações e envia ao canal
+6. Registro em `field_queries` com array de `citations` (filtradas por `selectCitationsForDisplay`, como em `public-ask`)
+
+7. Qi Agents formata `answer` + citações e envia ao canal
 
 
 

@@ -125,6 +125,8 @@ Com pass-through, o texto de `answer` vai direto ao canal. Sem pass-through, o C
 
 **Dica:** fixe `specialtyFilter` por canal no qi-agents (ex.: canal “Elétrica” → `eletrica`).
 
+**Tool dinâmica (Modo B via API Source):** o qi-agents **injeta automaticamente** `channel` e `externalUserId` do webhook Telegram/WhatsApp no body de `POST /messaging/query`. No admin, body params da tool: `queryText, specialtyFilter` — não peça `channel`/`externalUserId` ao Claude.
+
 ### Contrato de response (modo B)
 
 A API retorna um registro `FieldQuery` (JSON com `id`):

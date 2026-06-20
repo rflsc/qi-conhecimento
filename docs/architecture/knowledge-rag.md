@@ -213,7 +213,7 @@ flowchart LR
 | Retrieval | `retrieveChunksForAnswer()` | 1–2 `hybridSearch` (expansão K) → até 10 chunks |
 | Rerank | `rankChunksForAnswer()` | Tabelas e Tabela H.1 sobem em perguntas sobre K |
 | Resposta | `generateAnswer()` | LLM com system prompt enriquecido (Tabela H.1) |
-| Citações | `selectCitationsForDisplay()` | Filtra, deduplica e limita cards na UI |
+| Citações | `selectCitationsForDisplay()` | Filtra, deduplica e limita cards na UI **e** em `POST /messaging/query` (`field_queries`) |
 
 **System prompt** (`RAG_SYSTEM_PROMPT` em `rag.service.ts`):
 
