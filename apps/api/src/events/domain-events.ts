@@ -3,6 +3,7 @@ export const DomainEvents = {
   USER_UPDATED: 'user.updated',
   DOCUMENT_INGESTED: 'document.ingested',
   DOCUMENT_PROCESSED: 'document.processed',
+  DOCUMENT_INGESTION_FINISHED: 'document.ingestion.finished',
   CHUNK_INDEXED: 'chunk.indexed',
   FIELD_QUERY_ANSWERED: 'field.query.answered',
 } as const;

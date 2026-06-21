@@ -27,7 +27,7 @@ Docling é a **engine principal de conversão documento → Markdown** na esteir
 | PDF | `pdf-parse` (JS) | Sem layout, sem OCR, tabelas viram texto plano |
 | Imagem | OpenAI Vision | Exige `OPENAI_API_KEY`, custo por imagem |
 
-Docling **não** processa links/HTML (`HtmlParser` + Cheerio) nem texto manual do CMS.
+Docling **não** processa links/HTML (`HtmlParser` + Readability) nem texto manual do CMS.
 
 ---
 

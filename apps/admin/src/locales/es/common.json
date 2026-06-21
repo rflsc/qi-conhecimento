@@ -10,6 +10,7 @@
   "nav": {
     "dashboard": "Panel",
     "import": "Importar",
+    "webImport": "Importar sitio",
     "documents": "Documentos",
     "manualContent": "CMS interno",
     "search": "Búsqueda",
@@ -103,17 +104,23 @@
   },
   "cms": {
     "title": "CMS interno",
-    "subtitle": "Procedimientos y buenas prácticas en Markdown",
+    "subtitle": "Pegue Markdown o importe un archivo .md — chunking automático y embeddings en cola",
     "saved": "Procedimiento guardado",
-    "saving": "Guardando...",
+    "queued": "Markdown en cola — siga el progreso en Documentos",
+    "saving": "Enviando...",
+    "submit": "Importar Markdown",
+    "fileReadFailed": "No se pudo leer el archivo",
+    "charCount": "{{count}} caracteres",
     "fields": {
       "title": "Título",
       "specialty": "Especialidad",
       "normReference": "Referencia de norma",
       "tags": "Etiquetas",
       "tagsPlaceholder": "alcantarillado, recuo, instalación",
+      "markdownFile": "Archivo Markdown (opcional)",
+      "markdownFileHint": "Seleccione un .md para rellenar el campo, o pegue el contenido directamente.",
       "content": "Contenido (Markdown)",
-      "contentPlaceholder": "# Título\n\nDescriba el procedimiento..."
+      "contentPlaceholder": "# Título\n\n## Sección\n\nDescriba el procedimiento..."
     }
   },
   "search": {
@@ -143,20 +150,24 @@
   "import": {
     "title": "Importar conocimiento",
     "subtitle": "PDF, imagen (OCR) o enlace/HTML — procesamiento automático en cola",
-    "tabs": { "pdf": "PDF / norma", "image": "Imagen (OCR)", "link": "Enlace / HTML" },
+    "tabs": { "pdf": "PDF / norma", "image": "Imagen (OCR)", "link": "Enlace / HTML", "markdown": "Markdown" },
     "fields": {
       "file": "Archivo",
       "title": "Título",
       "url": "URL",
       "specialty": "Especialidad",
-      "normReference": "Referencia de norma"
+      "normReference": "Referencia de norma",
+      "tags": "Etiquetas",
+      "tagsPlaceholder": "alcantarillado, recuo, instalación"
     },
     "fileRequired": "Seleccione un archivo",
     "queued": "Fuente en cola de procesamiento",
     "failed": "Error al importar fuente",
     "submitting": "Enviando...",
     "submitFile": "Enviar archivo",
-    "submitLink": "Importar enlace"
+    "submitLink": "Importar enlace",
+    "submitMarkdown": "Importar Markdown",
+    "markdownHint": "El Markdown se dividirá en píldoras por sección (##) e indexará con embeddings.",
   },
   "specialties": {
     "civil": "Civil",

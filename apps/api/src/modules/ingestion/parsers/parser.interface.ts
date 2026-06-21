@@ -54,6 +54,14 @@ export interface ParseOptions {
 
   onParseProgress?: (update: ParseProgressUpdate) => void;
 
+  /** URL de origem para extração HTML (Readability exige URL base). */
+
+  sourceUrl?: string;
+
+  /** Perfil de extração declarado (Fase 3 — web-import). */
+
+  profileId?: string;
+
 }
 
 

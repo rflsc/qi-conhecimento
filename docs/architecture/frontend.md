@@ -32,7 +32,8 @@ apps/admin/src/app/
 ├── (auth)/login/          → tela de login (pública)
 ├── (panel)/
 │   ├── dashboard/         → hub multimodal (cards Pilar 1)
-│   ├── import/            → upload PDF, imagem, link
+│   ├── import/            → upload PDF, imagem, link, Markdown
+│   ├── web-import/        → importação web em lote + configurações globais
 │   ├── documents/         → listagem de documentos técnicos
 │   ├── manual-content/    → CMS interno (Markdown)
 │   ├── search/            → busca híbrida de conhecimento
@@ -76,7 +77,8 @@ Redux Toolkit + RTK Query em `src/store/api.ts`, com JWT via cookie `access_toke
 | Tela | Endpoint(s) | Notas |
 | --- | --- | --- |
 | Dashboard | `GET /knowledge/stats` | Inclui contagem de embeddings |
-| Importar | `POST /knowledge/documents/upload`, `POST /knowledge/documents/import-link` | |
+| Importar | `POST /knowledge/documents/upload`, `POST /knowledge/documents/import-link`, upload Markdown | |
+| Importar site | `GET/PATCH /knowledge/web-imports/settings`, `POST /knowledge/web-imports`, SSE `…/stream` | Configurações globais no topo da tela |
 | Documentos | `GET /knowledge/documents`, `GET /knowledge/chunks` | Badge `embedding ✓`; **Cancelar** enquanto embeddings pendentes |
 | Documentos (ação) | `POST /knowledge/documents/{id}/cancel-ingestion` | Parse, chunking ou fila de embeddings |
 | Console ingestão | `GET /knowledge/documents/{id}/ingestion-stream` | SSE — fases, progresso Docling, barra embeddings |

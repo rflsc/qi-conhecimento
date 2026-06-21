@@ -62,6 +62,7 @@ Criado automaticamente pelo seed (`SEED_ADMIN_ENABLED=true`). Detalhes em [docs/
 | Web | http://localhost:3101 |
 | Admin | http://localhost:3102/login |
 | Importar | http://localhost:3102/import |
+| Importar site | http://localhost:3102/web-import |
 
 | Parser (Docling) | http://localhost:8000/docs |
 
@@ -95,6 +96,7 @@ Mapa completo: [docs/index.md](./docs/index.md)
 | Integração Qi Agents ↔ API | [docs/integrations/qi-agents.md](./docs/integrations/qi-agents.md) |
 | Visão de produto | [docs/scope/product-vision.md](./docs/scope/product-vision.md) |
 | Conhecimento e RAG | [docs/architecture/knowledge-rag.md](./docs/architecture/knowledge-rag.md) |
+| Importação web | [docs/architecture/web-import.md](./docs/architecture/web-import.md) |
 | API (módulos e endpoints) | [docs/architecture/api.md](./docs/architecture/api.md) |
 | Autenticação e seed | [docs/architecture/auth.md](./docs/architecture/auth.md) |
 | Frontends | [docs/architecture/frontend.md](./docs/architecture/frontend.md) |

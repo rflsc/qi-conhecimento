@@ -19,7 +19,7 @@ Responsável pela ingestão, categorização e preparação de dados:
 **Implementação atual (Fase 1 + 2):**
 
 - Admin: `/import` (PDF, imagem, link), `/manual-content` (CMS), `/documents`, `/search`
-- API: `POST /knowledge/documents/upload`, `POST /knowledge/documents/import-link`, `POST /knowledge/cms`
+- API: `POST /knowledge/documents/upload`, `POST /knowledge/documents/import-link`, `POST /knowledge/cms`, `POST /knowledge/web-imports`
 - Parsers: PDF (`pdf-parse`), imagem (OpenAI Vision), HTML (Cheerio)
 - Storage local em `STORAGE_PATH`
 

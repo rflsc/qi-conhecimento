@@ -12,8 +12,20 @@ import type {
   IngestionStatus,
   MessagingChannel,
   PaginatedResponse,
+  WebImportJob,
+  WebImportPage,
+  WebImportProgress,
+  WebImportSettings,
 } from '@qi-conhecimento/shared-types';
-import type { CreateCmsEntryInput, ImportLinkDocumentInput, SearchKnowledgeInput, UploadDocumentInput } from '@qi-conhecimento/shared-validators';
+import type {
+  CreateCmsEntryInput,
+  CreateWebImportJobInput,
+  ImportLinkDocumentInput,
+  SearchKnowledgeInput,
+  UpdateWebImportSettingsInput,
+  UploadDocumentInput,
+  UploadMarkdownInput,
+} from '@qi-conhecimento/shared-validators';
 import { API_URL } from '@/lib/constants';
 import { clearAccessToken, getAccessToken } from '@/lib/auth';
 
@@ -102,7 +114,7 @@ const baseQueryWithAuth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQuery
 export const knowledgeApi = createApi({
   reducerPath: 'knowledgeApi',
   baseQuery: baseQueryWithAuth,
-  tagTypes: ['Documents', 'Chunks', 'Stats', 'FieldQueries'],
+  tagTypes: ['Documents', 'Chunks', 'Stats', 'FieldQueries', 'WebImports', 'WebImportSettings'],
   endpoints: (builder) => ({
     getStats: builder.query<KnowledgeStats, void>({
       query: () => '/knowledge/stats',
@@ -126,7 +138,7 @@ export const knowledgeApi = createApi({
       },
       providesTags: ['Chunks'],
     }),
-    createCmsEntry: builder.mutation<{ document: DocumentRow; chunk: ChunkRow }, CreateCmsEntryInput>({
+    createCmsEntry: builder.mutation<{ document: DocumentRow }, CreateCmsEntryInput>({
       query: (body) => ({ url: '/knowledge/cms', method: 'POST', body }),
       invalidatesTags: ['Documents', 'Chunks', 'Stats'],
     }),
@@ -161,6 +173,25 @@ export const knowledgeApi = createApi({
           if (value != null && value !== '') formData.append(key, String(value));
         });
         return { url: '/knowledge/documents/upload', method: 'POST', body: formData };
+      },
+      invalidatesTags: ['Documents', 'Chunks', 'Stats'],
+    }),
+    uploadMarkdown: builder.mutation<
+      DocumentRow,
+      UploadMarkdownInput & { file: File }
+    >({
+      query: ({ file, ...metadata }) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        Object.entries(metadata).forEach(([key, value]) => {
+          if (value == null || value === '') return;
+          if (key === 'tags' && Array.isArray(value)) {
+            formData.append(key, value.join(','));
+            return;
+          }
+          formData.append(key, String(value));
+        });
+        return { url: '/knowledge/documents/upload-markdown', method: 'POST', body: formData };
       },
       invalidatesTags: ['Documents', 'Chunks', 'Stats'],
     }),
@@ -215,6 +246,47 @@ export const knowledgeApi = createApi({
       },
       providesTags: ['FieldQueries'],
     }),
+    createWebImportJob: builder.mutation<WebImportJob, CreateWebImportJobInput>({
+      query: (body) => ({ url: '/knowledge/web-imports', method: 'POST', body }),
+      invalidatesTags: ['WebImports'],
+    }),
+    listWebImportJobs: builder.query<PaginatedResponse<WebImportJob>, { page?: number; limit?: number }>({
+      query: ({ page = 1, limit = 20 }) => `/knowledge/web-imports?page=${page}&limit=${limit}`,
+      providesTags: ['WebImports'],
+    }),
+    getWebImportJob: builder.query<WebImportJob, string>({
+      query: (jobId) => `/knowledge/web-imports/${jobId}`,
+      providesTags: (_result, _error, jobId) => [{ type: 'WebImports', id: jobId }],
+    }),
+    listWebImportPages: builder.query<
+      PaginatedResponse<WebImportPage>,
+      { jobId: string; page?: number; limit?: number; status?: string }
+    >({
+      query: ({ jobId, page = 1, limit = 50, status }) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (status) params.set('status', status);
+        return `/knowledge/web-imports/${jobId}/pages?${params.toString()}`;
+      },
+    }),
+    getWebImportProgress: builder.query<WebImportProgress, string>({
+      query: (jobId) => `/knowledge/web-imports/${jobId}/progress`,
+    }),
+    cancelWebImportJob: builder.mutation<WebImportJob, string>({
+      query: (jobId) => ({ url: `/knowledge/web-imports/${jobId}/cancel`, method: 'POST' }),
+      invalidatesTags: ['WebImports'],
+    }),
+    retryWebImportFailed: builder.mutation<WebImportJob, string>({
+      query: (jobId) => ({ url: `/knowledge/web-imports/${jobId}/retry-failed`, method: 'POST' }),
+      invalidatesTags: ['WebImports'],
+    }),
+    getWebImportSettings: builder.query<WebImportSettings, void>({
+      query: () => '/knowledge/web-imports/settings',
+      providesTags: ['WebImportSettings'],
+    }),
+    updateWebImportSettings: builder.mutation<WebImportSettings, UpdateWebImportSettingsInput>({
+      query: (body) => ({ url: '/knowledge/web-imports/settings', method: 'PATCH', body }),
+      invalidatesTags: ['WebImportSettings'],
+    }),
   }),
 });
 
@@ -227,6 +299,7 @@ export const {
   useSearchKnowledgeMutation,
   useFieldQueryMutation,
   useUploadDocumentMutation,
+  useUploadMarkdownMutation,
   useImportLinkMutation,
   useCancelIngestionMutation,
   useDeleteDocumentMutation,
@@ -234,4 +307,13 @@ export const {
   useDismissOcrRetryMutation,
   useGetIngestionProgressQuery,
   useListFieldQueriesQuery,
+  useCreateWebImportJobMutation,
+  useListWebImportJobsQuery,
+  useGetWebImportJobQuery,
+  useListWebImportPagesQuery,
+  useGetWebImportProgressQuery,
+  useCancelWebImportJobMutation,
+  useRetryWebImportFailedMutation,
+  useGetWebImportSettingsQuery,
+  useUpdateWebImportSettingsMutation,
 } = knowledgeApi;

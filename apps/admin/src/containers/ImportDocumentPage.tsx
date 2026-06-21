@@ -10,15 +10,22 @@ import { DocumentSourceType, EngineeringSpecialty } from '@qi-conhecimento/share
 import {
   importLinkDocumentSchema,
   uploadDocumentSchema,
+  uploadMarkdownSchema,
   type ImportLinkDocumentInput,
   type UploadDocumentInput,
+  type UploadMarkdownInput,
 } from '@qi-conhecimento/shared-validators';
 import { SpecialtySelect } from '@/components/SpecialtySelect';
-import { useGetParserStatusQuery, useImportLinkMutation, useUploadDocumentMutation } from '@/store/api';
+import {
+  useGetParserStatusQuery,
+  useImportLinkMutation,
+  useUploadDocumentMutation,
+  useUploadMarkdownMutation,
+} from '@/store/api';
 
-type ImportTab = 'pdf' | 'image' | 'link';
+type ImportTab = 'pdf' | 'image' | 'link' | 'markdown';
 
-const TAB_SOURCE: Record<ImportTab, DocumentSourceType> = {
+const TAB_SOURCE: Record<'pdf' | 'image' | 'link', DocumentSourceType> = {
   pdf: DocumentSourceType.PDF,
   image: DocumentSourceType.IMAGE,
   link: DocumentSourceType.LINK,
@@ -29,10 +36,12 @@ export function ImportDocumentPage() {
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get('type') as ImportTab) ?? 'pdf';
   const [tab, setTab] = useState<ImportTab>(
-    ['pdf', 'image', 'link'].includes(initialTab) ? initialTab : 'pdf',
+    ['pdf', 'image', 'link', 'markdown'].includes(initialTab) ? initialTab : 'pdf',
   );
   const [file, setFile] = useState<File | null>(null);
+  const [markdownFile, setMarkdownFile] = useState<File | null>(null);
   const [uploadDocument, { isLoading: uploading }] = useUploadDocumentMutation();
+  const [uploadMarkdown, { isLoading: uploadingMarkdown }] = useUploadMarkdownMutation();
   const [importLink, { isLoading: importingLink }] = useImportLinkMutation();
   const { data: parserStatus } = useGetParserStatusQuery(undefined, {
     skip: tab !== 'pdf',
@@ -62,14 +71,27 @@ export function ImportDocumentPage() {
     },
   });
 
+  const markdownForm = useForm<UploadMarkdownInput>({
+    resolver: zodResolver(uploadMarkdownSchema),
+    defaultValues: {
+      title: '',
+      specialty: EngineeringSpecialty.HYDRAULIC,
+      normReference: '',
+      author: '',
+      tags: [],
+    },
+  });
+
   const fileSpecialty = fileForm.watch('specialty');
   const allowWeakParserFallback = fileForm.watch('allowWeakParserFallback');
   const linkSpecialty = linkForm.watch('specialty');
-  const isLoading = uploading || importingLink;
+  const markdownSpecialty = markdownForm.watch('specialty');
+  const isLoading = uploading || importingLink || uploadingMarkdown;
 
   function handleTabChange(next: ImportTab) {
     setTab(next);
     setFile(null);
+    setMarkdownFile(null);
     if (next === 'pdf') fileForm.setValue('sourceType', DocumentSourceType.PDF);
     if (next === 'image') fileForm.setValue('sourceType', DocumentSourceType.IMAGE);
   }
@@ -131,6 +153,34 @@ export function ImportDocumentPage() {
     }
   }
 
+  async function onSubmitMarkdown(values: UploadMarkdownInput) {
+    if (!markdownFile) {
+      toast.error(t('import.fileRequired'));
+      return;
+    }
+
+    try {
+      await uploadMarkdown({
+        ...values,
+        file: markdownFile,
+        normReference: values.normReference || undefined,
+        author: values.author || undefined,
+        tags: values.tags?.filter(Boolean) ?? [],
+      }).unwrap();
+      toast.success(t('import.queued'));
+      markdownForm.reset({
+        title: '',
+        specialty: values.specialty,
+        normReference: '',
+        author: '',
+        tags: [],
+      });
+      setMarkdownFile(null);
+    } catch {
+      toast.error(t('import.failed'));
+    }
+  }
+
   const accept = tab === 'pdf' ? '.pdf,application/pdf' : '.jpg,.jpeg,.png,.webp,image/*';
 
   const parserBanner =
@@ -149,8 +199,8 @@ export function ImportDocumentPage() {
         <p className="text-slate-400 text-sm mt-1">{t('import.subtitle')}</p>
       </div>
 
-      <div className="flex gap-2">
-        {(['pdf', 'image', 'link'] as ImportTab[]).map((key) => (
+      <div className="flex gap-2 flex-wrap">
+        {(['pdf', 'image', 'link', 'markdown'] as ImportTab[]).map((key) => (
           <button
             key={key}
             type="button"
@@ -227,6 +277,78 @@ export function ImportDocumentPage() {
             className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 text-white rounded-lg px-4 py-2 text-sm font-medium"
           >
             {isLoading ? t('import.submitting') : t('import.submitLink')}
+          </button>
+        </form>
+      ) : tab === 'markdown' ? (
+        <form onSubmit={markdownForm.handleSubmit(onSubmitMarkdown)} className="space-y-4">
+          <label className="block space-y-1">
+            <span className="text-sm text-slate-400">{t('import.fields.file')}</span>
+            <input
+              type="file"
+              accept=".md,.markdown,text/markdown"
+              onChange={(e) => {
+                const selected = e.target.files?.[0] ?? null;
+                setMarkdownFile(selected);
+                if (selected && !markdownForm.getValues('title')) {
+                  markdownForm.setValue('title', selected.name.replace(/\.(md|markdown)$/i, ''));
+                }
+              }}
+              className="w-full text-sm text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-2 file:text-slate-200"
+            />
+          </label>
+
+          <label className="block space-y-1">
+            <span className="text-sm text-slate-400">{t('import.fields.title')}</span>
+            <input
+              {...markdownForm.register('title')}
+              className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 focus:ring-1 focus:ring-emerald-500 outline-none"
+            />
+            {markdownForm.formState.errors.title ? (
+              <span className="text-red-400 text-xs">{markdownForm.formState.errors.title.message}</span>
+            ) : null}
+          </label>
+
+          <label className="block space-y-1">
+            <span className="text-sm text-slate-400">{t('import.fields.specialty')}</span>
+            <SpecialtySelect
+              value={markdownSpecialty}
+              onChange={(value) => markdownForm.setValue('specialty', value)}
+            />
+          </label>
+
+          <label className="block space-y-1">
+            <span className="text-sm text-slate-400">{t('import.fields.normReference')}</span>
+            <input
+              {...markdownForm.register('normReference')}
+              className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 focus:ring-1 focus:ring-emerald-500 outline-none"
+            />
+          </label>
+
+          <label className="block space-y-1">
+            <span className="text-sm text-slate-400">{t('import.fields.tags')}</span>
+            <input
+              placeholder={t('import.fields.tagsPlaceholder')}
+              className="w-full bg-slate-800 border border-slate-700 text-slate-200 placeholder-slate-500 rounded-lg px-3 py-2 focus:ring-1 focus:ring-emerald-500 outline-none"
+              onChange={(e) =>
+                markdownForm.setValue(
+                  'tags',
+                  e.target.value
+                    .split(',')
+                    .map((tag) => tag.trim())
+                    .filter(Boolean),
+                )
+              }
+            />
+          </label>
+
+          <p className="text-xs text-slate-500">{t('import.markdownHint')}</p>
+
+          <button
+            type="submit"
+            disabled={isLoading || !markdownFile}
+            className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 text-white rounded-lg px-4 py-2 text-sm font-medium"
+          >
+            {isLoading ? t('import.submitting') : t('import.submitMarkdown')}
           </button>
         </form>
       ) : (

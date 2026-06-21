@@ -32,6 +32,7 @@ import {
   ImportLinkDocumentDto,
   SearchKnowledgeDto,
   UploadDocumentDto,
+  UploadMarkdownDto,
 } from '../dtos/knowledge.dto';
 import { KnowledgeService } from '../services/knowledge.service';
 import { resolveMaxUploadBytes } from '../../../config/upload.config';
@@ -115,6 +116,36 @@ export class KnowledgeController {
     @Body() dto: UploadDocumentDto,
   ) {
     return this.knowledgeService.uploadDocument(file, dto);
+  }
+
+  @Post('documents/upload-markdown')
+  @Roles(UserRole.ADMIN, UserRole.EDITOR)
+  @ApiOperation({ summary: 'Upload de arquivo Markdown (.md) para ingestão com chunking' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file', 'title', 'specialty'],
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        title: { type: 'string' },
+        specialty: { type: 'string' },
+        normReference: { type: 'string' },
+        author: { type: 'string' },
+        tags: { type: 'string', description: 'Tags separadas por vírgula' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: resolveMaxUploadBytes() },
+    }),
+  )
+  uploadMarkdown(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: UploadMarkdownDto,
+  ) {
+    return this.knowledgeService.uploadMarkdownDocument(file, dto);
   }
 
   @Post('documents/import-link')

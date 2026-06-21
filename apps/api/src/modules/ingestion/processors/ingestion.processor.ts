@@ -25,6 +25,7 @@ export class IngestionProcessor extends WorkerHost {
     await this.documentIngestionService.processDocument(job.data.documentId as string, {
       allowWeakParserFallback: job.data.allowWeakParserFallback === true,
       doOcr: job.data.doOcr === true,
+      cmsTags: Array.isArray(job.data.cmsTags) ? (job.data.cmsTags as string[]) : undefined,
     });
   }
 }

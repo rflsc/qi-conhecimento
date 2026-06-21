@@ -12,7 +12,7 @@ Entrega concluída: upload PDF/imagem/link, parsers (Docling + fallbacks), embed
 | `DoclingClient` | Cliente HTTP para `apps/parser` (Docling) |
 | `PdfParser` | Docling quando `PARSER_SERVICE_URL` definido; fallback `pdf-parse` |
 | `ImageParser` | Docling quando disponível; fallback OpenAI Vision |
-| `HtmlParser` | Extração de conteúdo com Cheerio (link/HTML) |
+| `HtmlParser` | Readability + Turndown → Markdown + `blocks[]`; fallback Cheerio |
 | `ChunkingService` | `splitFromBlocks()` (Docling) ou `splitMarkdown()` (fallback) |
 | `DocumentIngestionService` | Orquestra parse → chunks → fila embeddings |
 | `IngestionProcessor` | BullMQ: `process-document`, `generate-embeddings` |
@@ -51,7 +51,8 @@ Entrega concluída: upload PDF/imagem/link, parsers (Docling + fallbacks), embed
 
 ### Admin (`apps/admin`)
 
-- **`/import`** — abas PDF, Imagem, Link/HTML; opção fallback `pdf-parse`
+- **`/import`** — abas PDF, Imagem, Link/HTML, Markdown; opção fallback `pdf-parse`
+- **`/web-import`** — jobs em lote (single URL, sitemap, crawl); configurações globais no admin
 - **Documentos** — status com tooltip de erro; badge `embedding ✓` nas pílulas
 - **Cancelar** — parse, chunking ou **embeddings ainda na fila** (status `completed` com pílulas sem vetor)
 - **Console de ingestão** — SSE, progresso Docling por página, barra de embeddings, oferta OCR
@@ -135,6 +136,19 @@ LLM_MODEL=claude-haiku-4-5
 STORAGE_PATH=./storage
 MAX_UPLOAD_SIZE_MB=150
 ```
+
+## Importação web em lote (Fase 2b)
+
+Extensão da Fase 2 — especificação: [web-import.md](../architecture/web-import.md).
+
+| Entrega | Descrição |
+| --- | --- |
+| Extrator HTML | `@mozilla/readability` + `blocks[]` — melhora `import-link` |
+| Módulo `web-import` | Jobs BullMQ, descoberta (`single_url`, `sitemap`, `listing_crawl`) |
+| Admin `/web-import` | Formulário de job + configurações globais (MongoDB, sem env) |
+| API | `GET/PATCH …/settings`, CRUD jobs, SSE progresso |
+
+Teste rápido: Admin → **Importar site** → configure limites → seed URL de help center → acompanhe em `/web-import/{jobId}`.
 
 ## Próxima fase
 

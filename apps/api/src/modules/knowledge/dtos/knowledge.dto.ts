@@ -96,6 +96,43 @@ export class UploadDocumentDto {
   allowWeakParserFallback?: boolean;
 }
 
+export class UploadMarkdownDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(3)
+  title!: string;
+
+  @ApiProperty({ enum: EngineeringSpecialty })
+  @IsEnum(EngineeringSpecialty)
+  specialty!: EngineeringSpecialty;
+
+  @ApiPropertyOptional({ example: 'NBR 8160' })
+  @IsOptional()
+  @IsString()
+  normReference?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  author?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string' && value.trim()) {
+      return value
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+    }
+    return undefined;
+  })
+  tags?: string[];
+}
+
 export class ImportLinkDocumentDto {
   @ApiProperty()
   @IsString()

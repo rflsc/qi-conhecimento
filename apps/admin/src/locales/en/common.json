@@ -10,6 +10,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "import": "Import",
+    "webImport": "Import site",
     "documents": "Documents",
     "manualContent": "Internal CMS",
     "search": "Search",
@@ -103,17 +104,23 @@
   },
   "cms": {
     "title": "Internal CMS",
-    "subtitle": "Procedures, field notes and best practices in Markdown",
+    "subtitle": "Paste Markdown or import a .md file — automatic chunking and queued embeddings",
     "saved": "Procedure saved successfully",
-    "saving": "Saving...",
+    "queued": "Markdown queued — track progress in Documents",
+    "saving": "Uploading...",
+    "submit": "Import Markdown",
+    "fileReadFailed": "Could not read the file",
+    "charCount": "{{count}} characters",
     "fields": {
       "title": "Title",
       "specialty": "Specialty",
       "normReference": "Standard reference",
       "tags": "Tags",
       "tagsPlaceholder": "sewer, setback, installation",
+      "markdownFile": "Markdown file (optional)",
+      "markdownFileHint": "Select a .md file to fill the field below, or paste content directly.",
       "content": "Content (Markdown)",
-      "contentPlaceholder": "# Title\n\nDescribe the procedure..."
+      "contentPlaceholder": "# Title\n\n## Section\n\nDescribe the procedure..."
     }
   },
   "search": {
@@ -142,21 +149,25 @@
   },
   "import": {
     "title": "Import knowledge",
-    "subtitle": "PDF, image (OCR) or link/HTML — automatic queue processing",
-    "tabs": { "pdf": "PDF / standard", "image": "Image (OCR)", "link": "Link / HTML" },
+    "subtitle": "PDF, image, link/HTML or Markdown — automatic queue processing",
+    "tabs": { "pdf": "PDF / standard", "image": "Image (OCR)", "link": "Link / HTML", "markdown": "Markdown" },
     "fields": {
       "file": "File",
       "title": "Title",
       "url": "URL",
       "specialty": "Specialty",
-      "normReference": "Standard reference"
+      "normReference": "Standard reference",
+      "tags": "Tags",
+      "tagsPlaceholder": "sewer, setback, installation"
     },
     "fileRequired": "Select a file",
     "queued": "Source queued for processing",
     "failed": "Failed to import source",
     "submitting": "Uploading...",
     "submitFile": "Upload file",
-    "submitLink": "Import link"
+    "submitLink": "Import link",
+    "submitMarkdown": "Import Markdown",
+    "markdownHint": "Markdown will be split into chunks by section (##) and indexed with embeddings.",
   },
   "specialties": {
     "civil": "Civil",
@@ -171,6 +182,68 @@
     "page": "Page"
   },
   "actions": { "save": "Save", "logout": "Logout" },
+  "webImport": {
+    "title": "Import site",
+    "subtitle": "Discover and import pages from help centers and online documentation.",
+    "jobDefaultsHint": "Max pages and depth use the global defaults above but can be overridden per job.",
+    "settings": {
+      "title": "Global settings",
+      "subtitle": "Fetch limits and behavior applied to all import jobs.",
+      "rateLimitMs": "Delay between requests (ms)",
+      "fetchTimeoutMs": "Timeout per URL (ms)",
+      "userAgent": "HTTP User-Agent",
+      "save": "Save settings",
+      "saving": "Saving…",
+      "saved": "Settings saved",
+      "saveFailed": "Could not save settings"
+    },
+    "newJob": "New import job",
+    "recentJobs": "Recent jobs",
+    "loading": "Loading…",
+    "empty": "No import jobs yet",
+    "pages": "pages",
+    "view": "View details",
+    "cancel": "Cancel",
+    "cancelConfirm": "Cancel this import job?",
+    "cancelled": "Job cancelled",
+    "cancelFailed": "Could not cancel job",
+    "created": "Job queued — follow progress on the next screen",
+    "failed": "Failed to create import job",
+    "submit": "Start import",
+    "submitting": "Queueing…",
+    "back": "Back",
+    "retryFailed": "Retry failed",
+    "retryQueued": "Failed pages re-queued",
+    "retryFailedToast": "Retry failed",
+    "pagesList": "Pages",
+    "noPages": "No pages discovered yet",
+    "fields": {
+      "title": "Job title",
+      "specialty": "Specialty",
+      "seedUrl": "Seed URL",
+      "discovery": "Discovery strategy",
+      "maxPages": "Max pages",
+      "maxDepth": "Max depth",
+      "pathPrefix": "Path prefix (optional)",
+      "sameOriginOnly": "Same origin only"
+    },
+    "discovery": {
+      "singleUrl": "Single URL",
+      "sitemap": "Sitemap XML",
+      "listingCrawl": "Link crawl (BFS)"
+    },
+    "stats": {
+      "discovered": "Discovered",
+      "completed": "Completed",
+      "failed": "Failed",
+      "skipped": "Skipped"
+    },
+    "table": {
+      "url": "URL",
+      "status": "Status",
+      "document": "Document"
+    }
+  },
   "errors": {
     "generic": "Invalid email or password.",
     "apiUnreachable": "Could not connect to the API. Make sure it is running on port 3100.",

@@ -12,7 +12,9 @@ import { ParserFactory } from '../parsers/parser.factory';
 import { ChunkingService } from './chunking.service';
 import { StorageService } from './storage.service';
 import { IngestionProgressService } from './ingestion-progress.service';
+import { ChunkSegment } from '../parsers/parser.interface';
 import { assessParseQuality } from '../utils/parse-quality.util';
+import type { KnowledgeDocumentEntity } from '@modules/knowledge/schemas/knowledge-document.schema';
 
 @Injectable()
 export class DocumentIngestionService {
@@ -32,7 +34,7 @@ export class DocumentIngestionService {
 
   async processDocument(
     documentId: string,
-    options?: { allowWeakParserFallback?: boolean; doOcr?: boolean },
+    options?: { allowWeakParserFallback?: boolean; doOcr?: boolean; cmsTags?: string[] },
   ): Promise<void> {
     if (await this.knowledgeRepository.isDocumentCancelled(documentId)) {
       this.logger.info({ documentId }, 'Ingestão cancelada — ignorando job');
@@ -47,9 +49,14 @@ export class DocumentIngestionService {
 
     await this.knowledgeRepository.updateDocumentStatus(documentId, IngestionStatus.PROCESSING);
     this.progressService.setStatus(documentId, IngestionStatus.PROCESSING);
-    this.progressService.setPhase(documentId, 'loading_source', 'Carregando arquivo do documento…');
 
     try {
+      if (document.sourceType === DocumentSourceType.MANUAL_TEXT) {
+        await this.processMarkdownDocument(documentId, document, options?.cmsTags);
+        return;
+      }
+
+      this.progressService.setPhase(documentId, 'loading_source', 'Carregando arquivo do documento…');
       const rawInput = await this.loadSource(document.sourceType, document.sourceReference);
       const sourceLabel = this.describeSourceSize(rawInput);
       this.progressService.setPhase(
@@ -61,6 +68,9 @@ export class DocumentIngestionService {
 
       const parser = this.parserFactory.getParser(document.sourceType);
       const usesDocling = document.sourceType === DocumentSourceType.PDF;
+      const isWebSource =
+        document.sourceType === DocumentSourceType.LINK ||
+        document.sourceType === DocumentSourceType.HTML;
       if (options?.doOcr && usesDocling) {
         this.progressService.setPhase(
           documentId,
@@ -93,6 +103,7 @@ export class DocumentIngestionService {
         const parseResult = await parser.parse(rawInput, {
           allowWeakParserFallback: options?.allowWeakParserFallback,
           doOcr: options?.doOcr,
+          sourceUrl: isWebSource ? document.sourceReference : undefined,
           onParseProgress: usesDocling
             ? (update) => this.progressService.updateParsePageProgress(documentId, update)
             : undefined,
@@ -175,84 +186,8 @@ export class DocumentIngestionService {
         blockSegments.length > 0
           ? blockSegments
           : this.chunkingService.splitMarkdown(markdown, document.title);
-      const tags = document.normReference ? [document.normReference.toLowerCase()] : [];
-      this.progressService.setTotalChunks(documentId, segments.length);
-      this.progressService.setPhase(
-        documentId,
-        'chunking',
-        segments.length > 0
-          ? `Dividindo em pílulas de conhecimento (${segments.length} segmentos)`
-          : 'Nenhum segmento gerado pelo chunking',
-      );
-
-      const chunkIds: string[] = [];
-
-      for (let i = 0; i < segments.length; i++) {
-        const segment = segments[i];
-        if (await this.knowledgeRepository.isDocumentCancelled(documentId)) {
-          this.logger.info({ documentId }, 'Ingestão cancelada durante chunking — abortando');
-          return;
-        }
-
-        const chunk = await this.knowledgeRepository.createChunk({
-          documentId: document._id,
-          content: stripMarkdownToPlain(segment.markdownContent),
-          markdownContent: segment.markdownContent,
-          specialty: document.specialty,
-          tags,
-          chapter: segment.chapter,
-          section: segment.section,
-          normItem: segment.normItem,
-          pageStart: segment.pageStart,
-          pageEnd: segment.pageEnd,
-          contentType: segment.contentType,
-          headingPath: segment.headingPath,
-          tableCaption: segment.tableCaption,
-          tableSource: segment.tableSource,
-          deletedAt: null,
-        });
-
-        chunkIds.push(chunk._id.toString());
-
-        this.progressService.chunkCreated(documentId, i + 1, segments.length, {
-          chapter: segment.chapter,
-          section: segment.section,
-          normItem: segment.normItem,
-        });
-      }
-
-      if (chunkIds.length > 0) {
-        await this.embeddingQueue.addBulk(
-          chunkIds.map((chunkId) => ({
-            name: JOB_NAMES.GENERATE_EMBEDDINGS,
-            data: { chunkId },
-          })),
-        );
-      }
-
-      if (segments.length > 0) {
-        this.progressService.setPhase(
-          documentId,
-          'embedding',
-          `Fila de embeddings: ${segments.length} job(s) — etapa mais demorada (55% → 100%)`,
-        );
-      }
-
-      await this.knowledgeRepository.updateDocumentStatus(documentId, IngestionStatus.COMPLETED);
-
-      if (segments.length === 0) {
-        this.progressService.complete(documentId, 'Documento processado sem pílulas geradas');
-      } else {
-        this.progressService.setPhase(
-          documentId,
-          'embedding',
-          `Parse e pílulas prontos — gerando embeddings (0/${segments.length})`,
-          'success',
-        );
-        this.progressService.startEmbeddingSync(documentId);
-      }
-      this.eventEmitter.emit(DomainEvents.DOCUMENT_PROCESSED, { documentId });
-      this.logger.info({ documentId, chunks: segments.length }, 'Documento processado');
+      const tags = this.buildChunkTags(document, options?.cmsTags);
+      await this.persistSegments(documentId, document, segments, tags, 'Parse e pílulas prontos');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro desconhecido na ingestão';
       await this.knowledgeRepository.updateDocumentStatus(
@@ -262,8 +197,145 @@ export class DocumentIngestionService {
       );
       this.progressService.fail(documentId, message);
       this.logger.error({ documentId, error: message }, 'Falha na ingestão');
+      this.eventEmitter.emit(DomainEvents.DOCUMENT_INGESTION_FINISHED, {
+        documentId,
+        status: IngestionStatus.FAILED,
+        error: message,
+      });
       throw error;
     }
+  }
+
+  private async processMarkdownDocument(
+    documentId: string,
+    document: KnowledgeDocumentEntity,
+    cmsTags?: string[],
+  ): Promise<void> {
+    this.progressService.setPhase(documentId, 'loading_source', 'Carregando Markdown…');
+
+    const rawInput = await this.loadSource(document.sourceType, document.sourceReference);
+    const markdown = Buffer.isBuffer(rawInput) ? rawInput.toString('utf-8') : rawInput;
+
+    this.progressService.setPhase(
+      documentId,
+      'loading_source',
+      `Markdown carregado (${markdown.length.toLocaleString('pt-BR')} caracteres)`,
+      'success',
+    );
+
+    if (await this.knowledgeRepository.isDocumentCancelled(documentId)) {
+      this.logger.info({ documentId }, 'Ingestão cancelada — abortando');
+      return;
+    }
+
+    if (!markdown.trim()) {
+      throw new Error('Markdown vazio');
+    }
+
+    const segments = this.chunkingService.splitMarkdown(markdown, document.title);
+    const tags = this.buildChunkTags(document, cmsTags);
+    await this.persistSegments(documentId, document, segments, tags, 'Chunking concluído');
+  }
+
+  private buildChunkTags(document: KnowledgeDocumentEntity, extraTags?: string[]): string[] {
+    const tags = new Set<string>();
+    if (document.normReference) tags.add(document.normReference.toLowerCase());
+    for (const tag of extraTags ?? []) {
+      const normalized = tag.trim().toLowerCase();
+      if (normalized) tags.add(normalized);
+    }
+    return [...tags];
+  }
+
+  private async persistSegments(
+    documentId: string,
+    document: KnowledgeDocumentEntity,
+    segments: ChunkSegment[],
+    tags: string[],
+    embeddingReadyMessage: string,
+  ): Promise<void> {
+    this.progressService.setTotalChunks(documentId, segments.length);
+    this.progressService.setPhase(
+      documentId,
+      'chunking',
+      segments.length > 0
+        ? `Dividindo em pílulas de conhecimento (${segments.length} segmentos)`
+        : 'Nenhum segmento gerado pelo chunking',
+    );
+
+    const chunkIds: string[] = [];
+
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      if (await this.knowledgeRepository.isDocumentCancelled(documentId)) {
+        this.logger.info({ documentId }, 'Ingestão cancelada durante chunking — abortando');
+        return;
+      }
+
+      const chunk = await this.knowledgeRepository.createChunk({
+        documentId: document._id,
+        content: stripMarkdownToPlain(segment.markdownContent),
+        markdownContent: segment.markdownContent,
+        specialty: document.specialty,
+        tags,
+        chapter: segment.chapter,
+        section: segment.section,
+        normItem: segment.normItem,
+        pageStart: segment.pageStart,
+        pageEnd: segment.pageEnd,
+        contentType: segment.contentType,
+        headingPath: segment.headingPath,
+        tableCaption: segment.tableCaption,
+        tableSource: segment.tableSource,
+        deletedAt: null,
+      });
+
+      chunkIds.push(chunk._id.toString());
+
+      this.progressService.chunkCreated(documentId, i + 1, segments.length, {
+        chapter: segment.chapter,
+        section: segment.section,
+        normItem: segment.normItem,
+      });
+    }
+
+    if (chunkIds.length > 0) {
+      await this.embeddingQueue.addBulk(
+        chunkIds.map((chunkId) => ({
+          name: JOB_NAMES.GENERATE_EMBEDDINGS,
+          data: { chunkId },
+        })),
+      );
+    }
+
+    if (segments.length > 0) {
+      this.progressService.setPhase(
+        documentId,
+        'embedding',
+        `Fila de embeddings: ${segments.length} job(s) — etapa mais demorada (55% → 100%)`,
+      );
+    }
+
+    await this.knowledgeRepository.updateDocumentStatus(documentId, IngestionStatus.COMPLETED);
+
+    if (segments.length === 0) {
+      this.progressService.complete(documentId, 'Documento processado sem pílulas geradas');
+    } else {
+      this.progressService.setPhase(
+        documentId,
+        'embedding',
+        `${embeddingReadyMessage} — gerando embeddings (0/${segments.length})`,
+        'success',
+      );
+      this.progressService.startEmbeddingSync(documentId);
+    }
+
+    this.eventEmitter.emit(DomainEvents.DOCUMENT_PROCESSED, { documentId });
+    this.eventEmitter.emit(DomainEvents.DOCUMENT_INGESTION_FINISHED, {
+      documentId,
+      status: IngestionStatus.COMPLETED,
+    });
+    this.logger.info({ documentId, chunks: segments.length }, 'Documento processado');
   }
 
   async generateEmbedding(chunkId: string): Promise<void> {

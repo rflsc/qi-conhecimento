@@ -14,6 +14,7 @@ import {
   CreateManualContentDto,
   SearchKnowledgeDto,
   UploadDocumentDto,
+  UploadMarkdownDto,
 } from '../dtos/knowledge.dto';
 import { mapChunk, mapCitation, mapDocument } from '../interfaces/knowledge.mapper';
 import { KnowledgeRepository } from '../repositories/knowledge.repository';
@@ -21,6 +22,7 @@ import { RagService } from './rag.service';
 import { StorageService } from '@modules/ingestion/services/storage.service';
 import { IngestionProgressService } from '@modules/ingestion/services/ingestion-progress.service';
 import { DoclingClient } from '@modules/ingestion/services/docling.client';
+import { ChunkingService } from '@modules/ingestion/services/chunking.service';
 
 @Injectable()
 export class KnowledgeService {
@@ -31,6 +33,7 @@ export class KnowledgeService {
     private readonly eventEmitter: EventEmitter2,
     private readonly progressService: IngestionProgressService,
     private readonly doclingClient: DoclingClient,
+    private readonly chunkingService: ChunkingService,
     @InjectQueue(QUEUE_NAMES.INGESTION) private readonly ingestionQueue: Queue,
     @InjectQueue(QUEUE_NAMES.EMBEDDING) private readonly embeddingQueue: Queue,
   ) {}
@@ -87,12 +90,13 @@ export class KnowledgeService {
 
   private async enqueueIngestion(
     documentId: string,
-    options?: { allowWeakParserFallback?: boolean },
+    options?: { allowWeakParserFallback?: boolean; cmsTags?: string[] },
   ) {
     try {
       await this.ingestionQueue.add(JOB_NAMES.PROCESS_DOCUMENT, {
         documentId,
         allowWeakParserFallback: options?.allowWeakParserFallback === true,
+        cmsTags: options?.cmsTags,
       });
     } catch {
       throw new ServiceUnavailableException(
@@ -109,57 +113,109 @@ export class KnowledgeService {
       specialty: dto.specialty,
       sourceType: DocumentSourceType.MANUAL_TEXT,
       normReference: dto.normReference,
-      ingestionStatus: IngestionStatus.COMPLETED,
+      ingestionStatus: IngestionStatus.PENDING,
       deletedAt: null,
     });
 
-    const chunk = await this.knowledgeRepository.createChunk({
-      documentId: document._id,
-      content: stripMarkdownToPlain(dto.markdownContent),
-      markdownContent: dto.markdownContent,
+    const relativePath = await this.storageService.saveTextContent(
+      document._id.toString(),
+      dto.markdownContent,
+    );
+    document.sourceReference = relativePath;
+    await document.save();
+
+    await this.enqueueIngestion(document._id.toString(), {
+      cmsTags: dto.tags ?? [],
+    });
+
+    return { document: mapDocument(document) };
+  }
+
+  async uploadMarkdownDocument(file: Express.Multer.File, dto: UploadMarkdownDto) {
+    if (!file) throw new BadRequestException('Arquivo obrigatório');
+
+    const originalName = file.originalname?.toLowerCase() ?? '';
+    const isMarkdown =
+      originalName.endsWith('.md') ||
+      originalName.endsWith('.markdown') ||
+      file.mimetype === 'text/markdown' ||
+      file.mimetype === 'text/plain';
+    if (!isMarkdown) {
+      throw new BadRequestException('Envie um arquivo .md ou .markdown');
+    }
+
+    const document = await this.knowledgeRepository.createDocument({
+      title: dto.title,
       specialty: dto.specialty,
-      tags: dto.tags ?? [],
-      chapter: dto.title,
+      sourceType: DocumentSourceType.MANUAL_TEXT,
+      normReference: dto.normReference,
+      author: dto.author,
+      ingestionStatus: IngestionStatus.PENDING,
       deletedAt: null,
     });
 
-    await this.embeddingQueue.add(JOB_NAMES.GENERATE_EMBEDDINGS, {
-      chunkId: chunk._id.toString(),
-    });
+    try {
+      const relativePath = await this.storageService.saveFile(document._id.toString(), file);
+      document.sourceReference = relativePath;
+      await document.save();
 
-    this.eventEmitter.emit(DomainEvents.CHUNK_INDEXED, {
-      documentId: document._id.toString(),
-      chunkId: chunk._id.toString(),
-    });
-
-    return {
-      document: mapDocument(document),
-      chunk: mapChunk(await chunk.populate('documentId')),
-    };
+      await this.enqueueIngestion(document._id.toString(), {
+        cmsTags: dto.tags ?? [],
+      });
+      return mapDocument(document);
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof ServiceUnavailableException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Falha ao salvar o arquivo Markdown',
+      );
+    }
   }
 
   async createManualContent(dto: CreateManualContentDto) {
     const document = await this.knowledgeRepository.findDocumentById(dto.documentId);
     if (!document) throw new NotFoundException('Document not found');
 
-    const chunk = await this.knowledgeRepository.createChunk({
-      documentId: new Types.ObjectId(dto.documentId),
-      content: stripMarkdownToPlain(dto.markdownContent),
-      markdownContent: dto.markdownContent,
-      specialty: dto.specialty,
-      tags: dto.tags ?? [],
-      chapter: dto.title,
-      deletedAt: null,
-    });
+    const segments = this.chunkingService.splitMarkdown(dto.markdownContent, dto.title);
+    const tags = dto.tags ?? [];
+    const chunkIds: string[] = [];
+
+    for (const segment of segments) {
+      const chunk = await this.knowledgeRepository.createChunk({
+        documentId: new Types.ObjectId(dto.documentId),
+        content: stripMarkdownToPlain(segment.markdownContent),
+        markdownContent: segment.markdownContent,
+        specialty: dto.specialty,
+        tags,
+        chapter: segment.chapter,
+        section: segment.section,
+        normItem: segment.normItem,
+        contentType: segment.contentType,
+        headingPath: segment.headingPath,
+        tableCaption: segment.tableCaption,
+        deletedAt: null,
+      });
+      chunkIds.push(chunk._id.toString());
+    }
 
     await this.knowledgeRepository.updateDocumentStatus(dto.documentId, IngestionStatus.COMPLETED);
 
-    await this.embeddingQueue.add(JOB_NAMES.GENERATE_EMBEDDINGS, {
-      chunkId: chunk._id.toString(),
-    });
+    if (chunkIds.length > 0) {
+      await this.embeddingQueue.addBulk(
+        chunkIds.map((chunkId) => ({
+          name: JOB_NAMES.GENERATE_EMBEDDINGS,
+          data: { chunkId },
+        })),
+      );
+    }
 
-    const populated = await chunk.populate('documentId');
-    return mapChunk(populated);
+    const lastChunk = await this.knowledgeRepository.findChunkById(chunkIds[chunkIds.length - 1]!);
+    const populated = lastChunk ? await lastChunk.populate('documentId') : null;
+    return {
+      chunksCreated: chunkIds.length,
+      chunk: populated ? mapChunk(populated) : null,
+    };
   }
 
   async listDocuments(page: number, limit: number) {
@@ -440,7 +496,8 @@ export class KnowledgeService {
       document.sourceReference &&
       !/^https?:\/\//i.test(document.sourceReference) &&
       (document.sourceType === DocumentSourceType.PDF ||
-        document.sourceType === DocumentSourceType.IMAGE);
+        document.sourceType === DocumentSourceType.IMAGE ||
+        document.sourceType === DocumentSourceType.MANUAL_TEXT);
 
     let storageRemoved = false;
     if (hasLocalStorage) {

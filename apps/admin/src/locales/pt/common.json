@@ -10,6 +10,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "import": "Importar",
+    "webImport": "Importar site",
     "documents": "Documentos",
     "manualContent": "CMS interno",
     "search": "Busca",
@@ -21,6 +22,7 @@
     "importPdf": "Importar PDF / NBR",
     "importImage": "Leitor de imagens",
     "importLink": "Importar link/HTML",
+    "webImport": "Importar site",
     "manualEditor": "Editor de procedimentos"
   },
   "dashboard": {
@@ -106,17 +108,23 @@
   },
   "cms": {
     "title": "CMS interno",
-    "subtitle": "Procedimentos, notas de campo e boas práticas em Markdown",
+    "subtitle": "Cole Markdown ou importe um arquivo .md — chunking automático e embeddings em fila",
     "saved": "Procedimento salvo com sucesso",
-    "saving": "Salvando...",
+    "queued": "Markdown enfileirado — acompanhe o progresso em Documentos",
+    "saving": "Enviando...",
+    "submit": "Importar Markdown",
+    "fileReadFailed": "Não foi possível ler o arquivo",
+    "charCount": "{{count}} caracteres",
     "fields": {
       "title": "Título",
       "specialty": "Especialidade",
       "normReference": "Referência de norma",
       "tags": "Tags",
       "tagsPlaceholder": "esgoto, recuo, instalação",
+      "markdownFile": "Arquivo Markdown (opcional)",
+      "markdownFileHint": "Selecione um .md para preencher o campo abaixo, ou cole o conteúdo diretamente.",
       "content": "Conteúdo (Markdown)",
-      "contentPlaceholder": "# Título\n\nDescreva o procedimento..."
+      "contentPlaceholder": "# Título\n\n## Seção\n\nDescreva o procedimento..."
     }
   },
   "search": {
@@ -145,14 +153,16 @@
   },
   "import": {
     "title": "Importar conhecimento",
-    "subtitle": "PDF, imagem (OCR) ou link/HTML — processamento automático em fila",
-    "tabs": { "pdf": "PDF / NBR", "image": "Imagem (OCR)", "link": "Link / HTML" },
+    "subtitle": "PDF, imagem, link/HTML ou Markdown — processamento automático em fila",
+    "tabs": { "pdf": "PDF / NBR", "image": "Imagem (OCR)", "link": "Link / HTML", "markdown": "Markdown" },
     "fields": {
       "file": "Arquivo",
       "title": "Título",
       "url": "URL",
       "specialty": "Especialidade",
-      "normReference": "Referência de norma"
+      "normReference": "Referência de norma",
+      "tags": "Tags",
+      "tagsPlaceholder": "esgoto, recuo, instalação"
     },
     "fileRequired": "Selecione um arquivo",
     "queued": "Fonte enfileirada para processamento",
@@ -160,6 +170,8 @@
     "submitting": "Enviando...",
     "submitFile": "Enviar arquivo",
     "submitLink": "Importar link",
+    "submitMarkdown": "Importar Markdown",
+    "markdownHint": "O Markdown será dividido em pílulas por seção (##) e indexado com embeddings.",
     "doclingOnline": "Docling ativo — PDFs serão processados com qualidade completa.",
     "doclingOffline": "Docling não está acessível. Suba com pnpm parser:dev ou a importação de PDF vai falhar.",
     "doclingNotConfigured": "PARSER_SERVICE_URL não configurado na API — PDFs não usarão Docling.",
@@ -179,6 +191,68 @@
     "page": "Página"
   },
   "actions": { "save": "Salvar", "logout": "Sair" },
+  "webImport": {
+    "title": "Importar site",
+    "subtitle": "Descubra e importe páginas de help centers, bases de suporte e documentação online.",
+    "jobDefaultsHint": "Máx. páginas e profundidade usam os defaults acima, mas podem ser ajustados por job.",
+    "settings": {
+      "title": "Configurações globais",
+      "subtitle": "Limites e comportamento de fetch aplicados a todos os jobs de importação.",
+      "rateLimitMs": "Intervalo entre requisições (ms)",
+      "fetchTimeoutMs": "Timeout por URL (ms)",
+      "userAgent": "User-Agent HTTP",
+      "save": "Salvar configurações",
+      "saving": "Salvando…",
+      "saved": "Configurações salvas",
+      "saveFailed": "Não foi possível salvar as configurações"
+    },
+    "newJob": "Novo job de importação",
+    "recentJobs": "Jobs recentes",
+    "loading": "Carregando…",
+    "empty": "Nenhum job de importação ainda",
+    "pages": "páginas",
+    "view": "Ver detalhes",
+    "cancel": "Cancelar",
+    "cancelConfirm": "Cancelar este job de importação?",
+    "cancelled": "Job cancelado",
+    "cancelFailed": "Não foi possível cancelar o job",
+    "created": "Job enfileirado — acompanhe o progresso na próxima tela",
+    "failed": "Falha ao criar job de importação",
+    "submit": "Iniciar importação",
+    "submitting": "Enfileirando…",
+    "back": "Voltar",
+    "retryFailed": "Reprocessar falhas",
+    "retryQueued": "Páginas com falha reenfileiradas",
+    "retryFailedToast": "Falha ao reprocessar",
+    "pagesList": "Páginas",
+    "noPages": "Nenhuma página descoberta ainda",
+    "fields": {
+      "title": "Título do job",
+      "specialty": "Especialidade",
+      "seedUrl": "URL inicial",
+      "discovery": "Estratégia de descoberta",
+      "maxPages": "Máximo de páginas",
+      "maxDepth": "Profundidade máxima",
+      "pathPrefix": "Prefixo de caminho (opcional)",
+      "sameOriginOnly": "Restringir ao mesmo domínio"
+    },
+    "discovery": {
+      "singleUrl": "URL única",
+      "sitemap": "Sitemap XML",
+      "listingCrawl": "Rastrear links (BFS)"
+    },
+    "stats": {
+      "discovered": "Descobertas",
+      "completed": "Concluídas",
+      "failed": "Falhas",
+      "skipped": "Ignoradas"
+    },
+    "table": {
+      "url": "URL",
+      "status": "Status",
+      "document": "Documento"
+    }
+  },
   "errors": {
     "generic": "E-mail ou senha inválidos.",
     "apiUnreachable": "Não foi possível conectar à API. Verifique se ela está rodando na porta 3100.",

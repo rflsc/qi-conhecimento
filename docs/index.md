@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | **Fase 1** | Admin conectado à API — CMS, listagem, busca texto | Concluída |
 | **Fase 2** | Upload PDF/imagem/link, parsers, embeddings, RAG + LLM | Concluída |
+| **Fase 2b** | Importação web em lote + extrator HTML (Readability) | Concluída |
 | **Fase 3** | Canais via Qi Agents + service key + histórico `/queries` no admin | Quase concluída — falta teste ponta-a-ponta no canal |
 
 ## Mapa rápido
@@ -26,6 +27,7 @@
 | Autenticação, seed e login no admin | [architecture/auth.md](./architecture/auth.md) |
 | Frontends (web/admin) | [architecture/frontend.md](./architecture/frontend.md) |
 | Hub de conhecimento e RAG | [architecture/knowledge-rag.md](./architecture/knowledge-rag.md) |
+| **Importação web em lote** | [architecture/web-import.md](./architecture/web-import.md) |
 | **Índice vetorial Atlas (M0)** | [knowledge-rag.md#atlas-vector-search](./architecture/knowledge-rag.md#atlas-vector-search) · `node scripts/create-vector-index.mjs` |
 | **Eval RAG (regressão)** | `pnpm --filter @qi-conhecimento/api eval:rag` — [knowledge-rag.md#suite-de-eval-rag](./architecture/knowledge-rag.md#suite-de-eval-rag) |
 | **Docling — evolução e roadmap** | [architecture/docling.md](./architecture/docling.md) |

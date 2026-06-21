@@ -38,6 +38,7 @@ Habilitado em `main.ts` para os frontends locais:
 | `health` | Health check (`GET /health`) |
 | `knowledge` | Documentos, chunks, CMS, busca híbrida, RAG, embeddings |
 | `ingestion` | Storage, parsers, Docling client, chunking, processador BullMQ |
+| `web-import` | Jobs de importação web em lote — descoberta, fetch, settings no admin |
 | `messaging` | Assistente de campo — `POST /messaging/query` (RAG para Qi Agents) |
 
 ### Estrutura `knowledge`
@@ -69,7 +70,35 @@ apps/api/src/modules/ingestion/
     ├── pdf.parser.ts
     ├── image.parser.ts
     ├── html.parser.ts
+    ├── html/                    # extratores genéricos + perfis (ver web-import.md)
     └── parser.factory.ts
+```
+
+### Importação web
+
+Especificação completa: [web-import.md](./web-import.md).
+
+| Fase | Endpoints |
+| --- | --- |
+| 1 ✅ | Melhoria interna em `POST /knowledge/documents/import-link` (Readability + `blocks[]`) |
+| 2 ✅ | `POST/GET /knowledge/web-imports`, settings, SSE `…/stream`, cancel/retry |
+| 3 | `GET /knowledge/web-imports/profiles`, `POST …/profiles/detect` |
+
+### Estrutura `web-import`
+
+```
+apps/api/src/modules/web-import/
+├── controllers/web-import.controller.ts
+├── services/
+│   ├── web-import.service.ts
+│   ├── web-discovery.service.ts
+│   ├── web-fetch.service.ts
+│   ├── web-import-settings.service.ts
+│   └── web-import-progress.service.ts
+├── discovery/          # single-url, sitemap, listing-crawl
+├── processors/web-import.processor.ts
+├── repositories/web-import.repository.ts
+└── schemas/            # jobs, pages, settings
 ```
 
 ## Seeds (dev)
@@ -94,6 +123,8 @@ Trabalho assíncrono via BullMQ: `IngestionProcessor` → `DocumentIngestionServ
 | --- | --- | --- |
 | `ingestion` | `process-document` | Parse → chunking → enqueue embeddings |
 | `ingestion` | `generate-embeddings` | Ollama/OpenAI → `chunk.embedding[]` |
+| `web-import` | `run-web-import` | Descoberta de URLs + enqueue páginas |
+| `web-import` | `process-web-import-page` | Cria documento LINK + fila de ingestão |
 | `messaging` | `send-field-response` | Fora de escopo — envio fica no Qi Agents |
 
 ## Collections MongoDB
@@ -101,6 +132,7 @@ Trabalho assíncrono via BullMQ: `IngestionProcessor` → `DocumentIngestionServ
 - `users`
 - `knowledge_documents`
 - `knowledge_chunks` — text index + campo `embedding[]`
+- `web_import_jobs`, `web_import_pages`, `web_import_settings`
 - `field_queries`
 
 ## Endpoints
@@ -131,6 +163,21 @@ Trabalho assíncrono via BullMQ: `IngestionProcessor` → `DocumentIngestionServ
 | POST | `/knowledge/cms` | CMS — documento + Markdown |
 | POST | `/knowledge/documents/manual-content` | Chunk em documento existente |
 | POST | `/knowledge/search` | Busca híbrida (RRF texto + vetorial) |
+
+### Importação web
+
+Ver [web-import.md](./web-import.md).
+
+| Método | Path | Descrição |
+| --- | --- | --- |
+| GET/PATCH | `/knowledge/web-imports/settings` | Configurações globais (admin UI) |
+| POST | `/knowledge/web-imports` | Cria job de importação em lote |
+| GET | `/knowledge/web-imports` | Lista jobs |
+| GET | `/knowledge/web-imports/{jobId}` | Detalhe do job |
+| GET | `/knowledge/web-imports/{jobId}/pages` | Páginas descobertas |
+| GET | `/knowledge/web-imports/{jobId}/stream` | SSE — progresso |
+| POST | `/knowledge/web-imports/{jobId}/cancel` | Cancela job |
+| POST | `/knowledge/web-imports/{jobId}/retry-failed` | Reprocessa falhas |
 
 ### Mensageria
 

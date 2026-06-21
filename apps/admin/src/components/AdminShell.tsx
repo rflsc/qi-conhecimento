@@ -9,6 +9,7 @@ import { clearAccessToken } from '@/lib/auth';
 const NAV_ITEMS = [
   { href: '/dashboard', key: 'dashboard' },
   { href: '/import', key: 'import' },
+  { href: '/web-import', key: 'webImport' },
   { href: '/documents', key: 'documents' },
   { href: '/manual-content', key: 'manualContent' },
   { href: '/search', key: 'search' },

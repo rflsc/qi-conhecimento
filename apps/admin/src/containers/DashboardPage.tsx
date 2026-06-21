@@ -11,6 +11,7 @@ export function DashboardPage() {
     { key: 'importPdf', icon: '📄', href: '/import?type=pdf' },
     { key: 'importImage', icon: '📷', href: '/import?type=image' },
     { key: 'importLink', icon: '🔗', href: '/import?type=link' },
+    { key: 'webImport', icon: '🌐', href: '/web-import' },
     { key: 'manualEditor', icon: '✍️', href: '/manual-content' },
   ] as const;
 

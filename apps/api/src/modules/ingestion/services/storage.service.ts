@@ -61,6 +61,25 @@ export class StorageService implements OnModuleInit {
     return readFile(absolutePath);
   }
 
+  async saveTextContent(documentId: string, content: string, filename = 'source.md'): Promise<string> {
+    if (!content.trim()) {
+      throw new BadRequestException('Conteúdo vazio');
+    }
+
+    const bytes = Buffer.byteLength(content, 'utf-8');
+    if (bytes > this.maxUploadBytes) {
+      throw new BadRequestException(
+        `Conteúdo excede o limite de ${this.maxUploadBytes / 1024 / 1024} MB`,
+      );
+    }
+
+    const relativePath = join(documentId, filename);
+    const absolutePath = join(this.storagePath, relativePath);
+    await mkdir(join(this.storagePath, documentId), { recursive: true });
+    await writeFile(absolutePath, content, 'utf-8');
+    return relativePath.replace(/\\/g, '/');
+  }
+
   /** Remove a pasta do documento no disco (upload PDF/imagem). */
   async deleteDocumentStorage(documentId: string): Promise<void> {
     const dir = join(this.storagePath, documentId);

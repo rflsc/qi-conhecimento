@@ -14,6 +14,7 @@ import { HealthModule } from '@modules/health/health.module';
 import { KnowledgeModule } from '@modules/knowledge/knowledge.module';
 import { MessagingModule } from '@modules/messaging/messaging.module';
 import { IngestionModule } from '@modules/ingestion/ingestion.module';
+import { WebImportModule } from '@modules/web-import/web-import.module';
 import { createBullRedisConnection } from './config/redis.config';
 
 @Module({
@@ -47,6 +48,7 @@ import { createBullRedisConnection } from './config/redis.config';
     KnowledgeModule,
     MessagingModule,
     IngestionModule,
+    WebImportModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

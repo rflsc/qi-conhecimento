@@ -7,6 +7,8 @@ import { EmbeddingProcessor } from './processors/embedding.processor';
 import { PdfParser } from './parsers/pdf.parser';
 import { ImageParser } from './parsers/image.parser';
 import { HtmlParser } from './parsers/html.parser';
+import { GenericHtmlExtractor } from './parsers/html/generic-html.extractor';
+import { HtmlExtractorFactory } from './parsers/html/html-extractor.factory';
 import { ParserFactory } from './parsers/parser.factory';
 import { StorageService } from './services/storage.service';
 import { ChunkingService } from './services/chunking.service';
@@ -32,9 +34,17 @@ import { IngestionProgressService } from './services/ingestion-progress.service'
     IngestionProgressService,
     PdfParser,
     ImageParser,
+    GenericHtmlExtractor,
+    HtmlExtractorFactory,
     HtmlParser,
     ParserFactory,
   ],
-  exports: [StorageService, DocumentIngestionService, IngestionProgressService, DoclingClient],
+  exports: [
+    StorageService,
+    DocumentIngestionService,
+    IngestionProgressService,
+    DoclingClient,
+    ChunkingService,
+  ],
 })
 export class IngestionModule {}

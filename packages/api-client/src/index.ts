@@ -18,6 +18,7 @@ import type {
   RegisterInput,
   SearchKnowledgeInput,
   UploadDocumentInput,
+  UploadMarkdownInput,
 } from '@qi-conhecimento/shared-validators';
 
 export interface KnowledgeStats {
@@ -64,7 +65,6 @@ export interface PublicKnowledgeAskResult {
 
 export interface CmsEntryResponse {
   document: KnowledgeDocument;
-  chunk: KnowledgeChunkRow;
 }
 
 export interface QiConhecimentoClientOptions {
@@ -175,6 +175,23 @@ export class QiConhecimentoClient {
       if (key !== 'file' && value != null && value !== '') formData.append(key, String(value));
     });
     return this.request<KnowledgeDocument>('/knowledge/documents/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  uploadMarkdown(input: UploadMarkdownInput & { file: Blob | File }) {
+    const formData = new FormData();
+    formData.append('file', input.file);
+    Object.entries(input).forEach(([key, value]) => {
+      if (key === 'file' || value == null || value === '') return;
+      if (key === 'tags' && Array.isArray(value)) {
+        formData.append(key, value.join(','));
+        return;
+      }
+      formData.append(key, String(value));
+    });
+    return this.request<KnowledgeDocument>('/knowledge/documents/upload-markdown', {
       method: 'POST',
       body: formData,
     });

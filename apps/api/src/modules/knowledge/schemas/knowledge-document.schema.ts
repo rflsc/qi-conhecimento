@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 import {
   DocumentSourceType,
   EngineeringSpecialty,
@@ -46,6 +46,12 @@ export class KnowledgeDocumentModel {
 
   @Prop({ type: Date, default: null, index: true })
   deletedAt!: Date | null;
+
+  @Prop({ type: Types.ObjectId, index: true })
+  webImportJobId?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId })
+  webImportPageId?: Types.ObjectId;
 }
 
 export const KnowledgeDocumentSchema = SchemaFactory.createForClass(KnowledgeDocumentModel);
