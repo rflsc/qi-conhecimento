@@ -21,11 +21,12 @@ A Fase 3 entrega o **Pilar 3** (interface de campo) com arquitetura **distribuí
 
 ### Qi Agents (projeto externo)
 
-- [ ] Canal WhatsApp → `POST /messaging/query`
-- [ ] Canal Telegram → mesmo endpoint
+- [ ] Canal WhatsApp → tool `consultar_norma_campo` → `POST /messaging/query`
+- [ ] Canal Telegram → mesmo fluxo
+- [ ] Agente com `ragOnly: true` + `requiredRagTool: consultar_norma_campo` (seed `seed:qiconhecimento`)
 - [ ] Transcrição de áudio antes da chamada (`transcribedFromAudio: true`)
-- [ ] Formatação de `answer` + citações para o canal
-- [ ] Retry / timeout na chamada HTTP (RAG pode levar 10–30 s)
+- [ ] `passThroughResponse: true` no endpoint — resposta RAG sem reescrita do Claude
+- [ ] Retry / timeout na chamada HTTP (RAG pode levar 10–90 s; `timeoutMs` ≥ 120000)
 
 ### Qi Conhecimento (este repositório)
 
@@ -74,7 +75,8 @@ pnpm --filter @qi/api seed:qiconhecimento
 
 3. Criar/verificar canal Telegram ou WhatsApp no admin do qi-agent.
 4. Enviar mensagem de teste pelo canal.
-5. Confirmar resposta com citação; ver registro em `field_queries` (MongoDB `qi-conhecimento`) e painel admin `/queries` — vale para `/messaging/query` e `/knowledge/public-ask`.
+5. Confirmar resposta com citação; ver registro em `field_queries` e painel admin `/queries`.
+6. Com `ragOnly`, perguntas técnicas **sempre** aparecem na auditoria — se não aparecerem, o Claude respondeu sem tool (revisar agente).
 
 ### 3. Regressão RAG (opcional)
 
