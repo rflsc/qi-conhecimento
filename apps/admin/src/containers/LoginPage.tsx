@@ -3,13 +3,14 @@
 import '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
+import { devLoginDefaults } from '@/lib/dev-login-defaults';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3100';
 
 export function LoginPage() {
   const { t } = useTranslation('common');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(devLoginDefaults.email);
+  const [password, setPassword] = useState(devLoginDefaults.password);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
