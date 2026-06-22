@@ -9,12 +9,7 @@ import { Queue } from 'bullmq';
 import type { Response } from 'express';
 import { Types } from 'mongoose';
 import { PinoLogger } from 'nestjs-pino';
-import {
-  DocumentSourceType,
-  IngestionStatus,
-  WebImportJobStatus,
-  WebImportPageStatus,
-} from '@qi-conhecimento/shared-types';
+import { DocumentSourceType, IngestionStatus, WebImportJobStatus, WebImportPageStatus } from '@qi-conhecimento/shared-types';
 import { JOB_NAMES, QUEUE_NAMES } from '@queues/queues.constants';
 import { DocumentIngestionService } from '@modules/ingestion/services/document-ingestion.service';
 import { KnowledgeRepository } from '@modules/knowledge/repositories/knowledge.repository';

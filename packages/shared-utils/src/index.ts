@@ -48,3 +48,5 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 export function stripMarkdownToPlain(text: string): string {
   return text.replace(/[#*`]/g, ' ').replace(/\s+/g, ' ').trim();
 }
+
+export { inferChunkTagsFromDocument } from './document-tags.util';

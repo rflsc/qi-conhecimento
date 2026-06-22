@@ -55,6 +55,19 @@ flowchart TD
 
 Este documento detalha **Fase 1** (fundação) e antecipa contratos das **Fases 2–3**.
 
+### Metadados na importação
+
+Cada job de importação web exige metadados **definidos pelo operador** (não há defaults hardcoded por produto):
+
+| Campo | Uso |
+| --- | --- |
+| `title` | Título do job / documentos gerados |
+| `normReference` | Citação exibida (ex.: `NBR 6118`, `Manual Fabricante X`) |
+| `author` | Autor ou editora |
+| `config.tags` | Tags para filtrar o RAG (`tagFilter` na API) — ex.: `eberick`, `nbr-6118` |
+
+Na ingestão, `inferChunkTagsFromDocument` combina `normReference` + tags do job em cada chunk. O roteamento “qual manual usar” fica no **qi-agent** (prompt do canal/agente + parâmetro `tagFilter`), não no core do Qi Conhecimento.
+
 ---
 
 ## Estrutura de pastas

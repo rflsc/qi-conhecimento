@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { EngineeringSpecialty } from '@qi-conhecimento/shared-types';
+import { KnowledgeRetrievalScope } from '@qi-conhecimento/shared-types';
 import { buildCitationLabel, cosineSimilarity } from '@qi-conhecimento/shared-utils';
 import { PinoLogger } from 'nestjs-pino';
 import { KnowledgeRepository } from '../repositories/knowledge.repository';
 import { KnowledgeChunkDocument } from '../schemas/knowledge-chunk.schema';
 import { mapSearchResult } from '../interfaces/knowledge.mapper';
+import {
+  chunkMatchesScopeTags,
+  isRetrievalScopeRestricted,
+} from '../utils/retrieval-scope.util';
 import { EmbeddingService } from './embedding.service';
 import { LlmService } from './llm.service';
 
@@ -40,12 +44,12 @@ export class RagService {
 
   async hybridSearch(
     query: string,
-    specialty?: EngineeringSpecialty,
+    scope?: KnowledgeRetrievalScope,
     limit = 10,
     candidateLoader?: () => Promise<KnowledgeChunkDocument[]>,
   ) {
     const t0 = performance.now();
-    const textChunks = await this.knowledgeRepository.searchByText(query, specialty, limit);
+    const textChunks = await this.knowledgeRepository.searchByText(query, scope, limit);
     const textIds = textChunks.map((c) => c._id.toString());
     const tText = performance.now();
 
@@ -56,7 +60,7 @@ export class RagService {
       const queryEmbedding = await this.embeddingService.embed(query);
       tEmbed = performance.now();
       if (queryEmbedding) {
-        vectorIds = await this.searchByVector(queryEmbedding, specialty, limit, candidateLoader);
+        vectorIds = await this.searchByVector(queryEmbedding, scope, limit, candidateLoader);
       }
       tVector = performance.now();
     }
@@ -84,19 +88,16 @@ export class RagService {
   /** Busca ampliada para o assistente — funde múltiplas consultas (ex.: tabela de K + pergunta original). */
   async retrieveChunksForAnswer(
     query: string,
-    specialty?: EngineeringSpecialty,
+    scope?: KnowledgeRetrievalScope,
   ): Promise<KnowledgeChunkDocument[]> {
     const t0 = performance.now();
-    const queries = this.expandSearchQueries(query);
+    const queries = this.expandSearchQueries(query, scope);
     const scores = new Map<string, number>();
 
-    // No fallback brute-force, os candidatos com embedding são iguais para todas as
-    // queries expandidas (mesma specialty). Carrega uma vez e reusa, evitando recarregar
-    // ~1100 embeddings do Mongo a cada query. Memoizado: a 1ª chamada que precisar carrega.
     let candidatesPromise: Promise<KnowledgeChunkDocument[]> | null = null;
     const candidateLoader = () => {
       if (!candidatesPromise) {
-        candidatesPromise = this.knowledgeRepository.findChunksWithEmbeddings(specialty);
+        candidatesPromise = this.knowledgeRepository.findChunksWithEmbeddings(scope);
       }
       return candidatesPromise;
     };
@@ -104,7 +105,7 @@ export class RagService {
     for (const expandedQuery of queries) {
       const results = await this.hybridSearch(
         expandedQuery,
-        specialty,
+        scope,
         RAG_ASK_SEARCH_LIMIT,
         candidateLoader,
       );
@@ -130,7 +131,7 @@ export class RagService {
       .map((id) => chunks.find((chunk) => chunk._id.toString() === id))
       .filter((chunk): chunk is KnowledgeChunkDocument => chunk !== undefined);
 
-    return this.rankChunksForAnswer(ordered, query, scores);
+    return this.rankChunksForAnswer(ordered, query, scores, scope);
   }
 
   /** Reordena chunks: tabelas e trechos citáveis sobem; melhora contexto do LLM e citações na UI. */
@@ -138,12 +139,27 @@ export class RagService {
     chunks: KnowledgeChunkDocument[],
     query: string,
     retrievalScores: Map<string, number>,
+    scope?: KnowledgeRetrievalScope,
   ): KnowledgeChunkDocument[] {
-    const isKQuery = /coeficiente|flambagem|\bk\b|engastad|rotulad|esbeltez/i.test(query);
+    const scoped = isRetrievalScopeRestricted(scope);
+    const isKQuery =
+      !scoped && /coeficiente|flambagem|\bk\b|engastad|rotulad|esbeltez/i.test(query);
 
     return [...chunks].sort((a, b) => {
-      const scoreA = this.chunkAnswerScore(a, query, isKQuery, retrievalScores.get(a._id.toString()) ?? 0);
-      const scoreB = this.chunkAnswerScore(b, query, isKQuery, retrievalScores.get(b._id.toString()) ?? 0);
+      const scoreA = this.chunkAnswerScore(
+        a,
+        query,
+        isKQuery,
+        scope,
+        retrievalScores.get(a._id.toString()) ?? 0,
+      );
+      const scoreB = this.chunkAnswerScore(
+        b,
+        query,
+        isKQuery,
+        scope,
+        retrievalScores.get(b._id.toString()) ?? 0,
+      );
       return scoreB - scoreA;
     });
   }
@@ -152,11 +168,22 @@ export class RagService {
     chunk: KnowledgeChunkDocument,
     query: string,
     isKQuery: boolean,
+    scope: KnowledgeRetrievalScope | undefined,
     retrievalScore: number,
   ): number {
     let score = retrievalScore * 100;
     const text = chunk.markdownContent.toLowerCase();
     const caption = (chunk.tableCaption ?? '').toLowerCase();
+
+    if (scope?.tags?.length && chunkMatchesScopeTags(chunk.tags, scope.tags)) {
+      score += 40;
+    }
+
+    if (isRetrievalScopeRestricted(scope)) {
+      if (chunk.contentType === 'table') score += 10;
+      if (chunk.pageStart) score += 3;
+      return score;
+    }
 
     if (chunk.contentType === 'table') score += 25;
     if (/tabela\s+h\.?\s*1/.test(caption) || /tabela\s+h\.?\s*1/.test(text)) score += 40;
@@ -169,14 +196,21 @@ export class RagService {
     return score;
   }
 
-  /** Citações exibidas na UI — prioriza tabelas H.1/H.2 em perguntas sobre K. */
+  /** Citações exibidas na UI — respeita tagFilter; heurísticas de tabela só em busca aberta. */
   selectCitationsForDisplay(
     chunks: KnowledgeChunkDocument[],
     query: string,
     limit = 5,
+    scope?: KnowledgeRetrievalScope,
   ): KnowledgeChunkDocument[] {
-    const isKQuery = /coeficiente|flambagem|\bk\b|engastad|rotulad|esbeltez/i.test(query);
-    if (!isKQuery) return chunks.slice(0, limit);
+    if (scope?.tags?.length) {
+      const scoped = chunks.filter((chunk) => chunkMatchesScopeTags(chunk.tags, scope.tags));
+      if (scoped.length > 0) return scoped.slice(0, limit);
+    }
+
+    if (isRetrievalScopeRestricted(scope)) {
+      return chunks.slice(0, limit);
+    }
 
     const wantsH1 =
       /barras?\s+isoladas?|engastad|rotulad|bi-?apoiad/i.test(query) &&
@@ -209,12 +243,15 @@ export class RagService {
     return deduped.slice(0, limit);
   }
 
-  private expandSearchQueries(query: string): string[] {
+  private expandSearchQueries(query: string, scope?: KnowledgeRetrievalScope): string[] {
     const trimmed = query.trim();
+    if (isRetrievalScopeRestricted(scope)) {
+      return [trimmed];
+    }
+
     const queries = [trimmed];
 
-    // Uma única variante focada na Tabela H.1 cobre o caso de K sem multiplicar o
-    // retrieval por 4 (corta ~50–75% do tempo de busca). Original + variante = 2 queries.
+    // Heurística legada para busca aberta em normas de aço — omitida quando tagFilter/documentIds restringem o corpus.
     if (/coeficiente|flambagem|\bk\b|engastad|rotulad|esbeltez/i.test(trimmed)) {
       queries.push(
         'Tabela H.1 coeficiente de flambagem K recomendado barras isoladas condições de apoio NBR 8800',
@@ -297,14 +334,14 @@ export class RagService {
    */
   private async searchByVector(
     queryEmbedding: number[],
-    specialty?: EngineeringSpecialty,
+    scope?: KnowledgeRetrievalScope,
     limit = 10,
     candidateLoader?: () => Promise<KnowledgeChunkDocument[]>,
   ): Promise<string[]> {
     if (!this.vectorIndexFallbackActive) {
       const tIdx = performance.now();
       try {
-        const ids = await this.knowledgeRepository.vectorSearch(queryEmbedding, specialty, limit);
+        const ids = await this.knowledgeRepository.vectorSearch(queryEmbedding, scope, limit);
         if (ids.length > 0) {
           this.logger.info(
             { hits: ids.length, vectorSearchMs: Math.round(performance.now() - tIdx) },
@@ -327,7 +364,7 @@ export class RagService {
     const tLoad = performance.now();
     const candidates = candidateLoader
       ? await candidateLoader()
-      : await this.knowledgeRepository.findChunksWithEmbeddings(specialty);
+      : await this.knowledgeRepository.findChunksWithEmbeddings(scope);
     const tLoaded = performance.now();
     const scored = candidates
       .map((chunk) => ({

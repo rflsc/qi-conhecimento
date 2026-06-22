@@ -159,11 +159,25 @@ Documentação no qi-agent: `docs/architecture/api-tools.md` (seção **Modo RAG
 | `channel` | Sim | `whatsapp`, `telegram`, `web`, `admin` |
 | `externalUserId` | Sim | ID do usuário no canal (telefone, chat id) |
 | `specialtyFilter` | Não | `civil`, `hidraulica`, `eletrica`, `seguranca_trabalho` |
+| `tagFilter` | Não | Tags para restringir chunks (ex.: `["eberick"]` para manual AltoQi) |
+| `documentIds` | Não | Ids Mongo de documentos específicos |
 | `transcribedFromAudio` | Não | `true` se o qi-agents transcreveu áudio antes de chamar |
 
 **Dica:** fixe `specialtyFilter` por canal no qi-agents (ex.: canal “Elétrica” → `eletrica`).
 
-**Tool dinâmica (Modo B via API Source):** o qi-agents **injeta automaticamente** `channel` e `externalUserId` do webhook Telegram/WhatsApp no body de `POST /messaging/query`. No admin, body params da tool: `queryText, specialtyFilter` — não peça `channel`/`externalUserId` ao Claude.
+**Tool dinâmica (Modo B via API Source):** o qi-agents **injeta automaticamente** `channel` e `externalUserId` do webhook Telegram/WhatsApp no body de `POST /messaging/query`. No admin, body params da tool: `queryText, specialtyFilter, tagFilter` — não peça `channel`/`externalUserId` ao Claude.
+
+### Contexto de canal e fontes (configuração, não código)
+
+O **qi-agent não conhece** domínios das APIs (tags, normas, manuais). Configure por canal:
+
+| Campo qi-agent | Função |
+| --- | --- |
+| `channelContext` | Texto no prompt — fontes disponíveis e quando usar cada parâmetro |
+| `toolParamDefaults` | Defaults genéricos por `toolName` (ex. `specialtyFilter`) |
+| `ApiEndpoint.contextInject` | Injeta `channel` / `externalUserId` na request (declarativo no endpoint) |
+
+Ver `docs/architecture/api-tools.md` no repositório **qi-agent** (seção *Merge de parâmetros*).
 
 ### Contrato de response (modo B)
 

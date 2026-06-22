@@ -71,11 +71,15 @@ export const createCmsEntrySchema = z.object({
 export const searchKnowledgeSchema = z.object({
   query: z.string().min(3).max(500),
   specialty: z.nativeEnum(EngineeringSpecialty).optional(),
+  tagFilter: z.array(z.string().max(80)).max(20).optional(),
+  documentIds: z.array(z.string().max(24)).max(50).optional(),
 });
 
 export const fieldQuerySchema = z.object({
   queryText: z.string().min(3).max(2000),
   specialtyFilter: z.nativeEnum(EngineeringSpecialty).optional(),
+  tagFilter: z.array(z.string().max(80)).max(20).optional(),
+  documentIds: z.array(z.string().max(24)).max(50).optional(),
   channel: z.enum(['whatsapp', 'telegram', 'web', 'admin']),
   externalUserId: z.string().min(1),
 });

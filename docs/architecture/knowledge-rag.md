@@ -127,9 +127,31 @@ Sem provedor LLM: resposta em template com citação do chunk principal.
 1. **Texto** — MongoDB `$text` em `content`, `markdownContent`, `tags`
 2. **Vetorial** — Atlas **`$vectorSearch`** no índice `knowledge_vector_index` (campo `embedding`); fallback automático para cosseno em memória se o índice não existir ou estiver indisponível
 3. **Fusão** — Reciprocal Rank Fusion (RRF, k=60)
-4. **Expansão de query** — em perguntas sobre K/flambagem, **1 variante** adicional (original + Tabela H.1 = **2 buscas**, não 4)
-5. **Rerank** — `rankChunksForAnswer()` prioriza tabelas, Tabela H.1, linhas do caso (b) e metadados (`pageStart`, `tableCaption`)
-6. **Filtro** — opcional por `specialty`
+4. **Expansão de query** — heurísticas legadas (ex.: Tabela H.1 / NBR 8800) **somente em busca aberta** (sem `tagFilter` nem `documentIds`); com escopo restrito, usa só a pergunta original
+5. **Rerank** — com `tagFilter`, prioriza chunks que casam as tags; sem escopo, heurísticas de tabelas normativas
+6. **Filtro** — opcional por `specialty`, `tags` e/ou `documentIds` (`KnowledgeRetrievalScope`) — **sempre explícito na requisição**, sem inferência por nome de produto no texto
+
+### Escopo de retrieval (`KnowledgeRetrievalScope`)
+
+| Campo | Descrição |
+| --- | --- |
+| `specialty` | `civil`, `hidraulica`, `eletrica`, `seguranca_trabalho` |
+| `tags` | Chunks que contenham **qualquer** tag listada (ex.: `eberick`, `nbr 6118`) |
+| `documentIds` | Restringe a documentos específicos (ids Mongo) |
+
+Na API HTTP o campo de tags se chama **`tagFilter`** (`POST /messaging/query`, `POST /knowledge/search`, `public-ask`). Internamente mapeia para `tags` no escopo.
+
+Exemplo — só manual Eberick:
+
+```json
+{
+  "queryText": "Como criar um pilar no Eberick?",
+  "channel": "telegram",
+  "externalUserId": "123",
+  "specialtyFilter": "civil",
+  "tagFilter": ["eberick"]
+}
+```
 
 ### Atlas Vector Search
 

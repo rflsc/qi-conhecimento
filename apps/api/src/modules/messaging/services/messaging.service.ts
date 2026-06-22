@@ -3,6 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DomainEvents } from '@events/domain-events';
 import { RagService } from '@modules/knowledge/services/rag.service';
 import { KnowledgeRepository } from '@modules/knowledge/repositories/knowledge.repository';
+import { mergeRetrievalScope } from '@modules/knowledge/utils/retrieval-scope.util';
 import { FieldQueryDto } from '../dtos/messaging.dto';
 import { MessagingRepository } from '../repositories/messaging.repository';
 import { FieldQueryDocument } from '../schemas/field-query.schema';
@@ -19,13 +20,15 @@ export class MessagingService {
   ) {}
 
   async handleFieldQuery(dto: FieldQueryDto) {
-    const chunks = await this.ragService.retrieveChunksForAnswer(
-      dto.queryText,
-      dto.specialtyFilter,
-    );
+    const scope = mergeRetrievalScope(dto.specialtyFilter, {
+      tags: dto.tagFilter,
+      documentIds: dto.documentIds,
+    });
+
+    const chunks = await this.ragService.retrieveChunksForAnswer(dto.queryText, scope);
 
     const citations = this.ragService
-      .selectCitationsForDisplay(chunks, dto.queryText, 5)
+      .selectCitationsForDisplay(chunks, dto.queryText, 5, scope)
       .map((chunk) => this.toCitation(chunk));
     const answer = await this.ragService.generateAnswer(dto.queryText, chunks);
 

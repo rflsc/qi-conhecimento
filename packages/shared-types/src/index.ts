@@ -11,6 +11,15 @@ export enum EngineeringSpecialty {
   WORK_SAFETY = 'seguranca_trabalho',
 }
 
+/** Escopo opcional da busca RAG — restringe chunks por especialidade, tags ou documentos. */
+export interface KnowledgeRetrievalScope {
+  specialty?: EngineeringSpecialty;
+  /** Chunks que contenham qualquer uma dessas tags (ex.: `eberick`, `nbr 6118`). */
+  tags?: string[];
+  /** Restringe a documentos específicos (ids Mongo). */
+  documentIds?: string[];
+}
+
 export enum DocumentSourceType {
   PDF = 'pdf',
   IMAGE = 'image',

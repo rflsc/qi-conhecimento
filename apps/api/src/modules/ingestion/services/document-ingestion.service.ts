@@ -4,7 +4,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PinoLogger } from 'nestjs-pino';
 import { DocumentSourceType, IngestionStatus, ParseBlock } from '@qi-conhecimento/shared-types';
-import { stripMarkdownToPlain } from '@qi-conhecimento/shared-utils';
+import { stripMarkdownToPlain, inferChunkTagsFromDocument } from '@qi-conhecimento/shared-utils';
 import { DomainEvents } from '@events/domain-events';
 import { JOB_NAMES, QUEUE_NAMES } from '@queues/queues.constants';
 import { KnowledgeRepository } from '@modules/knowledge/repositories/knowledge.repository';
@@ -301,13 +301,10 @@ export class DocumentIngestionService {
   }
 
   private buildChunkTags(document: KnowledgeDocumentEntity, extraTags?: string[]): string[] {
-    const tags = new Set<string>();
-    if (document.normReference) tags.add(document.normReference.toLowerCase());
-    for (const tag of extraTags ?? []) {
-      const normalized = tag.trim().toLowerCase();
-      if (normalized) tags.add(normalized);
-    }
-    return [...tags];
+    return inferChunkTagsFromDocument({
+      normReference: document.normReference,
+      extraTags,
+    });
   }
 
   private async persistSegments(

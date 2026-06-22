@@ -20,6 +20,7 @@ import { mapChunk, mapDocument } from '../interfaces/knowledge.mapper';
 import { MessagingService } from '@modules/messaging/services/messaging.service';
 import { KnowledgeRepository } from '../repositories/knowledge.repository';
 import { RagService } from './rag.service';
+import { mergeRetrievalScope } from '../utils/retrieval-scope.util';
 import { StorageService } from '@modules/ingestion/services/storage.service';
 import { IngestionProgressService } from '@modules/ingestion/services/ingestion-progress.service';
 import { DoclingClient } from '@modules/ingestion/services/docling.client';
@@ -245,7 +246,11 @@ export class KnowledgeService {
   }
 
   async search(dto: SearchKnowledgeDto) {
-    const results = await this.ragService.hybridSearch(dto.query, dto.specialty, 10);
+    const scope = mergeRetrievalScope(dto.specialty, {
+      tags: dto.tagFilter,
+      documentIds: dto.documentIds,
+    });
+    const results = await this.ragService.hybridSearch(dto.query, scope, 10);
     return { query: dto.query, results };
   }
 
@@ -257,6 +262,8 @@ export class KnowledgeService {
     const record = await this.messagingService.handleFieldQuery({
       queryText: dto.query,
       specialtyFilter: dto.specialty,
+      tagFilter: dto.tagFilter,
+      documentIds: dto.documentIds,
       channel: MessagingChannel.WEB,
       externalUserId: 'anonymous',
       transcribedFromAudio: false,

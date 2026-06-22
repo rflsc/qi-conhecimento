@@ -163,6 +163,10 @@ Integração completa: [integrations/qi-agents.md](../integrations/qi-agents.md)
 
   "specialtyFilter": "hidraulica",
 
+  "tagFilter": ["nbr 8160"],
+
+  "documentIds": [],
+
   "channel": "whatsapp",
 
   "externalUserId": "5511999999999",
@@ -173,7 +177,10 @@ Integração completa: [integrations/qi-agents.md](../integrations/qi-agents.md)
 
 ```
 
-
+| Campo | Descrição |
+| --- | --- |
+| `tagFilter` | Restringe chunks às tags do documento (definidas na ingestão). Omita para busca ampla na especialidade. |
+| `documentIds` | Restringe a documentos Mongo específicos. |
 
 Resposta inclui `answer` e `citations[]` com `documentTitle`, `normReference`, `normItem`, `pageStart`, `excerpt`. O registro fica em `field_queries` e aparece no painel `/queries`.
 

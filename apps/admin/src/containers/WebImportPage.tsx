@@ -246,6 +246,41 @@ export function WebImportPage() {
           </label>
 
           <label className="block space-y-1.5">
+            <span className="text-sm text-slate-400">{t('webImport.fields.normReference')}</span>
+            <input
+              {...jobForm.register('normReference')}
+              placeholder="Manual AltoQi Eberick"
+              className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 focus:ring-1 focus:ring-emerald-500 outline-none"
+            />
+          </label>
+
+          <label className="block space-y-1.5">
+            <span className="text-sm text-slate-400">{t('webImport.fields.author')}</span>
+            <input
+              {...jobForm.register('author')}
+              placeholder="AltoQi"
+              className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 focus:ring-1 focus:ring-emerald-500 outline-none"
+            />
+          </label>
+
+          <label className="block space-y-1.5 sm:col-span-2">
+            <span className="text-sm text-slate-400">{t('webImport.fields.tags')}</span>
+            <input
+              {...jobForm.register('config.tags')}
+              placeholder="eberick, altoqi"
+              className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 focus:ring-1 focus:ring-emerald-500 outline-none"
+              onChange={(event) => {
+                const tags = event.target.value
+                  .split(',')
+                  .map((tag) => tag.trim())
+                  .filter(Boolean);
+                jobForm.setValue('config.tags', tags);
+              }}
+              value={(jobForm.watch('config.tags') ?? []).join(', ')}
+            />
+          </label>
+
+          <label className="block space-y-1.5">
             <span className="text-sm text-slate-400">{t('webImport.fields.discovery')}</span>
             <select
               {...jobForm.register('config.discovery')}

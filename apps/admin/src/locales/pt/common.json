@@ -235,7 +235,10 @@
       "maxPages": "Máximo de páginas",
       "maxDepth": "Profundidade máxima",
       "pathPrefix": "Prefixo de caminho (opcional)",
-      "sameOriginOnly": "Restringir ao mesmo domínio"
+      "sameOriginOnly": "Restringir ao mesmo domínio",
+      "normReference": "Referência de norma / manual",
+      "author": "Autor / fabricante",
+      "tags": "Tags (separadas por vírgula)"
     },
     "discovery": {
       "singleUrl": "URL única",

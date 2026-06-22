@@ -226,7 +226,10 @@
       "maxPages": "Max pages",
       "maxDepth": "Max depth",
       "pathPrefix": "Path prefix (optional)",
-      "sameOriginOnly": "Same origin only"
+      "sameOriginOnly": "Same origin only",
+      "normReference": "Standard / manual reference",
+      "author": "Author / vendor",
+      "tags": "Tags (comma-separated)"
     },
     "discovery": {
       "singleUrl": "Single URL",

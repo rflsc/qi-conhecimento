@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage, Types } from 'mongoose';
-import { EngineeringSpecialty, IngestionStatus } from '@qi-conhecimento/shared-types';
+import { EngineeringSpecialty, IngestionStatus, KnowledgeRetrievalScope } from '@qi-conhecimento/shared-types';
+import { buildChunkRetrievalFilter } from '../utils/retrieval-scope.util';
 
 /** Nome do índice Atlas Vector Search no campo `embedding` da coleção `knowledge_chunks`. */
 export const KNOWLEDGE_VECTOR_INDEX = 'knowledge_vector_index';
@@ -115,12 +116,11 @@ export class KnowledgeRepository {
       .exec();
   }
 
-  findChunksWithEmbeddings(specialty?: EngineeringSpecialty): Promise<KnowledgeChunkDocument[]> {
+  findChunksWithEmbeddings(scope?: KnowledgeRetrievalScope): Promise<KnowledgeChunkDocument[]> {
     const filter: Record<string, unknown> = {
-      deletedAt: null,
+      ...buildChunkRetrievalFilter(scope),
       embedding: { $exists: true, $not: { $size: 0 } },
     };
-    if (specialty) filter['specialty'] = specialty;
 
     return this.chunkModel.find(filter).populate('documentId').select('+embedding').exec();
   }
@@ -133,11 +133,10 @@ export class KnowledgeRepository {
    */
   async vectorSearch(
     queryEmbedding: number[],
-    specialty?: EngineeringSpecialty,
+    scope?: KnowledgeRetrievalScope,
     limit = 10,
   ): Promise<string[]> {
-    const filter: Record<string, unknown> = { deletedAt: null };
-    if (specialty) filter['specialty'] = specialty;
+    const filter = buildChunkRetrievalFilter(scope);
 
     const pipeline: PipelineStage[] = [
       {
@@ -258,9 +257,11 @@ export class KnowledgeRepository {
       .exec();
   }
 
-  searchByText(query: string, specialty?: EngineeringSpecialty, limit = 5) {
-    const filter: Record<string, unknown> = { deletedAt: null, $text: { $search: query } };
-    if (specialty) filter['specialty'] = specialty;
+  searchByText(query: string, scope?: KnowledgeRetrievalScope, limit = 5) {
+    const filter: Record<string, unknown> = {
+      ...buildChunkRetrievalFilter(scope),
+      $text: { $search: query },
+    };
 
     return this.chunkModel
       .find(filter, { score: { $meta: 'textScore' } })
@@ -271,7 +272,7 @@ export class KnowledgeRepository {
   }
 
   /** @deprecated Use RagService.hybridSearch */
-  searchHybrid(query: string, specialty?: EngineeringSpecialty, limit = 5) {
-    return this.searchByText(query, specialty, limit);
+  searchHybrid(query: string, scope?: KnowledgeRetrievalScope, limit = 5) {
+    return this.searchByText(query, scope, limit);
   }
 }

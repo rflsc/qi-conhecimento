@@ -168,6 +168,24 @@ export class SearchKnowledgeDto {
   @IsOptional()
   @IsEnum(EngineeringSpecialty)
   specialty?: EngineeringSpecialty;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Restringe chunks que contenham qualquer uma dessas tags',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tagFilter?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Restringe a documentos específicos (ids Mongo)',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  documentIds?: string[];
 }
 
 export class CreateCmsEntryDto {
