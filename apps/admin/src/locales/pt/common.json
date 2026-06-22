@@ -226,6 +226,7 @@
     "retryFailedToast": "Falha ao reprocessar",
     "pagesList": "Páginas",
     "noPages": "Nenhuma página descoberta ainda",
+    "documentCreated": "Documento único na base",
     "fields": {
       "title": "Título do job",
       "specialty": "Especialidade",

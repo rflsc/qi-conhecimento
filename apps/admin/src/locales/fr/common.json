@@ -167,7 +167,7 @@
     "submitFile": "Envoyer fichier",
     "submitLink": "Importer lien",
     "submitMarkdown": "Importer Markdown",
-    "markdownHint": "Le Markdown sera découpé en pilules par section (##) et indexé avec des embeddings.",
+    "markdownHint": "Le Markdown sera découpé en pilules par section (##) et indexé avec des embeddings."
   },
   "specialties": {
     "civil": "Génie civil",
@@ -182,6 +182,68 @@
     "page": "Page"
   },
   "actions": { "save": "Enregistrer", "logout": "Déconnexion" },
+  "webImport": {
+    "title": "Importer site",
+    "subtitle": "Découvrir et importer des pages de centres d'aide et de documentation en ligne.",
+    "jobDefaultsHint": "Pages max et profondeur utilisent les valeurs globales ci-dessus, mais peuvent être ajustées par job.",
+    "settings": {
+      "title": "Paramètres globaux",
+      "subtitle": "Limites et comportement de fetch appliqués à tous les jobs d'import.",
+      "rateLimitMs": "Intervalle entre requêtes (ms)",
+      "fetchTimeoutMs": "Timeout par URL (ms)",
+      "userAgent": "User-Agent HTTP",
+      "save": "Enregistrer les paramètres",
+      "saving": "Enregistrement…",
+      "saved": "Paramètres enregistrés",
+      "saveFailed": "Impossible d'enregistrer les paramètres"
+    },
+    "newJob": "Nouveau job d'import",
+    "recentJobs": "Jobs récents",
+    "loading": "Chargement…",
+    "empty": "Aucun job d'import pour l'instant",
+    "pages": "pages",
+    "view": "Voir détails",
+    "cancel": "Annuler",
+    "cancelConfirm": "Annuler ce job d'import ?",
+    "cancelled": "Job annulé",
+    "cancelFailed": "Impossible d'annuler le job",
+    "created": "Job en file — suivez la progression sur l'écran suivant",
+    "failed": "Échec de création du job d'import",
+    "submit": "Démarrer l'import",
+    "submitting": "Mise en file…",
+    "back": "Retour",
+    "retryFailed": "Retraiter les échecs",
+    "retryQueued": "Pages en échec remises en file",
+    "retryFailedToast": "Échec du retraitement",
+    "pagesList": "Pages",
+    "noPages": "Aucune page découverte pour l'instant",
+    "fields": {
+      "title": "Titre du job",
+      "specialty": "Spécialité",
+      "seedUrl": "URL initiale",
+      "discovery": "Stratégie de découverte",
+      "maxPages": "Pages max",
+      "maxDepth": "Profondeur max",
+      "pathPrefix": "Préfixe de chemin (optionnel)",
+      "sameOriginOnly": "Restreindre au même domaine"
+    },
+    "discovery": {
+      "singleUrl": "URL unique",
+      "sitemap": "Sitemap XML",
+      "listingCrawl": "Exploration de liens (BFS)"
+    },
+    "stats": {
+      "discovered": "Découvertes",
+      "completed": "Terminées",
+      "failed": "Échecs",
+      "skipped": "Ignorées"
+    },
+    "table": {
+      "url": "URL",
+      "status": "Statut",
+      "document": "Document"
+    }
+  },
   "errors": {
     "generic": "E-mail ou mot de passe invalide.",
     "apiUnreachable": "Impossible de se connecter à l'API (port 3100).",

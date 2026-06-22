@@ -167,7 +167,7 @@
     "submitFile": "Upload file",
     "submitLink": "Import link",
     "submitMarkdown": "Import Markdown",
-    "markdownHint": "Markdown will be split into chunks by section (##) and indexed with embeddings.",
+    "markdownHint": "Markdown will be split into chunks by section (##) and indexed with embeddings."
   },
   "specialties": {
     "civil": "Civil",
@@ -217,6 +217,7 @@
     "retryFailedToast": "Retry failed",
     "pagesList": "Pages",
     "noPages": "No pages discovered yet",
+    "documentCreated": "Single knowledge document",
     "fields": {
       "title": "Job title",
       "specialty": "Specialty",
