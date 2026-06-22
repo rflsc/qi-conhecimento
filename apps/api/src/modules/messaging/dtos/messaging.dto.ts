@@ -8,13 +8,15 @@ export class FieldQueryDto {
   @MinLength(3)
   queryText!: string;
 
-  @ApiProperty({ enum: MessagingChannel })
+  @ApiPropertyOptional({ enum: MessagingChannel, description: 'Injetado pelo Qi Agents via contextInject; default admin se omitido' })
+  @IsOptional()
   @IsEnum(MessagingChannel)
-  channel!: MessagingChannel;
+  channel?: MessagingChannel;
 
-  @ApiProperty()
+  @ApiPropertyOptional({ description: 'ID do usuário no canal; injetado pelo Qi Agents; default qi-agents se omitido' })
+  @IsOptional()
   @IsString()
-  externalUserId!: string;
+  externalUserId?: string;
 
   @ApiPropertyOptional({ enum: EngineeringSpecialty })
   @IsOptional()

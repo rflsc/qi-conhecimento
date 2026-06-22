@@ -257,6 +257,32 @@ Use **MongoDB separado** por projeto:
 
 Não restaure dumps de um projeto no banco do outro. Ver `pnpm cleanup:qi-agents` se collections do conhecimento aparecerem no banco errado.
 
+## Troubleshooting
+
+### 400: `channel must be one of...` / `externalUserId must be a string`
+
+**Sintoma:** a tool `consultar_norma_campo` falha no qi-agents; o body enviado só tem `queryText` (e opcionalmente `specialtyFilter` / `tagFilter`).
+
+**Causa:** o endpoint `consultar_norma_campo` no MongoDB do qi-agents está **sem** `contextInject`, ou o seed nunca foi reexecutado após atualizar `qi-conhecimento-endpoints.json`.
+
+**Correção (qi-agents):**
+
+```bash
+cd qi-agent
+pnpm --filter @qi/api seed:qiconhecimento
+```
+
+Confirme no admin qi-agents → Integrações → endpoint `consultar_norma_campo` que existem:
+
+```json
+"contextInject": {
+  "channel": "$ctx.channel",
+  "externalUserId": "$ctx.externalUserId"
+}
+```
+
+**Mitigação (qi-conhecimento):** se `channel` / `externalUserId` forem omitidos, a API aceita a request com defaults (`admin` / `qi-agents`) — útil para destravar testes, mas **sem rastreio correto** por canal/usuário. Reconfigure o `contextInject` para auditoria em `/queries`.
+
 ## Segurança (serviço-a-serviço)
 
 `POST /messaging/query` é protegido por **service key** (`@ServiceAccess()`):

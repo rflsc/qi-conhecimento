@@ -80,8 +80,8 @@ export const fieldQuerySchema = z.object({
   specialtyFilter: z.nativeEnum(EngineeringSpecialty).optional(),
   tagFilter: z.array(z.string().max(80)).max(20).optional(),
   documentIds: z.array(z.string().max(24)).max(50).optional(),
-  channel: z.enum(['whatsapp', 'telegram', 'web', 'admin']),
-  externalUserId: z.string().min(1),
+  channel: z.enum(['whatsapp', 'telegram', 'web', 'admin']).optional(),
+  externalUserId: z.string().min(1).optional(),
 });
 
 export const webImportJobConfigSchema = z.object({

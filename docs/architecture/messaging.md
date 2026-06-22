@@ -112,7 +112,7 @@ sequenceDiagram
 
 
 
-1. Qi Agents envia `queryText`, `channel`, `externalUserId` (e opcionalmente `specialtyFilter`, `transcribedFromAudio`)
+1. Qi Agents envia `queryText` (e opcionalmente `specialtyFilter`, `tagFilter`, `transcribedFromAudio`). `channel` e `externalUserId` são **injetados pelo qi-agents** via `contextInject` no endpoint; se omitidos, a API usa defaults `admin` / `qi-agents` (ver [troubleshooting](../integrations/qi-agents.md#400-channel-must-be-one-of--externaluserid-must-be-a-string))
 
 2. `RagService.retrieveChunksForAnswer()` — 1–2 buscas híbridas (texto + `$vectorSearch`) + fusão RRF
 
@@ -179,6 +179,10 @@ Integração completa: [integrations/qi-agents.md](../integrations/qi-agents.md)
 
 | Campo | Descrição |
 | --- | --- |
+| `queryText` | **Obrigatório** — pergunta do usuário |
+| `channel` | Opcional — injetado pelo Qi Agents (`whatsapp`, `telegram`, …). Default `admin` se omitido |
+| `externalUserId` | Opcional — ID do usuário no canal. Default `qi-agents` se omitido |
+| `specialtyFilter` | Especialidade da engenharia |
 | `tagFilter` | Restringe chunks às tags do documento (definidas na ingestão). Omita para busca ampla na especialidade. |
 | `documentIds` | Restringe a documentos Mongo específicos. |
 

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DomainEvents } from '@events/domain-events';
+import { MessagingChannel } from '@qi-conhecimento/shared-types';
 import { RagService } from '@modules/knowledge/services/rag.service';
 import { KnowledgeRepository } from '@modules/knowledge/repositories/knowledge.repository';
 import { mergeRetrievalScope } from '@modules/knowledge/utils/retrieval-scope.util';
@@ -20,6 +21,7 @@ export class MessagingService {
   ) {}
 
   async handleFieldQuery(dto: FieldQueryDto) {
+    const { channel, externalUserId } = this.resolveFieldQueryContext(dto);
     const scope = mergeRetrievalScope(dto.specialtyFilter, {
       tags: dto.tagFilter,
       documentIds: dto.documentIds,
@@ -33,8 +35,8 @@ export class MessagingService {
     const answer = await this.ragService.generateAnswer(dto.queryText, chunks);
 
     const record = await this.messagingRepository.create({
-      channel: dto.channel,
-      externalUserId: dto.externalUserId,
+      channel,
+      externalUserId,
       queryText: dto.queryText,
       transcribedFromAudio: dto.transcribedFromAudio ?? false,
       specialtyFilter: dto.specialtyFilter,
@@ -45,7 +47,7 @@ export class MessagingService {
 
     this.eventEmitter.emit(DomainEvents.FIELD_QUERY_ANSWERED, {
       queryId: record._id.toString(),
-      channel: dto.channel,
+      channel,
     });
 
     return record;
@@ -66,6 +68,17 @@ export class MessagingService {
   verifyWhatsApp(mode: string, token: string, challenge: string, verifyToken: string) {
     if (mode === 'subscribe' && token === verifyToken) return challenge;
     return null;
+  }
+
+  /** Defaults quando Qi Agents não injeta contextInject (endpoint desatualizado). */
+  private resolveFieldQueryContext(dto: FieldQueryDto): {
+    channel: MessagingChannel;
+    externalUserId: string;
+  } {
+    return {
+      channel: dto.channel ?? MessagingChannel.ADMIN,
+      externalUserId: dto.externalUserId?.trim() || 'qi-agents',
+    };
   }
 
   private toFieldQueryRow(record: FieldQueryDocument) {

@@ -14,7 +14,7 @@ A Fase 3 entrega o **Pilar 3** (interface de campo) com arquitetura **distribuí
 | `POST /messaging/query` | Busca híbrida + LLM + `citations[]` + `field_queries` |
 | `POST /knowledge/public-ask` | Mesma pipeline (canal `web`) — LP + eval RAG |
 | Persistência | Collection `field_queries` — canais `whatsapp`, `telegram`, `web`, `admin` |
-| Contrato | `channel`, `externalUserId`, `specialtyFilter`, `transcribedFromAudio` |
+| Contrato | `queryText` (obrigatório); `channel` / `externalUserId` injetados pelo Qi Agents (defaults `admin` / `qi-agents` se omitidos); `specialtyFilter`, `transcribedFromAudio` opcionais |
 | Evento interno | `FIELD_QUERY_ANSWERED` (para extensões futuras) |
 
 ## Escopo revisado
