@@ -76,7 +76,9 @@ export class WebImportProgressService {
       next.percent = Math.min(100, Math.round((done / next.pagesDiscovered) * 100));
       next.pagesPending = Math.max(0, next.pagesDiscovered - done);
     } else if (next.phase === 'discovering') {
-      next.percent = 5;
+      if (patch.percent === undefined) {
+        next.percent = 5;
+      }
     } else if (next.phase === 'completed') {
       next.percent = 100;
     }

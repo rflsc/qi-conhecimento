@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { BullModule } from '@nestjs/bullmq';
 import { QUEUE_NAMES } from '@queues/queues.constants';
 import { KnowledgeModule } from '@modules/knowledge/knowledge.module';
+import { IngestionModule } from '@modules/ingestion/ingestion.module';
 import { WebImportController } from './controllers/web-import.controller';
 import { WebImportRepository } from './repositories/web-import.repository';
 import { WebImportService } from './services/web-import.service';
@@ -28,11 +29,9 @@ import {
       { name: WebImportPageModel.name, schema: WebImportPageSchema },
       { name: WebImportSettingsModel.name, schema: WebImportSettingsSchema },
     ]),
-    BullModule.registerQueue(
-      { name: QUEUE_NAMES.WEB_IMPORT },
-      { name: QUEUE_NAMES.INGESTION },
-    ),
+    BullModule.registerQueue({ name: QUEUE_NAMES.WEB_IMPORT }),
     forwardRef(() => KnowledgeModule),
+    IngestionModule,
   ],
   controllers: [WebImportController],
   providers: [

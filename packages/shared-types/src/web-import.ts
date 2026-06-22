@@ -57,6 +57,7 @@ export interface WebImportJob {
   pagesCompleted: number;
   pagesFailed: number;
   pagesSkipped: number;
+  documentId?: string;
   error?: string;
   createdAt: string;
   updatedAt: string;

@@ -27,6 +27,7 @@ export function mapWebImportJob(job: WebImportJobEntity) {
     pagesCompleted: job.pagesCompleted,
     pagesFailed: job.pagesFailed,
     pagesSkipped: job.pagesSkipped,
+    documentId: job.documentId?.toString(),
     error: job.error,
     createdAt: timestamps.createdAt?.toISOString() ?? new Date().toISOString(),
     updatedAt: timestamps.updatedAt?.toISOString() ?? new Date().toISOString(),

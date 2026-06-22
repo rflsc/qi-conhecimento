@@ -206,6 +206,69 @@ export class DocumentIngestionService {
     }
   }
 
+  /** Adiciona pílulas de uma página web ao documento agregado de um job de importação. */
+  async appendWebImportPage(
+    documentId: string,
+    pageUrl: string,
+    pageTitle: string | undefined,
+    cmsTags?: string[],
+  ): Promise<number> {
+    if (await this.knowledgeRepository.isDocumentCancelled(documentId)) {
+      throw new Error('Documento cancelado');
+    }
+
+    const document = await this.knowledgeRepository.findDocumentById(documentId);
+    if (!document) {
+      throw new Error('Documento não encontrado');
+    }
+
+    if (document.ingestionStatus === IngestionStatus.PENDING) {
+      await this.knowledgeRepository.updateDocumentStatus(documentId, IngestionStatus.PROCESSING);
+    }
+
+    const rawInput = await this.storageService.fetchUrl(pageUrl);
+    const parser = this.parserFactory.getParser(DocumentSourceType.LINK);
+    const heading = pageTitle?.trim() || pageUrl;
+
+    const parseResult = await parser.parse(rawInput, { sourceUrl: pageUrl });
+    const blockSegments =
+      parseResult.blocks?.length && !parseResult.usedWeakFallback
+        ? this.chunkingService.splitFromBlocks(parseResult.blocks, heading)
+        : [];
+    const segments =
+      blockSegments.length > 0
+        ? blockSegments
+        : this.chunkingService.splitMarkdown(parseResult.markdown, heading);
+
+    if (segments.length === 0) {
+      throw new Error('Parser não extraiu conteúdo');
+    }
+
+    const tags = this.buildChunkTags(document, cmsTags);
+    return this.createChunks(document, segments, tags);
+  }
+
+  async finalizeWebImportDocument(documentId: string, hadSuccessfulPages: boolean): Promise<void> {
+    const status = hadSuccessfulPages ? IngestionStatus.COMPLETED : IngestionStatus.FAILED;
+    const message = hadSuccessfulPages ? undefined : 'Nenhuma página importada com sucesso';
+
+    await this.knowledgeRepository.updateDocumentStatus(documentId, status, message);
+
+    if (hadSuccessfulPages) {
+      this.eventEmitter.emit(DomainEvents.DOCUMENT_PROCESSED, { documentId });
+      this.eventEmitter.emit(DomainEvents.DOCUMENT_INGESTION_FINISHED, {
+        documentId,
+        status: IngestionStatus.COMPLETED,
+      });
+    } else {
+      this.eventEmitter.emit(DomainEvents.DOCUMENT_INGESTION_FINISHED, {
+        documentId,
+        status: IngestionStatus.FAILED,
+        error: message,
+      });
+    }
+  }
+
   private async processMarkdownDocument(
     documentId: string,
     document: KnowledgeDocumentEntity,
@@ -336,6 +399,52 @@ export class DocumentIngestionService {
       status: IngestionStatus.COMPLETED,
     });
     this.logger.info({ documentId, chunks: segments.length }, 'Documento processado');
+  }
+
+  private async createChunks(
+    document: KnowledgeDocumentEntity,
+    segments: ChunkSegment[],
+    tags: string[],
+  ): Promise<number> {
+    const documentId = document._id.toString();
+    const chunkIds: string[] = [];
+
+    for (const segment of segments) {
+      if (await this.knowledgeRepository.isDocumentCancelled(documentId)) {
+        throw new Error('Documento cancelado durante chunking');
+      }
+
+      const chunk = await this.knowledgeRepository.createChunk({
+        documentId: document._id,
+        content: stripMarkdownToPlain(segment.markdownContent),
+        markdownContent: segment.markdownContent,
+        specialty: document.specialty,
+        tags,
+        chapter: segment.chapter,
+        section: segment.section,
+        normItem: segment.normItem,
+        pageStart: segment.pageStart,
+        pageEnd: segment.pageEnd,
+        contentType: segment.contentType,
+        headingPath: segment.headingPath,
+        tableCaption: segment.tableCaption,
+        tableSource: segment.tableSource,
+        deletedAt: null,
+      });
+
+      chunkIds.push(chunk._id.toString());
+    }
+
+    if (chunkIds.length > 0) {
+      await this.embeddingQueue.addBulk(
+        chunkIds.map((chunkId) => ({
+          name: JOB_NAMES.GENERATE_EMBEDDINGS,
+          data: { chunkId },
+        })),
+      );
+    }
+
+    return chunkIds.length;
   }
 
   async generateEmbedding(chunkId: string): Promise<void> {

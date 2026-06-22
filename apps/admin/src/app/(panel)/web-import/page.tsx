@@ -1,5 +1,10 @@
+import { AdminShell } from '@/components/AdminShell';
 import { WebImportPage } from '@/containers/WebImportPage';
 
 export default function Page() {
-  return <WebImportPage />;
+  return (
+    <AdminShell>
+      <WebImportPage />
+    </AdminShell>
+  );
 }

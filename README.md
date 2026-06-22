@@ -80,6 +80,10 @@ pnpm build                                        # build completo
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm purge:queues                                 # para todas as filas BullMQ
+pnpm purge:embedding                              # só embeddings
+pnpm purge:web-import                             # só importação web
+pnpm cleanup:web-import -- --seed=meu-site --dry-run  # limpar job/dados (preview)
 ```
 
 ## Documentação

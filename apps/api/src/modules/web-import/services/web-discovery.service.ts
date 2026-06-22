@@ -23,6 +23,8 @@ export class WebDiscoveryService {
       maxDepth: number;
       sameOriginOnly: boolean;
       pathPrefix?: string;
+      rateLimitMs?: number;
+      onProgress?: DiscoveryContext['onProgress'];
     },
   ): Promise<DiscoveredPage[]> {
     const context: DiscoveryContext = {
@@ -31,6 +33,8 @@ export class WebDiscoveryService {
       maxDepth: options.maxDepth,
       sameOriginOnly: options.sameOriginOnly,
       pathPrefix: options.pathPrefix,
+      rateLimitMs: options.rateLimitMs,
+      onProgress: options.onProgress,
       fetchHtml: (url) => this.webFetchService.fetchText(url),
     };
 

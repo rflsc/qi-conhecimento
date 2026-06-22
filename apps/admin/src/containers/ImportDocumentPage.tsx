@@ -25,12 +25,6 @@ import {
 
 type ImportTab = 'pdf' | 'image' | 'link' | 'markdown';
 
-const TAB_SOURCE: Record<'pdf' | 'image' | 'link', DocumentSourceType> = {
-  pdf: DocumentSourceType.PDF,
-  image: DocumentSourceType.IMAGE,
-  link: DocumentSourceType.LINK,
-};
-
 export function ImportDocumentPage() {
   const { t } = useTranslation('common');
   const searchParams = useSearchParams();
@@ -116,13 +110,13 @@ export function ImportDocumentPage() {
       await uploadDocument({
         ...values,
         file,
-        sourceType: TAB_SOURCE[tab] as UploadDocumentInput['sourceType'],
+        sourceType: values.sourceType,
       }).unwrap();
       toast.success(t('import.queued'));
       fileForm.reset({
         title: '',
         specialty: values.specialty,
-        sourceType: TAB_SOURCE[tab] as UploadDocumentInput['sourceType'],
+        sourceType: values.sourceType,
         normReference: '',
         author: '',
         allowWeakParserFallback: false,

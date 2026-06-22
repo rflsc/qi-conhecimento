@@ -177,6 +177,7 @@ Ver [web-import.md](./web-import.md).
 | GET | `/knowledge/web-imports` | Lista jobs |
 | GET | `/knowledge/web-imports/{jobId}` | Detalhe do job |
 | GET | `/knowledge/web-imports/{jobId}/pages` | Páginas descobertas |
+| GET | `/knowledge/web-imports/{jobId}/progress` | Snapshot de progresso |
 | GET | `/knowledge/web-imports/{jobId}/stream` | SSE — progresso |
 | POST | `/knowledge/web-imports/{jobId}/cancel` | Cancela job |
 | POST | `/knowledge/web-imports/{jobId}/retry-failed` | Reprocessa falhas |

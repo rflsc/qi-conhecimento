@@ -287,6 +287,7 @@ Resposta do documento pode incluir (futuro):
 | `GET` | `/knowledge/web-imports` | Lista jobs (`page`, `limit`) |
 | `GET` | `/knowledge/web-imports/:jobId` | Detalhe + contadores |
 | `GET` | `/knowledge/web-imports/:jobId/pages` | Páginas do job (`status` filter) |
+| `GET` | `/knowledge/web-imports/:jobId/progress` | Snapshot de progresso (sem SSE) |
 | `GET` | `/knowledge/web-imports/:jobId/stream` | SSE — progresso (espelha ingestion-stream) |
 | `POST` | `/knowledge/web-imports/:jobId/cancel` | Cancela job + páginas pendentes |
 | `POST` | `/knowledge/web-imports/:jobId/retry-failed` | Reenfileira páginas `failed` |
@@ -360,6 +361,8 @@ Eventos (mesmo padrão de `ingestion-stream`):
 | `pagesDiscovered` | number | |
 | `pagesCompleted` | number | |
 | `pagesFailed` | number | |
+| `pagesSkipped` | number | Duplicatas ou fora de filtros |
+| `documentId` | ObjectId? | Documento único quando `discovery: single_url` |
 | `error` | string? | Falha fatal do job |
 | `deletedAt` | Date? | soft delete |
 
@@ -554,6 +557,57 @@ Persistidas em MongoDB (`web_import_settings`) e editáveis em **Admin → Impor
 | `PATCH` | `/knowledge/web-imports/settings` | Atualiza (somente `admin`) |
 
 > Não há variáveis de ambiente para estes valores — altere pelo admin.
+
+### Estratégias de descoberta (implementadas)
+
+| Valor | Descrição |
+| --- | --- |
+| `single_url` | Uma URL — importa artigo/página avulsa |
+| `sitemap` | Lê `sitemap.xml` (ou índice) e filtra por `pathPrefix` / `sameOriginOnly` |
+| `listing_crawl` | BFS a partir da seed — ideal para help centers (Zendesk, etc.) |
+| `filesystem` | **Não implementado** — reservado para HTML local (Fase 3) |
+
+---
+
+## Operação e troubleshooting
+
+### Parar filas BullMQ
+
+Jobs de web-import disparam ingestão + embeddings por página. Para **interromper tudo**:
+
+```bash
+pnpm purge:queues          # ingestion + embedding + web-import
+pnpm purge:embedding       # só embeddings
+pnpm purge:web-import        # só descoberta/importação web
+pnpm purge:ingestion         # só parse/chunking (legado)
+```
+
+> Jobs **ativos** podem terminar o chunk/página atual antes de parar. Reinicie a API (`pnpm dev`) se quiser garantir parada imediata.
+
+### Limpar dados de um job no MongoDB
+
+Scripts em `apps/api/scripts/`:
+
+| Comando | Descrição |
+| --- | --- |
+| `pnpm cleanup:web-import -- --seed=altoqi-eberick` | Apaga jobs, páginas, documentos e chunks por padrão no seed/título (Mongo direto) |
+| `pnpm cleanup:web-import:api -- --seed=altoqi-eberick` | Idem via REST (API precisa estar no ar) |
+| `pnpm cleanup:web-import -- --dry-run` | Lista o que seria apagado |
+
+### Fluxo típico no admin
+
+1. **Importar site** → http://localhost:3102/web-import
+2. Ajuste **configurações globais** (max páginas, depth, rate limit) no topo da tela
+3. Crie job: título, especialidade, seed URL, estratégia (`listing_crawl` para help center)
+4. Acompanhe em `/web-import/{jobId}` — barra de progresso + tabela de páginas
+5. Documentos gerados aparecem em **Documentos** com `sourceType: link`
+6. Embeddings rodam na fila `embedding` — badge `embedding ✓` nas pílulas
+
+### Collections MongoDB
+
+- `web_import_jobs` — lote
+- `web_import_pages` — URL descoberta + status + `documentId`
+- `web_import_settings` — defaults globais (editável no admin)
 
 ---
 

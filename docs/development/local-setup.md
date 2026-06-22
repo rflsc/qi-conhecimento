@@ -230,6 +230,31 @@ Na importação, marque **Permitir fallback pdf-parse** para usar o parser simpl
 
 Guia: [phase-2.md](./phase-2.md)
 
+### Importação web em lote
+
+Admin → **Importar site** (http://localhost:3102/web-import):
+
+1. Ajuste configurações globais (max páginas, depth, rate limit)
+2. Crie job com seed URL e estratégia (`listing_crawl` para help centers)
+3. Acompanhe progresso em `/web-import/{jobId}`
+
+Cada página vira um `knowledge_document` (`link`) → fila `ingestion` → `embedding`.
+
+**Parar tudo:**
+
+```bash
+pnpm purge:queues
+```
+
+**Limpar dados de um job:**
+
+```bash
+pnpm cleanup:web-import -- --seed=meu-help-center --dry-run
+pnpm cleanup:web-import -- --seed=meu-help-center
+```
+
+Especificação: [web-import.md](../architecture/web-import.md).
+
 ## Troubleshooting
 
 ### `EADDRINUSE` na porta 3100

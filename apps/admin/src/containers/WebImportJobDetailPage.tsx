@@ -112,6 +112,12 @@ export function WebImportJobDetailPage({ jobId }: { jobId: string }) {
   }
 
   const percent = progress?.percent ?? 0;
+  const stats = {
+    discovered: progress?.pagesDiscovered ?? job.pagesDiscovered,
+    completed: progress?.pagesCompleted ?? job.pagesCompleted,
+    failed: progress?.pagesFailed ?? job.pagesFailed,
+    skipped: progress?.pagesSkipped ?? job.pagesSkipped,
+  };
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -146,30 +152,45 @@ export function WebImportJobDetailPage({ jobId }: { jobId: string }) {
         </div>
       </div>
 
+      {job.documentId ? (
+        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-3 text-sm">
+          <span className="text-slate-400">{t('webImport.documentCreated')}: </span>
+          <Link href="/documents" className="text-emerald-400 hover:underline font-medium">
+            {job.title}
+          </Link>
+          <span className="text-slate-500 ml-2">({job.documentId.slice(0, 8)}…)</span>
+        </div>
+      ) : null}
+
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
         <div className="flex justify-between text-sm">
           <span className="text-slate-400">{progress?.message ?? job.status}</span>
           <span className="text-emerald-400">{percent}%</span>
         </div>
+        {progress?.currentUrl ? (
+          <p className="text-xs text-slate-500 truncate" title={progress.currentUrl}>
+            {progress.currentUrl}
+          </p>
+        ) : null}
         <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
           <div className="h-full bg-emerald-500 transition-all" style={{ width: `${percent}%` }} />
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
           <div>
             <p className="text-slate-500">{t('webImport.stats.discovered')}</p>
-            <p>{job.pagesDiscovered}</p>
+            <p>{stats.discovered}</p>
           </div>
           <div>
             <p className="text-slate-500">{t('webImport.stats.completed')}</p>
-            <p>{job.pagesCompleted}</p>
+            <p>{stats.completed}</p>
           </div>
           <div>
             <p className="text-slate-500">{t('webImport.stats.failed')}</p>
-            <p>{job.pagesFailed}</p>
+            <p>{stats.failed}</p>
           </div>
           <div>
             <p className="text-slate-500">{t('webImport.stats.skipped')}</p>
-            <p>{job.pagesSkipped}</p>
+            <p>{stats.skipped}</p>
           </div>
         </div>
       </div>

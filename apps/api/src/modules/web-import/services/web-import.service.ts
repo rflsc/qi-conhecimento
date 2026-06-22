@@ -5,7 +5,6 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { Queue } from 'bullmq';
 import type { Response } from 'express';
 import { Types } from 'mongoose';
@@ -16,17 +15,17 @@ import {
   WebImportJobStatus,
   WebImportPageStatus,
 } from '@qi-conhecimento/shared-types';
-import { DomainEvents } from '@events/domain-events';
 import { JOB_NAMES, QUEUE_NAMES } from '@queues/queues.constants';
+import { DocumentIngestionService } from '@modules/ingestion/services/document-ingestion.service';
 import { KnowledgeRepository } from '@modules/knowledge/repositories/knowledge.repository';
 import { CreateWebImportJobDto } from '../dtos/web-import.dto';
 import { UpdateWebImportSettingsDto } from '../dtos/web-import-settings.dto';
 import { mapWebImportJob, mapWebImportPage } from '../interfaces/web-import.mapper';
 import { WebImportRepository } from '../repositories/web-import.repository';
+import { WebImportJobEntity } from '../schemas/web-import-job.schema';
 import { WebDiscoveryService } from './web-discovery.service';
 import { WebImportProgressService } from './web-import-progress.service';
 import { WebImportSettingsService } from './web-import-settings.service';
-import { titleFromUrl } from '../utils/url.util';
 
 @Injectable()
 export class WebImportService {
@@ -35,11 +34,10 @@ export class WebImportService {
     private readonly discoveryService: WebDiscoveryService,
     private readonly progressService: WebImportProgressService,
     private readonly knowledgeRepository: KnowledgeRepository,
+    private readonly documentIngestionService: DocumentIngestionService,
     private readonly settingsService: WebImportSettingsService,
     private readonly logger: PinoLogger,
-    private readonly eventEmitter: EventEmitter2,
     @InjectQueue(QUEUE_NAMES.WEB_IMPORT) private readonly webImportQueue: Queue,
-    @InjectQueue(QUEUE_NAMES.INGESTION) private readonly ingestionQueue: Queue,
   ) {
     this.logger.setContext(WebImportService.name);
   }
@@ -213,7 +211,6 @@ export class WebImportService {
       await this.repository.updatePage(page._id.toString(), {
         status: WebImportPageStatus.PENDING,
         error: undefined,
-        documentId: undefined,
       });
     }
 
@@ -255,6 +252,21 @@ export class WebImportService {
         maxDepth: job.config.maxDepth,
         sameOriginOnly: job.config.sameOriginOnly,
         pathPrefix: job.config.pathPrefix,
+        rateLimitMs: job.config.rateLimitMs,
+        onProgress: ({ discovered: discoveredCount, visited, currentUrl }) => {
+          const maxPages = Math.max(job.config.maxPages, 1);
+          this.progressService.update(jobId, {
+            phase: 'discovering',
+            status: WebImportJobStatus.DISCOVERING,
+            pagesDiscovered: discoveredCount,
+            currentUrl,
+            message:
+              discoveredCount > 0
+                ? `Descobrindo URLs… (${discoveredCount} encontrada(s), ${visited} visitada(s))`
+                : `Descobrindo URLs… (${visited} visitada(s))`,
+            percent: Math.min(15, 5 + Math.round((discoveredCount / maxPages) * 10)),
+          });
+        },
       });
 
       if (discovered.length === 0) {
@@ -276,6 +288,7 @@ export class WebImportService {
       }
 
       const refreshed = await this.repository.refreshJobCounters(jobId);
+      await this.ensureJobDocument(job, jobId);
       await this.repository.updateJob(jobId, { status: WebImportJobStatus.IMPORTING });
 
       this.progressService.update(jobId, {
@@ -313,38 +326,37 @@ export class WebImportService {
       return;
     }
 
+    const documentId = await this.ensureJobDocument(job, jobId);
+
     await this.repository.updatePage(pageId, { status: WebImportPageStatus.FETCHING });
     this.progressService.update(jobId, {
       currentUrl: page.url,
-      message: `Enfileirando ${page.url}`,
+      message: `Importando ${page.url}`,
     });
 
     try {
-      const document = await this.knowledgeRepository.createDocument({
-        title: page.title?.trim() || titleFromUrl(page.url),
-        specialty: job.specialty,
-        sourceType: DocumentSourceType.LINK,
-        sourceReference: page.url,
-        normReference: job.normReference,
-        author: job.author,
-        webImportJobId: new Types.ObjectId(jobId),
-        webImportPageId: page._id,
-        ingestionStatus: IngestionStatus.PENDING,
-        deletedAt: null,
-      });
-
       await this.repository.updatePage(pageId, {
         status: WebImportPageStatus.INGESTING,
-        documentId: document._id,
+        documentId: new Types.ObjectId(documentId),
       });
 
-      await this.ingestionQueue.add(JOB_NAMES.PROCESS_DOCUMENT, {
-        documentId: document._id.toString(),
-        cmsTags: job.config.tags,
+      await this.documentIngestionService.appendWebImportPage(
+        documentId,
+        page.url,
+        page.title,
+        job.config.tags,
+      );
+
+      await this.repository.updatePage(pageId, { status: WebImportPageStatus.COMPLETED, error: undefined });
+      const refreshed = await this.repository.refreshJobCounters(jobId);
+      this.progressService.update(jobId, {
+        pagesDiscovered: refreshed?.pagesDiscovered ?? 0,
+        pagesCompleted: refreshed?.pagesCompleted ?? 0,
+        pagesFailed: refreshed?.pagesFailed ?? 0,
+        pagesSkipped: refreshed?.pagesSkipped ?? 0,
+        message: `Página concluída: ${page.url}`,
       });
-      this.eventEmitter.emit(DomainEvents.DOCUMENT_INGESTED, {
-        documentId: document._id.toString(),
-      });
+      await this.finalizeJobIfDone(jobId);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Falha ao importar página';
       await this.repository.updatePage(pageId, {
@@ -357,41 +369,24 @@ export class WebImportService {
     }
   }
 
-  @OnEvent(DomainEvents.DOCUMENT_INGESTION_FINISHED)
-  async handleDocumentIngestionFinished(payload: {
-    documentId: string;
-    status: IngestionStatus;
-    error?: string;
-  }): Promise<void> {
-    const page = await this.repository.findPageByDocumentId(payload.documentId);
-    if (!page) return;
+  private async ensureJobDocument(job: WebImportJobEntity, jobId: string): Promise<string> {
+    if (job.documentId) return job.documentId.toString();
 
-    const jobId = page.jobId.toString();
-    const nextStatus =
-      payload.status === IngestionStatus.COMPLETED
-        ? WebImportPageStatus.COMPLETED
-        : payload.status === IngestionStatus.CANCELLED
-          ? WebImportPageStatus.SKIPPED
-          : WebImportPageStatus.FAILED;
-
-    await this.repository.updatePage(page._id.toString(), {
-      status: nextStatus,
-      error: nextStatus === WebImportPageStatus.FAILED ? payload.error : undefined,
+    const document = await this.knowledgeRepository.createDocument({
+      title: job.title,
+      specialty: job.specialty,
+      sourceType: DocumentSourceType.LINK,
+      sourceReference: job.config.seedUrl,
+      normReference: job.normReference,
+      author: job.author,
+      webImportJobId: new Types.ObjectId(jobId),
+      ingestionStatus: IngestionStatus.PROCESSING,
+      deletedAt: null,
     });
 
-    const refreshed = await this.repository.refreshJobCounters(jobId);
-    this.progressService.update(jobId, {
-      pagesDiscovered: refreshed?.pagesDiscovered ?? 0,
-      pagesCompleted: refreshed?.pagesCompleted ?? 0,
-      pagesFailed: refreshed?.pagesFailed ?? 0,
-      pagesSkipped: refreshed?.pagesSkipped ?? 0,
-      message:
-        nextStatus === WebImportPageStatus.COMPLETED
-          ? `Página concluída: ${page.url}`
-          : `Falha na página: ${page.url}`,
-    });
-
-    await this.finalizeJobIfDone(jobId);
+    await this.repository.updateJob(jobId, { documentId: document._id });
+    job.documentId = document._id;
+    return document._id.toString();
   }
 
   private async finalizeJobIfDone(jobId: string): Promise<void> {
@@ -410,6 +405,15 @@ export class WebImportService {
     if (pending > 0) return;
 
     const refreshed = await this.repository.refreshJobCounters(jobId);
+    const updatedJob = await this.repository.findJobById(jobId);
+    if (updatedJob?.documentId) {
+      const hadSuccessfulPages = (refreshed?.pagesCompleted ?? 0) > 0;
+      await this.documentIngestionService.finalizeWebImportDocument(
+        updatedJob.documentId.toString(),
+        hadSuccessfulPages,
+      );
+    }
+
     await this.repository.updateJob(jobId, { status: WebImportJobStatus.COMPLETED });
     this.progressService.setPhase(
       jobId,

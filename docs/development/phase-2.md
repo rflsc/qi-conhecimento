@@ -150,6 +150,15 @@ Extensão da Fase 2 — especificação: [web-import.md](../architecture/web-imp
 
 Teste rápido: Admin → **Importar site** → configure limites → seed URL de help center → acompanhe em `/web-import/{jobId}`.
 
+**Parar importação / embeddings em massa:**
+
+```bash
+pnpm purge:queues              # ingestion + embedding + web-import
+pnpm cleanup:web-import -- --seed=help-center --dry-run   # preview limpeza Mongo
+```
+
+Detalhes: [web-import.md](../architecture/web-import.md#operação-e-troubleshooting).
+
 ## Próxima fase
 
 [Fase 3](./phase-3.md) — assistente de campo via **Qi Agents** (canais) + API key e `/queries` no admin. Integração: [qi-agents.md](../integrations/qi-agents.md).

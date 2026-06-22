@@ -74,6 +74,9 @@ export class WebImportJobModel {
   @Prop({ default: 0 })
   pagesSkipped!: number;
 
+  @Prop({ type: Types.ObjectId, ref: 'KnowledgeDocumentModel', index: true })
+  documentId?: Types.ObjectId;
+
   @Prop({ trim: true })
   error?: string;
 
