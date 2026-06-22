@@ -1,10 +1,10 @@
-import { Injectable, BadRequestException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ServiceUnavailableException, Inject, forwardRef } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Types } from 'mongoose';
 import type { Response } from 'express';
-import { DocumentSourceType, IngestionStatus } from '@qi-conhecimento/shared-types';
+import { DocumentSourceType, IngestionStatus, MessagingChannel } from '@qi-conhecimento/shared-types';
 import { stripMarkdownToPlain } from '@qi-conhecimento/shared-utils';
 import { DomainEvents } from '@events/domain-events';
 import { JOB_NAMES, QUEUE_NAMES } from '@queues/queues.constants';
@@ -16,7 +16,8 @@ import {
   UploadDocumentDto,
   UploadMarkdownDto,
 } from '../dtos/knowledge.dto';
-import { mapChunk, mapCitation, mapDocument } from '../interfaces/knowledge.mapper';
+import { mapChunk, mapDocument } from '../interfaces/knowledge.mapper';
+import { MessagingService } from '@modules/messaging/services/messaging.service';
 import { KnowledgeRepository } from '../repositories/knowledge.repository';
 import { RagService } from './rag.service';
 import { StorageService } from '@modules/ingestion/services/storage.service';
@@ -36,6 +37,8 @@ export class KnowledgeService {
     private readonly chunkingService: ChunkingService,
     @InjectQueue(QUEUE_NAMES.INGESTION) private readonly ingestionQueue: Queue,
     @InjectQueue(QUEUE_NAMES.EMBEDDING) private readonly embeddingQueue: Queue,
+    @Inject(forwardRef(() => MessagingService))
+    private readonly messagingService: MessagingService,
   ) {}
 
   async createDocument(dto: CreateKnowledgeDocumentDto) {
@@ -251,14 +254,19 @@ export class KnowledgeService {
   }
 
   async publicAsk(dto: SearchKnowledgeDto) {
-    const chunks = await this.ragService.retrieveChunksForAnswer(dto.query, dto.specialty);
+    const record = await this.messagingService.handleFieldQuery({
+      queryText: dto.query,
+      specialtyFilter: dto.specialty,
+      channel: MessagingChannel.WEB,
+      externalUserId: 'anonymous',
+      transcribedFromAudio: false,
+    });
 
-    const citations = this.ragService
-      .selectCitationsForDisplay(chunks, dto.query, 5)
-      .map(mapCitation);
-    const answer = await this.ragService.generateAnswer(dto.query, chunks);
-
-    return { query: dto.query, answer, citations };
+    return {
+      query: dto.query,
+      answer: record.answer,
+      citations: record.citations ?? [],
+    };
   }
 
   async reindexDocumentEmbeddings(documentId: string) {

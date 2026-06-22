@@ -11,8 +11,9 @@ A Fase 3 entrega o **Pilar 3** (interface de campo) com arquitetura **distribuí
 
 | Entrega | Detalhe |
 | --- | --- |
-| `POST /messaging/query` | Busca híbrida + LLM + `citations[]` |
-| Persistência | Collection `field_queries` |
+| `POST /messaging/query` | Busca híbrida + LLM + `citations[]` + `field_queries` |
+| `POST /knowledge/public-ask` | Mesma pipeline (canal `web`) — LP + eval RAG |
+| Persistência | Collection `field_queries` — canais `whatsapp`, `telegram`, `web`, `admin` |
 | Contrato | `channel`, `externalUserId`, `specialtyFilter`, `transcribedFromAudio` |
 | Evento interno | `FIELD_QUERY_ANSWERED` (para extensões futuras) |
 
@@ -32,6 +33,7 @@ A Fase 3 entrega o **Pilar 3** (interface de campo) com arquitetura **distribuí
 - [x] Documentação de integração
 - [x] API key serviço-a-serviço em `/messaging/query` (`X-Service-Key` / `SERVICE_API_KEY`)
 - [x] Admin `/queries` — listagem de `field_queries` (`GET /messaging/queries`)
+- [x] Auditoria unificada — `public-ask`, admin `/search` e `/messaging/query` gravam em `field_queries`
 - [ ] (Opcional) Endpoint com `messageText` pré-formatado para WhatsApp
 - [ ] (Opcional) Rate limit por `externalUserId` / IP
 
@@ -72,7 +74,7 @@ pnpm --filter @qi/api seed:qiconhecimento
 
 3. Criar/verificar canal Telegram ou WhatsApp no admin do qi-agent.
 4. Enviar mensagem de teste pelo canal.
-5. Confirmar resposta com citação; se usar `/messaging/query`, ver registro em `field_queries` (MongoDB `qi-conhecimento`) e painel admin `/queries`.
+5. Confirmar resposta com citação; ver registro em `field_queries` (MongoDB `qi-conhecimento`) e painel admin `/queries` — vale para `/messaging/query` e `/knowledge/public-ask`.
 
 ### 3. Regressão RAG (opcional)
 

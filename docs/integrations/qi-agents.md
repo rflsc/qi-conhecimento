@@ -17,7 +17,7 @@ O **Qi Conhecimento** expõe o **cérebro RAG** via `POST /messaging/query` — 
 | RAG (busca + LLM + citações) | ❌ | ✅ |
 | Ingestão de normas/PDFs | ❌ | ✅ (`apps/admin`) |
 | Histórico `field_queries` | ❌ (opcional espelhar) | ✅ |
-| Admin `/queries` (futuro) | ❌ | ✅ |
+| Admin `/queries` | ❌ | ✅ |
 
 ## Arquitetura
 
@@ -34,18 +34,21 @@ flowchart LR
   subgraph cerebro [Qi Conhecimento API]
     Ask["POST /knowledge/public-ask"]
     Query["POST /messaging/query"]
-    RAG[RagService]
+    RAG[MessagingService + RagService]
+    DB[(field_queries)]
   end
 
   WA --> WH
   TG --> WH
   WH --> Ack
-  Ack --> Ask
-  Ask --> RAG
+  Ack --> Query
+  Query --> RAG --> DB
   RAG --> Send
   Send --> WA
   Send --> TG
 ```
+
+> `public-ask` (Modo A) também persiste em `field_queries` (canal `web`). Para WhatsApp/Telegram com `channel` + `externalUserId` corretos, use Modo B (`/messaging/query`).
 
 ## Configuração no Qi Agents
 
@@ -118,7 +121,7 @@ Com pass-through, o texto de `answer` vai direto ao canal. Sem pass-through, o C
 | Campo | Obrigatório | Descrição |
 | --- | --- | --- |
 | `queryText` | Sim | Pergunta (3–2000 caracteres) |
-| `channel` | Sim | `whatsapp` ou `telegram` |
+| `channel` | Sim | `whatsapp`, `telegram`, `web`, `admin` |
 | `externalUserId` | Sim | ID do usuário no canal (telefone, chat id) |
 | `specialtyFilter` | Não | `civil`, `hidraulica`, `eletrica`, `seguranca_trabalho` |
 | `transcribedFromAudio` | Não | `true` se o qi-agents transcreveu áudio antes de chamar |
@@ -214,7 +217,7 @@ Não restaure dumps de um projeto no banco do outro. Ver `pnpm cleanup:qi-agents
 - Sem `SERVICE_API_KEY` configurada (dev), a rota fica **aberta** para facilitar testes locais.
 - Usuários autenticados do admin (JWT) também passam — usado pelo botão de teste no painel.
 
-> `POST /knowledge/public-ask` permanece **público** (é o endpoint da landing page web). Para o canal do qi-agents, **prefira `/messaging/query`**: além de aceitar a service key, ele persiste em `field_queries` e alimenta o painel admin `/queries`.
+> `POST /knowledge/public-ask` permanece **público** (landing web) e **também persiste** em `field_queries` (canal `web`). Para canais WhatsApp/Telegram, **prefira `/messaging/query`**: service key, `channel`/`externalUserId` do usuário e histórico correto em `/queries`.
 
 Ainda recomendado antes de produção:
 

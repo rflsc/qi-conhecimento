@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { MessagingModule } from '@modules/messaging/messaging.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BullModule } from '@nestjs/bullmq';
 import { QUEUE_NAMES } from '@queues/queues.constants';
@@ -27,6 +28,7 @@ import { KnowledgeChunkModel, KnowledgeChunkSchema } from './schemas/knowledge-c
       { name: QUEUE_NAMES.EMBEDDING },
     ),
     forwardRef(() => IngestionModule),
+    forwardRef(() => MessagingModule),
   ],
   controllers: [KnowledgeController],
   providers: [

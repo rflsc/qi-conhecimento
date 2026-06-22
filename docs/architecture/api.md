@@ -163,6 +163,8 @@ Trabalho assíncrono via BullMQ: `IngestionProcessor` → `DocumentIngestionServ
 | POST | `/knowledge/cms` | CMS — documento + Markdown |
 | POST | `/knowledge/documents/manual-content` | Chunk em documento existente |
 | POST | `/knowledge/search` | Busca híbrida (RRF texto + vetorial) |
+| POST | `/knowledge/public-search` | Busca híbrida pública (LP web) |
+| POST | `/knowledge/public-ask` | RAG público — resposta + citações; audita em `field_queries` (canal `web`) |
 
 ### Importação web
 
@@ -185,7 +187,8 @@ Canais WhatsApp/Telegram: **[Qi Agents](../integrations/qi-agents.md)**. Detalhe
 
 | Método | Path | Descrição |
 | --- | --- | --- |
-| POST | `/messaging/query` | Consulta RAG — backend para Qi Agents |
+| POST | `/messaging/query` | Consulta RAG — backend para Qi Agents e testes admin |
+| GET | `/messaging/queries` | Histórico `field_queries` — painel admin `/queries` |
 | GET | `/messaging/whatsapp/webhook` | Legado (verificação Meta) |
 | POST | `/messaging/whatsapp/webhook` | Legado (stub — não usar) |
 

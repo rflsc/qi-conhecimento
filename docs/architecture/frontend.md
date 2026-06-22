@@ -85,9 +85,11 @@ Redux Toolkit + RTK Query em `src/store/api.ts`, com JWT via cookie `access_toke
 | Console (OCR) | `POST .../reprocess-with-ocr`, `POST .../dismiss-ocr-retry` | Oferta quando extração baixa |
 | CMS interno | `POST /knowledge/cms` | |
 | Busca | `POST /knowledge/search` | Híbrida com Ollama ou OpenAI |
+| Assistente (teste) | `POST /messaging/query` | Modo assistente em `/search`; canal `admin` em `field_queries` |
+| Histórico consultas | `GET /messaging/queries` | Painel `/queries` — WhatsApp, Telegram, web e admin |
 
 Detalhes: [development/phase-1.md](../development/phase-1.md), [development/phase-2.md](../development/phase-2.md)
 
 ## Próximas entregas (Fase 3)
 
-Canais via **[Qi Agents](../integrations/qi-agents.md)**; neste repo: API key em `/messaging/query` e admin `/queries`. Ver [phase-3.md](../development/phase-3.md).
+Canais via **[Qi Agents](../integrations/qi-agents.md)**; neste repo: API key em `/messaging/query`, admin `/queries` e auditoria de `public-ask` em `field_queries`. Ver [phase-3.md](../development/phase-3.md).

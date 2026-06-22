@@ -47,7 +47,8 @@ Responsável pela ingestão, categorização e preparação de dados:
 **Implementação atual:**
 
 - `POST /messaging/query` — RAG completo (busca híbrida + LLM + `citations[]`)
-- Persistência em `field_queries` (`channel`, `externalUserId`, etc.)
+- `POST /knowledge/public-ask` — mesma pipeline; canal `web` em `field_queries`
+- Persistência em `field_queries` (`whatsapp`, `telegram`, `web`, `admin`)
 - **Canais WhatsApp/Telegram** — projeto **[Qi Agents](../../integrations/qi-agents.md)** (webhooks, áudio, envio)
 - Webhooks `/messaging/whatsapp/*` neste repo — legado/stub; **não usar** para novos canais
 - Service key `X-Service-Key` em `/messaging/query` + admin `/queries` (histórico) — entregues
@@ -105,5 +106,6 @@ Arquitetura com **[Qi Agents](../../integrations/qi-agents.md)** como camada de 
 - [x] Documentação de integração
 - [x] API key serviço-a-serviço (`X-Service-Key`)
 - [x] Histórico de consultas de campo no admin (`/queries`)
+- [x] Auditoria unificada — `public-ask`, admin `/search` e `/messaging/query` → `field_queries`
 
 Guias: [phase-1.md](../development/phase-1.md) · [phase-2.md](../development/phase-2.md) · [phase-3.md](../development/phase-3.md) · [qi-agents.md](../integrations/qi-agents.md)

@@ -72,6 +72,14 @@ flowchart LR
 
 ## Fluxo em `POST /messaging/query`
 
+Toda consulta RAG com resposta citada passa por `MessagingService.handleFieldQuery()` — incluindo `POST /knowledge/public-ask` (LP web) e testes no admin (`/search` → assistente).
+
+| Entrada | Path | Canal (`field_queries.channel`) | Auth |
+| --- | --- | --- | --- |
+| Qi Agents (WhatsApp/Telegram) | `POST /messaging/query` | `whatsapp`, `telegram` | `X-Service-Key` ou JWT admin |
+| Landing page (web) | `POST /knowledge/public-ask` | `web` | Público |
+| Admin — modo assistente | `POST /messaging/query` | `admin` | JWT admin/editor |
+
 
 
 ```mermaid
@@ -114,7 +122,9 @@ sequenceDiagram
 
 5. Fallback sem API key: template `"Conforme NBR X: excerpt..."`
 
-6. Registro em `field_queries` com array de `citations` (filtradas por `selectCitationsForDisplay`, como em `public-ask`)
+6. Registro em `field_queries` com array de `citations` (filtradas por `selectCitationsForDisplay`)
+
+   Também usado por `POST /knowledge/public-ask` (LP web, canal `web`) e testes no admin (canal `admin`).
 
 7. Qi Agents formata `answer` + citações e envia ao canal
 
@@ -128,8 +138,7 @@ sequenceDiagram
 
 | --- | --- | --- |
 
-| POST | `/messaging/query` | **Principal** — consulta RAG para canais (Qi Agents) |
-
+| POST | `/messaging/query` | **Principal** — consulta RAG para canais (Qi Agents) e testes admin |
 | GET | `/messaging/queries` | Histórico `field_queries` (admin/editor) — painel `/queries` |
 
 | GET | `/messaging/whatsapp/webhook` | Legado — verificação Meta (não usar com Qi Agents) |
@@ -166,7 +175,16 @@ Integração completa: [integrations/qi-agents.md](../integrations/qi-agents.md)
 
 
 
-Resposta inclui `answer` e `citations[]` com `documentTitle`, `normReference`, `normItem`, `pageStart`, `excerpt`.
+Resposta inclui `answer` e `citations[]` com `documentTitle`, `normReference`, `normItem`, `pageStart`, `excerpt`. O registro fica em `field_queries` e aparece no painel `/queries`.
+
+### Canais em `field_queries`
+
+| Valor | Origem |
+| --- | --- |
+| `whatsapp` | Qi Agents — WhatsApp |
+| `telegram` | Qi Agents — Telegram |
+| `web` | `POST /knowledge/public-ask` (LP pública) |
+| `admin` | Painel admin — `/search` (modo assistente) |
 
 
 

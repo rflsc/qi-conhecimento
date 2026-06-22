@@ -14,7 +14,7 @@ Rotas marcadas com `@ServiceAccess()` (ex.: `POST /messaging/query`):
 - Com `SERVICE_API_KEY` no `.env` → exige header `X-Service-Key` **ou** JWT de admin (testes no painel).
 - Sem `SERVICE_API_KEY` (dev) → rota aberta; log de aviso uma vez por processo.
 
-`POST /knowledge/public-ask` permanece `@PublicAccess()` (landing web).
+`POST /knowledge/public-ask` permanece `@PublicAccess()` (landing web) e persiste consultas em `field_queries` (canal `web`).
 
 Credenciais do qi-agents cadastram-se no **admin do qi-agent → Integrações** (API Key + header `X-Service-Key`), não em env por API.
 

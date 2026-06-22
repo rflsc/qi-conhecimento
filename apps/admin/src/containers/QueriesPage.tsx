@@ -8,6 +8,8 @@ const PAGE_SIZE = 20;
 const CHANNEL_LABELS: Record<string, string> = {
   whatsapp: 'WhatsApp',
   telegram: 'Telegram',
+  web: 'Web (LP)',
+  admin: 'Admin',
 };
 
 const SPECIALTY_LABELS: Record<string, string> = {
@@ -39,7 +41,8 @@ export function QueriesPage() {
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold">Consultas de campo</h1>
         <p className="text-slate-400 text-sm">
-          Histórico de perguntas via WhatsApp/Telegram (Qi Agents) com respostas citadas (Pilar 3).
+          Histórico de perguntas com respostas citadas — WhatsApp/Telegram (Qi Agents), LP web e
+          testes no painel admin.
         </p>
       </div>
 

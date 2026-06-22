@@ -76,7 +76,7 @@ export const searchKnowledgeSchema = z.object({
 export const fieldQuerySchema = z.object({
   queryText: z.string().min(3).max(2000),
   specialtyFilter: z.nativeEnum(EngineeringSpecialty).optional(),
-  channel: z.enum(['whatsapp', 'telegram']),
+  channel: z.enum(['whatsapp', 'telegram', 'web', 'admin']),
   externalUserId: z.string().min(1),
 });
 

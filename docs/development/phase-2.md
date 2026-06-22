@@ -24,7 +24,7 @@ Entrega concluída: upload PDF/imagem/link, parsers (Docling + fallbacks), embed
 | `EmbeddingService` | Provedor `ollama` (local) ou `openai` (API) |
 | `LlmService` | Provedor `anthropic` ou `openai` para respostas RAG |
 | `RagService` | Busca híbrida (RRF) + rerank + filtro de citações + LLM |
-| `POST /knowledge/public-ask` | RAG público (web) — resposta + citações filtradas |
+| `POST /knowledge/public-ask` | RAG público (web) — resposta + citações; audita em `field_queries` (canal `web`) |
 | `POST /knowledge/public-search` | Busca híbrida pública (web) |
 | `apps/api/eval/` | Suite de regressão RAG — `pnpm eval:rag` |
 | `POST /knowledge/documents/upload` | Multipart — PDF ou imagem |

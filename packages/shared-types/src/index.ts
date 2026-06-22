@@ -93,6 +93,8 @@ export interface IngestionProgress {
 export enum MessagingChannel {
   WHATSAPP = 'whatsapp',
   TELEGRAM = 'telegram',
+  WEB = 'web',
+  ADMIN = 'admin',
 }
 
 export interface User {

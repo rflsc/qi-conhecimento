@@ -157,10 +157,11 @@ export const knowledgeApi = createApi({
         method: 'POST',
         body: {
           ...body,
-          channel: 'whatsapp',
-          externalUserId: 'admin-test',
+          channel: 'admin',
+          externalUserId: 'admin-panel',
         },
       }),
+      invalidatesTags: ['FieldQueries'],
     }),
     uploadDocument: builder.mutation<
       DocumentRow,

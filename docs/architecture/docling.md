@@ -399,7 +399,7 @@ Roadmap organizado por prioridade.
 
 ### Fora do escopo Docling (Fase 3)
 
-Canais WhatsApp/Telegram, webhooks e áudio ficam no **Qi Agents** — ver [integrations/qi-agents.md](../integrations/qi-agents.md) e [phase-3.md](../development/phase-3.md). Pendente no qi-conhecimento: API key e admin `/queries`. Não alteram o pipeline Docling.
+Canais WhatsApp/Telegram, webhooks e áudio ficam no **Qi Agents** — ver [integrations/qi-agents.md](../integrations/qi-agents.md) e [phase-3.md](../development/phase-3.md). API key, admin `/queries` e auditoria unificada em `field_queries` entregues. Não alteram o pipeline Docling.
 
 ---
 

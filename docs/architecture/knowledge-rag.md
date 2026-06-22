@@ -195,17 +195,19 @@ No Render free tier, o gargalo costuma ser **LLM + CPU limitada** (~0,1 vCPU), n
 
 ### Assistente público (`public-ask`)
 
-Pipeline completo em `KnowledgeService.publicAsk()`:
+Delega para `MessagingService.handleFieldQuery()` (mesma pipeline que `/messaging/query`), persiste em `field_queries` com canal `web` e retorna `{ query, answer, citations }` para a LP.
 
 ```mermaid
 flowchart LR
-  Q[Query do usuário] --> E[expandSearchQueries]
+  Q[Query do usuário] --> M[MessagingService.handleFieldQuery]
+  M --> E[expandSearchQueries]
   E --> H[hybridSearch × 1–2 queries]
   H --> R[RRF + rankChunksForAnswer]
   R --> C[selectCitationsForDisplay]
   R --> L[generateAnswer — LLM]
-  C --> UI[Citações na web]
-  L --> UI[Resposta do assistente]
+  C --> DB[(field_queries)]
+  L --> UI[Resposta + citações na web]
+  DB --> Admin[/queries]
 ```
 
 | Etapa | Método | Descrição |
@@ -213,7 +215,7 @@ flowchart LR
 | Retrieval | `retrieveChunksForAnswer()` | 1–2 `hybridSearch` (expansão K) → até 10 chunks |
 | Rerank | `rankChunksForAnswer()` | Tabelas e Tabela H.1 sobem em perguntas sobre K |
 | Resposta | `generateAnswer()` | LLM com system prompt enriquecido (Tabela H.1) |
-| Citações | `selectCitationsForDisplay()` | Filtra, deduplica e limita cards na UI **e** em `POST /messaging/query` (`field_queries`) |
+| Citações | `selectCitationsForDisplay()` | Filtra, deduplica e limita cards na UI e em `field_queries` (todos os endpoints RAG) |
 
 **System prompt** (`RAG_SYSTEM_PROMPT` em `rag.service.ts`):
 
@@ -231,7 +233,7 @@ flowchart LR
 | Método | Path | Descrição |
 | --- | --- | --- |
 | POST | `/knowledge/public-search` | Busca híbrida (chunks) |
-| POST | `/knowledge/public-ask` | RAG — resposta LLM + citações filtradas |
+| POST | `/knowledge/public-ask` | RAG — resposta LLM + citações filtradas + auditoria (`field_queries`, canal `web`) |
 
 Citações (`KnowledgeCitation`) incluem `pageStart`, `pageEnd`, `tableCaption` quando o chunk foi ingerido com metadados Docling. Label formatado via `buildCitationLabel(norm, item, page, table)` — ex.: `NBR 8800, Tabela H.1, p. 142`.
 
@@ -297,7 +299,7 @@ Casos atuais (NBR 8800 Tabela H.1): engastado-rotulado (b), rotação/translaç�
 | POST | `/knowledge/documents/manual-content` | Chunk em documento existente |
 | POST | `/knowledge/search` | Busca híbrida (RRF + filtro especialidade) |
 | POST | `/knowledge/public-search` | Busca pública (web) |
-| POST | `/knowledge/public-ask` | RAG público — resposta + citações (web) |
+| POST | `/knowledge/public-ask` | RAG público — resposta + citações (web); audita em `field_queries` |
 
 Roles: ingestão exige `admin` ou `editor`; busca também aceita `user`.
 
