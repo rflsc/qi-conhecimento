@@ -40,6 +40,7 @@ export interface KnowledgeChunkRow {
   contentType?: ChunkContentType;
   tableCaption?: string;
   tableSource?: TableExtractionSource;
+  sourceUrl?: string;
   createdAt: string;
 }
 
@@ -55,6 +56,7 @@ export interface KnowledgeSearchResult {
   tableCaption?: string;
   contentType?: ChunkContentType;
   tags: string[];
+  sourceUrl?: string;
 }
 
 export interface PublicKnowledgeAskResult {

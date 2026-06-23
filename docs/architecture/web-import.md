@@ -606,6 +606,23 @@ Scripts em `apps/api/scripts/`:
 | `pnpm cleanup:web-import -- --seed=altoqi-eberick` | Apaga jobs, páginas, documentos e chunks por padrão no seed/título (Mongo direto) |
 | `pnpm cleanup:web-import:api -- --seed=altoqi-eberick` | Idem via REST (API precisa estar no ar) |
 | `pnpm cleanup:web-import -- --dry-run` | Lista o que seria apagado |
+| `pnpm backfill:source-page-url -- --dry-run --seed=eberick` | Preenche `sourceUrl` nos chunks de jobs já importados (requer `web_import_pages` no Mongo) |
+| `pnpm backfill:source-page-url -- --seed=eberick` | Aplica o backfill |
+
+### URL por artigo (importação em lote)
+
+Jobs `listing_crawl` (ex.: manual Eberick) agregam **várias páginas em um único documento** (`sourceReference` = seed URL do help center). Cada chunk recebe **`sourceUrl`** com a URL do artigo importado.
+
+Nas **citações RAG** (`sourceUrl` na resposta):
+
+- Se o chunk tem `sourceUrl` → link do artigo específico
+- Senão → `sourceReference` do documento (link único, PDF, etc.)
+
+Admin e web pública exibem **“Ver artigo original”** quando `sourceUrl` está presente. O messaging enriquece respostas de canal com links (`enrichAnswerWithSourceLinks`).
+
+Importações **novas** gravam `sourceUrl` automaticamente. Para dados antigos, use o backfill acima (estratégia: janela temporal entre `updatedAt` consecutivos de `web_import_pages`).
+
+> **Não apague** `web_import_jobs` / `web_import_pages` antes do backfill — sem as páginas no Mongo, o script não consegue reconstruir os links.
 
 ### Fluxo típico no admin
 

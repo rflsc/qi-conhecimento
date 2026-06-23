@@ -225,7 +225,9 @@ Monte a mensagem do canal a partir da resposta:
 • ...
 ```
 
-Campos úteis para citação: `normReference`, `normItem`, `pageStart`, `tableCaption`, `documentTitle`.
+Campos úteis para citação: `normReference`, `normItem`, `pageStart`, `tableCaption`, `documentTitle`, `sourceUrl`.
+
+**Manual Eberick (web-import):** quando presente, `sourceUrl` aponta para o artigo Zendesk do chunk (não só a seed URL do help center). Inclua link clicável na mensagem, ex.: `📎 {sourceUrl}`.
 
 ## Pré-requisitos no Qi Conhecimento
 

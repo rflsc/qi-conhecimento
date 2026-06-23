@@ -45,7 +45,8 @@
     "assistantAnswer": "Respuesta del asistente",
     "noAnswer": "No se generó respuesta",
     "citationsCount": "{{count}} cita(s) usada(s) como contexto",
-    "noCitations": "No se devolvieron citas"
+    "noCitations": "No se devolvieron citas",
+    "viewSource": "Ver artículo original"
   },
   "errors": {
     "searchFailed": "No se pudo realizar la búsqueda. Inténtelo de nuevo."

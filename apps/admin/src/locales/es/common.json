@@ -145,7 +145,8 @@
     "assistantAnswer": "Respuesta del asistente",
     "noAnswer": "Ninguna respuesta generada",
     "citationsCount": "{{count}} cita(s) usada(s) como contexto",
-    "noCitations": "Ninguna cita devuelta"
+    "noCitations": "Ninguna cita devuelta",
+    "viewSource": "Ver artículo original"
   },
   "import": {
     "title": "Importar conocimiento",

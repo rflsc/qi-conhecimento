@@ -144,6 +144,16 @@ export function SearchPage() {
                   </span>
                 </div>
                 <p className="text-slate-300 text-sm whitespace-pre-wrap">{result.excerpt}</p>
+                {result.sourceUrl ? (
+                  <a
+                    href={result.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-400 hover:text-emerald-300 text-xs underline"
+                  >
+                    {t('search.viewSource')}
+                  </a>
+                ) : null}
                 {result.tags.length > 0 ? (
                   <div className="flex flex-wrap gap-1">
                     {result.tags.map((tag) => (
@@ -193,6 +203,16 @@ export function SearchPage() {
                     </span>
                   </div>
                   <p className="text-slate-300 text-sm whitespace-pre-wrap">{citation.excerpt}</p>
+                  {citation.sourceUrl ? (
+                    <a
+                      href={citation.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-emerald-400 hover:text-emerald-300 text-xs underline"
+                    >
+                      {t('search.viewSource')}
+                    </a>
+                  ) : null}
                 </article>
               ))
             )}

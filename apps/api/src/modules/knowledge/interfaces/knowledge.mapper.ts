@@ -63,6 +63,7 @@ export function mapSearchResult(chunk: KnowledgeChunkDocument) {
     pageStart: chunk.pageStart,
     tableCaption: chunk.tableCaption,
     contentType: chunk.contentType,
+    sourceUrl: resolveChunkSourceUrl(chunk, document),
   };
 }
 

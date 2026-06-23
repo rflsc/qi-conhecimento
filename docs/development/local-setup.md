@@ -251,6 +251,8 @@ pnpm purge:queues
 ```bash
 pnpm cleanup:web-import -- --seed=meu-help-center --dry-run
 pnpm cleanup:web-import -- --seed=meu-help-center
+pnpm backfill:source-page-url -- --dry-run --seed=eberick   # links por artigo (chunks antigos)
+pnpm backfill:source-page-url -- --seed=eberick
 ```
 
 Especificação: [web-import.md](../architecture/web-import.md).

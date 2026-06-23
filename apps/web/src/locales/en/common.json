@@ -45,7 +45,8 @@
     "assistantAnswer": "Assistant answer",
     "noAnswer": "No answer generated",
     "citationsCount": "{{count}} citation(s) used as context",
-    "noCitations": "No citations returned"
+    "noCitations": "No citations returned",
+    "viewSource": "View original article"
   },
   "errors": {
     "searchFailed": "Could not complete the search. Please try again."

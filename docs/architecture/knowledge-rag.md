@@ -32,6 +32,7 @@ Pílula de conhecimento pós-chunking:
 | `headingPath` | Hierarquia de seções pai (ex.: `["H.1 Na flambagem por flexão"]`) |
 | `tableCaption` | Caption da tabela (ex.: `Tabela H.1 — …`) |
 | `tableSource` | `docling` \| `text_recovery` |
+| `sourceUrl` | URL do artigo web de origem (importação em lote — ex.: artigo Zendesk). Ausente em PDFs; resolvido em citações via `resolveChunkSourceUrl` |
 | `tags` | Tags manuais ou automáticas (ex.: norma) |
 | `embedding` | Vetor numérico (`select: false`) |
 | `embeddingId` | Preenchido quando embedding foi gerado |

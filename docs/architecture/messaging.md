@@ -186,7 +186,7 @@ Integração completa: [integrations/qi-agents.md](../integrations/qi-agents.md)
 | `tagFilter` | Restringe chunks às tags do documento (definidas na ingestão). Omita para busca ampla na especialidade. |
 | `documentIds` | Restringe a documentos Mongo específicos. |
 
-Resposta inclui `answer` e `citations[]` com `documentTitle`, `normReference`, `normItem`, `pageStart`, `excerpt`. O registro fica em `field_queries` e aparece no painel `/queries`.
+Resposta inclui `answer` e `citations[]` com `documentTitle`, `normReference`, `normItem`, `pageStart`, `excerpt`, `sourceUrl`. Em importações web em lote (ex.: manual Eberick), `sourceUrl` aponta para o **artigo** (`sourceUrl` do chunk), não só para a seed URL do job. O registro fica em `field_queries` e aparece no painel `/queries`.
 
 ### Canais em `field_queries`
 
