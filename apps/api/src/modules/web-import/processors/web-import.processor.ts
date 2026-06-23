@@ -2,11 +2,11 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { JOB_NAMES, QUEUE_NAMES } from '@queues/queues.constants';
+import { JOB_NAMES, QUEUE_NAMES, BULLMQ_WORKER_SETTINGS } from '@queues/queues.constants';
 import { WebImportService } from '../services/web-import.service';
 
 @Injectable()
-@Processor(QUEUE_NAMES.WEB_IMPORT, { concurrency: 1 })
+@Processor(QUEUE_NAMES.WEB_IMPORT, { concurrency: 1, ...BULLMQ_WORKER_SETTINGS })
 export class WebImportProcessor extends WorkerHost {
   constructor(
     private readonly webImportService: WebImportService,

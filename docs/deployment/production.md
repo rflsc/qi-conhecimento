@@ -130,9 +130,11 @@ Resposta esperada:
 ```json
 {
   "status": "ok",
-  "checks": { "mongodb": "up", "redis": "up" }
+  "checks": { "mongodb": "up" }
 }
 ```
+
+> `/health` valida apenas MongoDB (evita consumir comandos Redis no health check do Render). Filas BullMQ: monitore via logs e Upstash dashboard.
 
 > **Cold start:** plano free/starter do Render hiberna após inatividade. A primeira requisição pode levar ~30s.
 
@@ -248,7 +250,7 @@ Atualize `CORS_ORIGINS`, `NEXT_PUBLIC_API_URL` e `NEXT_PUBLIC_ADMIN_URL` com os 
 | Problema | Causa provável | Solução |
 | --- | --- | --- |
 | CORS error no browser | `CORS_ORIGINS` incompleto | Adicione URL exata da Vercel |
-| 503 em `/health` | Mongo ou Redis down | Verifique URIs e Network Access Atlas |
+| 503 em `/health` | Mongo down | Verifique `MONGODB_URI` e Network Access Atlas |
 | Busca RAG sem resposta LLM | Chaves ausentes no painel | **Admin → Configurações** — provedor LLM + chave |
 | Upload some após redeploy | Disco não montado | Confirme `STORAGE_PATH=/var/data/storage` + disco no Render |
 | Build Vercel falha | Workspace packages | Confirme Root Directory `apps/web` ou `apps/admin` |

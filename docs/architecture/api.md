@@ -127,7 +127,8 @@ Trabalho assíncrono via BullMQ: `IngestionProcessor` → `DocumentIngestionServ
 | `ingestion` | `generate-embeddings` | Ollama/OpenAI → `chunk.embedding[]` |
 | `web-import` | `run-web-import` | Descoberta de URLs + enqueue páginas |
 | `web-import` | `process-web-import-page` | Cria documento LINK + fila de ingestão |
-| `messaging` | `send-field-response` | Fora de escopo — envio fica no Qi Agents |
+
+Workers usam `BULLMQ_WORKER_SETTINGS` (`drainDelay: 30s`, `stalledInterval: 5min`) e `removeOnComplete: true` para reduzir comandos Upstash.
 
 ## Collections MongoDB
 
@@ -143,7 +144,7 @@ Trabalho assíncrono via BullMQ: `IngestionProcessor` → `DocumentIngestionServ
 
 | Método | Path | Descrição |
 | --- | --- | --- |
-| GET | `/health` | Status da API |
+| GET | `/health` | Status da API (MongoDB) |
 | GET | `/api` | Swagger UI |
 | POST | `/auth/login` | Login email/senha |
 | POST | `/auth/register` | Criar conta |

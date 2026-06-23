@@ -41,6 +41,10 @@ import { createBullRedisConnection } from './config/redis.config';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         connection: createBullRedisConnection(config.getOrThrow<string>('REDIS_URL')),
+        defaultJobOptions: {
+          removeOnComplete: true,
+          removeOnFail: { age: 3600, count: 100 },
+        },
       }),
     }),
     EventEmitterModule.forRoot(),
