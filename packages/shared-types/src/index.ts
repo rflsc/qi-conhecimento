@@ -167,7 +167,14 @@ export interface KnowledgeChunk {
   headingPath?: string[];
   tableCaption?: string;
   tableSource?: TableExtractionSource;
+  sourceUrl?: string;
   createdAt: string;
+}
+
+export interface FieldQueryAttachment {
+  type: 'document' | 'link';
+  url: string;
+  filename?: string;
 }
 
 export interface KnowledgeCitation {
@@ -192,6 +199,7 @@ export interface FieldQuery {
   specialtyFilter?: EngineeringSpecialty;
   answer?: string;
   citations: KnowledgeCitation[];
+  attachments?: FieldQueryAttachment[];
   createdAt: string;
 }
 

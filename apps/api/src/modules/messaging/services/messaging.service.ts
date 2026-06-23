@@ -5,6 +5,11 @@ import { MessagingChannel } from '@qi-conhecimento/shared-types';
 import { RagService } from '@modules/knowledge/services/rag.service';
 import { KnowledgeRepository } from '@modules/knowledge/repositories/knowledge.repository';
 import { mergeRetrievalScope } from '@modules/knowledge/utils/retrieval-scope.util';
+import {
+  buildPdfAttachmentsFromCitations,
+  enrichAnswerWithSourceLinks,
+  resolveChunkSourceUrl,
+} from '@modules/knowledge/utils/source-url.util';
 import { FieldQueryDto } from '../dtos/messaging.dto';
 import { MessagingRepository } from '../repositories/messaging.repository';
 import { FieldQueryDocument } from '../schemas/field-query.schema';
@@ -32,7 +37,9 @@ export class MessagingService {
     const citations = this.ragService
       .selectCitationsForDisplay(chunks, dto.queryText, 5, scope)
       .map((chunk) => this.toCitation(chunk));
-    const answer = await this.ragService.generateAnswer(dto.queryText, chunks);
+    const rawAnswer = await this.ragService.generateAnswer(dto.queryText, chunks);
+    const answer = enrichAnswerWithSourceLinks(rawAnswer, citations);
+    const attachments = buildPdfAttachmentsFromCitations(citations);
 
     const record = await this.messagingRepository.create({
       channel,
@@ -42,6 +49,7 @@ export class MessagingService {
       specialtyFilter: dto.specialtyFilter,
       answer,
       citations,
+      attachments: attachments.length > 0 ? attachments : undefined,
       deletedAt: null,
     });
 
@@ -91,6 +99,7 @@ export class MessagingService {
       specialtyFilter: record.specialtyFilter,
       answer: record.answer,
       citations: record.citations ?? [],
+      attachments: record.attachments ?? [],
       createdAt: (record as unknown as { createdAt?: Date }).createdAt?.toISOString() ?? null,
     };
   }
@@ -104,8 +113,9 @@ export class MessagingService {
       normItem: chunk.normItem,
       chunkId: chunk._id.toString(),
       excerpt: chunk.markdownContent.slice(0, 280),
-      sourceUrl: document.sourceReference,
+      sourceUrl: resolveChunkSourceUrl(chunk, document),
       pageStart: chunk.pageStart,
+      pageEnd: chunk.pageEnd,
       tableCaption: chunk.tableCaption,
     };
   }

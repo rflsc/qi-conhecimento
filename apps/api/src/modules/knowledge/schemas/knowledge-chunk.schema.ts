@@ -56,6 +56,9 @@ export class KnowledgeChunkModel {
   @Prop({ type: [String], default: [] })
   tags!: string[];
 
+  @Prop({ trim: true })
+  sourceUrl?: string;
+
   @Prop({ trim: true, index: true })
   embeddingId?: string;
 

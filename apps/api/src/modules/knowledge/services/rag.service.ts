@@ -4,11 +4,13 @@ import { buildCitationLabel, cosineSimilarity } from '@qi-conhecimento/shared-ut
 import { PinoLogger } from 'nestjs-pino';
 import { KnowledgeRepository } from '../repositories/knowledge.repository';
 import { KnowledgeChunkDocument } from '../schemas/knowledge-chunk.schema';
+import { KnowledgeDocumentEntity } from '../schemas/knowledge-document.schema';
 import { mapSearchResult } from '../interfaces/knowledge.mapper';
 import {
   chunkMatchesScopeTags,
   isRetrievalScopeRestricted,
 } from '../utils/retrieval-scope.util';
+import { resolveChunkSourceUrl } from '../utils/source-url.util';
 import { EmbeddingService } from './embedding.service';
 import { LlmService } from './llm.service';
 
@@ -20,6 +22,7 @@ const RAG_CONTEXT_CHARS_PER_CHUNK = 1500;
 
 const RAG_SYSTEM_PROMPT =
   'Você é um assistente técnico de engenharia civil e instalações. Responda de forma curta e objetiva (máx. 3 parágrafos). Sempre cite a norma ou fonte (ex: "Conforme NBR 5410, item 6.2.1...") ou o manual AltoQi Eberick quando a pergunta for sobre uso do software. Use apenas o contexto fornecido. ' +
+  'Quando o contexto incluir "Fonte:" com URL https, inclua essa URL completa (texto plano) ao final da resposta, em linha separada, para o usuário abrir o manual ou artigo de ajuda. ' +
   'Dúvidas normativas: NBR 6118 (concreto) e NBR 8800 (aço). Dúvidas de software estrutural: manual AltoQi Eberick (central de ajuda). Não invente conteúdo de NBR 8681 (ações) nem NBR 7190 (madeira) se não estiver no contexto. ' +
   'Se o contexto trazer tabelas com colunas distintas (ex.: "K teórico" e "K recomendado"), respeite a coluna pedida na pergunta — não confunda teórico com recomendado. ' +
   'Na NBR 8800 Tabela H.1 (barras isoladas), use a coluna K recomendado e identifique o caso (a)–(f) pela condição de apoio descrita na tabela — não invente. ' +
@@ -276,18 +279,20 @@ export class RagService {
     const tCtx = performance.now();
     const context = chunks
       .map((chunk, i) => {
-        const doc = chunk.documentId as { title?: string; normReference?: string };
+        const doc = chunk.documentId as unknown as KnowledgeDocumentEntity;
         const label = buildCitationLabel(
           doc.normReference,
           chunk.normItem,
           chunk.pageStart,
           chunk.tableCaption,
         );
+        const sourceUrl = resolveChunkSourceUrl(chunk, doc);
+        const sourceHint = sourceUrl ? `\nFonte: ${sourceUrl}` : '';
         const tableHint =
           chunk.contentType === 'table' && chunk.tableSource === 'text_recovery'
             ? '\n[Nota: tabela recuperada da camada de texto do PDF — confira o original.]'
             : '';
-        return `[${i + 1}] ${doc.title ?? 'Documento'} (${label})${tableHint}\n${chunk.markdownContent.slice(0, RAG_CONTEXT_CHARS_PER_CHUNK)}`;
+        return `[${i + 1}] ${doc.title ?? 'Documento'} (${label})${sourceHint}${tableHint}\n${chunk.markdownContent.slice(0, RAG_CONTEXT_CHARS_PER_CHUNK)}`;
       })
       .join('\n\n---\n\n');
     const tContextBuilt = performance.now();
@@ -317,14 +322,16 @@ export class RagService {
 
   private fallbackAnswer(chunks: KnowledgeChunkDocument[]): string {
     const primary = chunks[0]!;
-    const doc = primary.documentId as { normReference?: string };
+    const doc = primary.documentId as unknown as KnowledgeDocumentEntity;
     const label = buildCitationLabel(
       doc.normReference,
       primary.normItem,
       primary.pageStart,
       primary.tableCaption,
     );
-    return `Conforme ${label}: ${primary.markdownContent.slice(0, 280)}`;
+    const sourceUrl = resolveChunkSourceUrl(primary, doc);
+    const linkLine = sourceUrl ? `\n\n${sourceUrl}` : '';
+    return `Conforme ${label}: ${primary.markdownContent.slice(0, 280)}${linkLine}`;
   }
 
   /**

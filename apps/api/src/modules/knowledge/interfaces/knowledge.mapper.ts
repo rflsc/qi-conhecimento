@@ -1,6 +1,7 @@
 import { EngineeringSpecialty, IngestionStatus } from '@qi-conhecimento/shared-types';
 import { KnowledgeDocumentEntity } from '../schemas/knowledge-document.schema';
 import { KnowledgeChunkDocument } from '../schemas/knowledge-chunk.schema';
+import { resolveChunkSourceUrl } from '../utils/source-url.util';
 
 type WithTimestamps = { createdAt?: Date; updatedAt?: Date };
 
@@ -43,6 +44,7 @@ export function mapChunk(chunk: KnowledgeChunkDocument) {
     headingPath: chunk.headingPath,
     tableCaption: chunk.tableCaption,
     tableSource: chunk.tableSource,
+    sourceUrl: chunk.sourceUrl,
     createdAt: timestamps.createdAt?.toISOString() ?? new Date().toISOString(),
   };
 }
@@ -73,7 +75,7 @@ export function mapCitation(chunk: KnowledgeChunkDocument) {
     normItem: chunk.normItem,
     chunkId: chunk._id.toString(),
     excerpt: chunk.markdownContent.slice(0, 280),
-    sourceUrl: document.sourceReference,
+    sourceUrl: resolveChunkSourceUrl(chunk, document),
     pageStart: chunk.pageStart,
     pageEnd: chunk.pageEnd,
     tableCaption: chunk.tableCaption,

@@ -189,7 +189,7 @@ A API retorna um registro `FieldQuery` (JSON com `id`):
   "queryText": "...",
   "channel": "whatsapp",
   "externalUserId": "5511999999999",
-  "answer": "Conforme NBR 8160, item 4.2.1...",
+  "answer": "Conforme NBR 8160, item 4.2.1...\n\n📎 Manual / fonte:\n• Título do artigo\nhttps://suporte.altoqi.com.br/hc/pt-br/articles/...",
   "citations": [
     {
       "documentId": "...",
@@ -199,12 +199,19 @@ A API retorna um registro `FieldQuery` (JSON com `id`):
       "pageStart": 12,
       "chunkId": "...",
       "excerpt": "...",
-      "sourceUrl": "..."
+      "sourceUrl": "https://suporte.altoqi.com.br/hc/pt-br/articles/..."
     }
+  ],
+  "attachments": [
+    { "type": "document", "url": "https://cdn.example.com/manual.pdf", "filename": "Manual.pdf" }
   ],
   "createdAt": "..."
 }
 ```
+
+**Links do manual Eberick (web-import):** cada chunk guarda `sourceUrl` com a URL do artigo Zendesk. O campo `answer` recebe automaticamente a seção `📎 Manual / fonte:` com URLs `https://` planas (clicáveis no Telegram). `attachments` só inclui PDFs.
+
+**Backfill** para chunks já ingeridos: `node scripts/backfill-chunk-source-urls.mjs`
 
 ### Formatação sugerida no Qi Agents
 

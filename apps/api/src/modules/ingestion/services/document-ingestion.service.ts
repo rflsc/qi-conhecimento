@@ -186,8 +186,13 @@ export class DocumentIngestionService {
         blockSegments.length > 0
           ? blockSegments
           : this.chunkingService.splitMarkdown(markdown, document.title);
+      const webSourceUrl = isWebSource ? document.sourceReference?.trim() : undefined;
+      const segmentsWithUrl =
+        webSourceUrl && /^https?:\/\//i.test(webSourceUrl)
+          ? segments.map((segment) => ({ ...segment, sourceUrl: webSourceUrl }))
+          : segments;
       const tags = this.buildChunkTags(document, options?.cmsTags);
-      await this.persistSegments(documentId, document, segments, tags, 'Parse e pílulas prontos');
+      await this.persistSegments(documentId, document, segmentsWithUrl, tags, 'Parse e pílulas prontos');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro desconhecido na ingestão';
       await this.knowledgeRepository.updateDocumentStatus(
@@ -240,12 +245,17 @@ export class DocumentIngestionService {
         ? blockSegments
         : this.chunkingService.splitMarkdown(parseResult.markdown, heading);
 
-    if (segments.length === 0) {
+    const segmentsWithUrl = segments.map((segment) => ({
+      ...segment,
+      sourceUrl: pageUrl,
+    }));
+
+    if (segmentsWithUrl.length === 0) {
       throw new Error('Parser não extraiu conteúdo');
     }
 
     const tags = this.buildChunkTags(document, cmsTags);
-    return this.createChunks(document, segments, tags);
+    return this.createChunks(document, segmentsWithUrl, tags);
   }
 
   async finalizeWebImportDocument(documentId: string, hadSuccessfulPages: boolean): Promise<void> {
@@ -347,6 +357,7 @@ export class DocumentIngestionService {
         headingPath: segment.headingPath,
         tableCaption: segment.tableCaption,
         tableSource: segment.tableSource,
+        sourceUrl: segment.sourceUrl,
         deletedAt: null,
       });
 
@@ -426,6 +437,7 @@ export class DocumentIngestionService {
         headingPath: segment.headingPath,
         tableCaption: segment.tableCaption,
         tableSource: segment.tableSource,
+        sourceUrl: segment.sourceUrl,
         deletedAt: null,
       });
 

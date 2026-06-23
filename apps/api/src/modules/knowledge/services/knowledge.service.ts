@@ -273,6 +273,7 @@ export class KnowledgeService {
       query: dto.query,
       answer: record.answer,
       citations: record.citations ?? [],
+      attachments: record.attachments ?? [],
     };
   }
 

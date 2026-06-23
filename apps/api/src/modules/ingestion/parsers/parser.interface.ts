@@ -96,6 +96,9 @@ export interface ChunkSegment {
 
   tableSource?: TableExtractionSource;
 
+  /** URL da página web de origem (web-import / import-link). */
+  sourceUrl?: string;
+
 }
 
 

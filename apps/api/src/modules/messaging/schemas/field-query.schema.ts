@@ -5,6 +5,18 @@ import { EngineeringSpecialty, MessagingChannel } from '@qi-conhecimento/shared-
 export type FieldQueryDocument = HydratedDocument<FieldQueryModel>;
 
 @Schema({ _id: false })
+export class AttachmentSubdocument {
+  @Prop({ required: true, enum: ['document', 'link'] })
+  type!: 'document' | 'link';
+
+  @Prop({ required: true })
+  url!: string;
+
+  @Prop()
+  filename?: string;
+}
+
+@Schema({ _id: false })
 export class CitationSubdocument {
   @Prop({ required: true })
   documentId!: string;
@@ -20,6 +32,9 @@ export class CitationSubdocument {
 
   @Prop()
   pageStart?: number;
+
+  @Prop()
+  pageEnd?: number;
 
   @Prop()
   tableCaption?: string;
@@ -60,6 +75,9 @@ export class FieldQueryModel {
 
   @Prop({ type: [CitationSubdocument], default: [] })
   citations!: CitationSubdocument[];
+
+  @Prop({ type: [AttachmentSubdocument], default: undefined })
+  attachments?: AttachmentSubdocument[];
 
   @Prop({ type: Date, default: null, index: true })
   deletedAt!: Date | null;
