@@ -87,6 +87,7 @@ Redux Toolkit + RTK Query em `src/store/api.ts`, com JWT via cookie `access_toke
 | Busca | `POST /knowledge/search` | Híbrida com Ollama ou OpenAI |
 | Assistente (teste) | `POST /messaging/query` | Modo assistente em `/search`; canal `admin` em `field_queries` |
 | Histórico consultas | `GET /messaging/queries` | Painel `/queries` — WhatsApp, Telegram, web e admin |
+| Configurações IA | `GET/PATCH /llm-config` | Painel `/settings` — LLM, embeddings, chaves |
 
 Detalhes: [development/phase-1.md](../development/phase-1.md), [development/phase-2.md](../development/phase-2.md)
 

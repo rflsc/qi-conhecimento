@@ -201,25 +201,14 @@ Resposta inclui `answer` e `citations[]` com `documentTitle`, `normReference`, `
 
 ## Variáveis de ambiente (Qi Conhecimento)
 
-
-
 | Variável | Uso |
-
 | --- | --- |
-
-| `LLM_PROVIDER` | `anthropic` ou `openai` — auto-detecta pela key se omitido |
-
-| `ANTHROPIC_API_KEY` | LLM Anthropic (default: `claude-haiku-4-5`) |
-
-| `OPENAI_API_KEY` | LLM OpenAI ou embeddings/OCR |
-
-| `LLM_MODEL` | Modelo chat (default conforme provedor) |
-
-| `EMBEDDING_PROVIDER` | `ollama` ou `openai` — busca híbrida no RAG |
-
+| `API_CREDENTIALS_ENCRYPTION_KEY` | Criptografia das chaves salvas no painel (obrigatório em produção) |
+| `OLLAMA_BASE_URL` | URL do Ollama quando embedding = ollama (default: `http://localhost:11434`) |
+| `EMBEDDING_CONCURRENCY` | Jobs paralelos de embedding no BullMQ |
 | `SERVICE_API_KEY` | Service key da integração Qi Agents (`X-Service-Key`). Vazio em dev = rota aberta |
 
-
+**LLM, embeddings e chaves de API** — configure em **Admin → Configurações** (`GET/PATCH /llm-config`, role `admin`). Persistido em `llm_configs` no MongoDB.
 
 Credenciais WhatsApp/Telegram (`WHATSAPP_*`, `TELEGRAM_*`) configuram-se no **Qi Agents**, não neste projeto.
 

@@ -30,8 +30,8 @@
 - Citações filtradas/deduplicadas na UI; metadados `pageStart` / `tableCaption` quando ingeridos via Docling
 - `buildCitationLabel(norm, item, page, table)` em `shared-utils`
 - Regressão: `pnpm --filter @qi-conhecimento/api eval:rag` — casos em `apps/api/eval/rag-cases.json`
-- Embeddings: Ollama (`nomic-embed-text`) ou OpenAI — ver `EmbeddingService`; concorrência via `EMBEDDING_CONCURRENCY`
-- LLM com fallback template quando nenhum provedor LLM está configurado (`ANTHROPIC_API_KEY` / `OPENAI_API_KEY`)
+- Embeddings: Ollama (`nomic-embed-text`) ou OpenAI — configurados em **Admin → Configurações**; concorrência via `EMBEDDING_CONCURRENCY` no `.env`
+- LLM com fallback template quando nenhum provedor LLM está configurado no painel
 - Mapper `_id` → `id` em todas as respostas HTTP
 
 ## Seeds (dev)

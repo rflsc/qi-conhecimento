@@ -100,45 +100,39 @@ PARSER_MAX_UPLOAD_MB=150
 
 `PARSER_SERVICE_TIMEOUT_MS` default **2 h** — PDFs grandes em CPU (Docling + OCR) podem levar dezenas de minutos. A API também aplica um mínimo dinâmico (~8 min + ~4 min/MB).
 
-Sem o parser, PDFs usam fallback `pdf-parse`; imagens exigem `OPENAI_API_KEY` (Vision) ou Docling.
+Sem o parser, PDFs usam fallback `pdf-parse`; imagens exigem **Docling** ou chave OpenAI em **Admin → Configurações** (fallback Vision).
 
 ### Embeddings com Ollama (grátis, recomendado em dev)
 
 1. Instale [Ollama](https://ollama.com/download)
 2. Baixe o modelo: `ollama pull nomic-embed-text`
-3. No `.env`:
+3. No `.env`, mantenha apenas a URL do serviço:
 
 ```env
-EMBEDDING_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434
-EMBEDDING_MODEL=nomic-embed-text
 ```
 
-4. Reinicie a API — log: `Provedor de embedding ativo` com `provider: ollama`
+4. **Admin → Configurações** — provedor de embedding: **Ollama**, modelo `nomic-embed-text`
+5. Reinicie a API — log: `Provedor de embedding ativo` com `provider: ollama`
 
-Sem provedor de embedding, a busca usa só palavra-chave (`$text`). Com Ollama, busca híbrida (texto + vetorial) funciona sem `OPENAI_API_KEY`.
+Sem provedor de embedding, a busca usa só palavra-chave (`$text`). Com Ollama, busca híbrida (texto + vetorial) funciona sem chave OpenAI.
 
 Para reindexar chunks importados antes de configurar embeddings: Swagger → `POST /knowledge/documents/{id}/reindex-embeddings`.
 
 ### LLM para respostas RAG (opcional)
 
-Por padrão em dev (`.env.example`), o provedor é **Anthropic**:
+Configure no **admin → Configurações** (`/settings`):
 
-```env
-LLM_PROVIDER=anthropic
-ANTHROPIC_API_KEY=sk-ant-...
-LLM_MODEL=claude-haiku-4-5
-```
-
-Alternativa OpenAI:
-
-```env
-LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-...
-LLM_MODEL=gpt-4o-mini
-```
+| Campo | Exemplo |
+| --- | --- |
+| Provedor LLM | `anthropic` ou `openai` |
+| Chave Anthropic | `sk-ant-...` |
+| Chave OpenAI | `sk-...` |
+| Modelo | `claude-haiku-4-5` ou `gpt-4o-mini` |
 
 Sem chave LLM, busca e ingestão funcionam; respostas usam template com citação do chunk principal.
+
+**Produção:** defina `API_CREDENTIALS_ENCRYPTION_KEY` no `.env` da API (gere com `openssl rand -base64 32`) — criptografa as chaves salvas no MongoDB.
 
 ## 4. Primeiro acesso (admin)
 
@@ -183,20 +177,21 @@ Guia: [phase-1.md](./phase-1.md)
 | 3 | Ollama aberto + `nomic-embed-text` |
 | 4 | `pnpm dev` |
 
-No `.env`:
+No `.env` (parser + Ollama):
 
 ```env
 PARSER_SERVICE_URL=http://localhost:8000
-EMBEDDING_PROVIDER=ollama
-EMBEDDING_MODEL=nomic-embed-text
+OLLAMA_BASE_URL=http://localhost:11434
 STORAGE_PATH=./storage
 ```
+
+Em **Admin → Configurações**: embedding **Ollama**; LLM com chave Anthropic ou OpenAI.
 
 1. Login → **Importar** (http://localhost:3102/import)
 2. Envie um PDF de norma
 3. **Documentos** — aguarde **Concluído**; aba **Pílulas** mostra `embedding ✓`
 4. **Busca** — teste query reformulada (ex.: `"quanto afastar tubo da parede"`)
-5. Swagger → `POST /messaging/query` *(resposta LLM exige `ANTHROPIC_API_KEY` ou `OPENAI_API_KEY` — ver `LLM_PROVIDER` no `.env`)* — endpoint usado pelo **[Qi Agents](../integrations/qi-agents.md)** para canais WhatsApp/Telegram
+5. Swagger → `POST /messaging/query` *(resposta LLM exige chave em **Configurações**)* — endpoint usado pelo **[Qi Agents](../integrations/qi-agents.md)** para canais WhatsApp/Telegram
 
 ### Eval RAG (regressão)
 
@@ -314,7 +309,7 @@ Ou reinicie `pnpm dev` — o `predev` de cada app rebuilda os pacotes necessári
 
 ### OCR de imagem falha
 
-Com `PARSER_SERVICE_URL` e o parser rodando, imagens passam pelo Docling. Caso contrário, requer `OPENAI_API_KEY` válida (Vision API).
+Com `PARSER_SERVICE_URL` e o parser rodando, imagens passam pelo Docling. Caso contrário, requer chave OpenAI em **Admin → Configurações** (Vision API).
 
 ### Parser Docling não sobe / pip falha
 
@@ -377,14 +372,10 @@ Ver `.env.example` na raiz.
 | `NEXT_PUBLIC_API_URL` | URL da API consumida pelo admin/web |
 | `SEED_ADMIN_*` | Usuário admin inicial (dev) |
 | `SEED_KNOWLEDGE_ENABLED` | Procedimentos piloto NBR (dev) |
-| `OPENAI_API_KEY` | Embeddings (se `openai`), OCR (fallback sem Docling), LLM (se `openai`) |
-| `EMBEDDING_PROVIDER` | `ollama` (local/grátis) ou `openai` (pago) |
+| `API_CREDENTIALS_ENCRYPTION_KEY` | Criptografia das chaves salvas no painel (obrigatório em produção) |
+| `OLLAMA_BASE_URL` | URL do Ollama quando embedding = ollama (default: `http://localhost:11434`) |
 | `EMBEDDING_CONCURRENCY` | Jobs paralelos de embedding (default: 2 ollama, 5 openai) |
-| `OLLAMA_BASE_URL` | URL do Ollama (default: `http://localhost:11434`) |
-| `EMBEDDING_MODEL` | `nomic-embed-text` (Ollama) ou `text-embedding-3-small` (OpenAI) |
-| `LLM_PROVIDER` | `anthropic` ou `openai` — auto-detecta pela key se omitido |
-| `ANTHROPIC_API_KEY` | LLM Anthropic (default em dev: `claude-haiku-4-5`) |
-| `LLM_MODEL` | Modelo chat (default: `claude-haiku-4-5` ou `gpt-4o-mini` conforme provedor) |
+| **Admin → Configurações** | `LLM_PROVIDER`, chaves Anthropic/OpenAI, provedor/modelo de embedding |
 | `STORAGE_PATH` | Diretório de uploads (default: `./storage`) |
 | `MAX_UPLOAD_SIZE_MB` | Limite de upload (default: 150) |
 | `PARSER_SERVICE_URL` | URL do parser Docling (default: `http://localhost:8000`) |
@@ -409,5 +400,5 @@ Variáveis explícitas (`PARSER_PARALLEL_WORKERS`, `PARSER_PAGE_BATCH_SIZE`) **s
 
 - Defina `SEED_ADMIN_ENABLED=false` e `SEED_KNOWLEDGE_ENABLED=false`
 - Troque `JWT_SECRET` e senhas do seed
-- Configure `OPENAI_API_KEY` (embeddings) e `ANTHROPIC_API_KEY` ou `OPENAI_API_KEY` (LLM)
+- Defina `API_CREDENTIALS_ENCRYPTION_KEY` e configure LLM/embeddings em **Admin → Configurações**
 - Não commite o arquivo `.env`

@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { LlmConfigModule } from '@modules/llm-config/llm-config.module';
 import { BullModule } from '@nestjs/bullmq';
 import { QUEUE_NAMES } from '@queues/queues.constants';
 import { KnowledgeModule } from '@modules/knowledge/knowledge.module';
@@ -18,6 +19,7 @@ import { IngestionProgressService } from './services/ingestion-progress.service'
 
 @Module({
   imports: [
+    LlmConfigModule,
     BullModule.registerQueue(
       { name: QUEUE_NAMES.INGESTION },
       { name: QUEUE_NAMES.EMBEDDING },

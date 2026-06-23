@@ -6,7 +6,9 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bullmq';
 import { LoggerModule } from 'nestjs-pino';
+import { CommonModule } from '@common/common.module';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { LlmConfigModule } from '@modules/llm-config/llm-config.module';
 import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 import { AuthModule } from '@modules/auth/auth.module';
 import { UsersModule } from '@modules/users/users.module';
@@ -42,6 +44,8 @@ import { createBullRedisConnection } from './config/redis.config';
       }),
     }),
     EventEmitterModule.forRoot(),
+    CommonModule,
+    LlmConfigModule,
     AuthModule,
     UsersModule,
     HealthModule,

@@ -72,11 +72,12 @@ export class EmbeddingProcessor extends WorkerHost implements OnModuleInit {
       return;
     }
     if (!embedding) {
+      const reason = await this.embeddingService.unavailableReason();
       this.progressService.appendEmbeddingWarning(
         documentId,
-        `Embedding ignorado — ${this.embeddingService.unavailableReason()}`,
+        `Embedding ignorado — ${reason}`,
       );
-      this.logger.info({ chunkId }, `Embedding ignorado — ${this.embeddingService.unavailableReason()}`);
+      this.logger.info({ chunkId }, `Embedding ignorado — ${reason}`);
       return;
     }
 

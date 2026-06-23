@@ -86,11 +86,11 @@ pnpm dev
 
 ```env
 PARSER_SERVICE_URL=http://localhost:8000
-EMBEDDING_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434
-EMBEDDING_MODEL=nomic-embed-text
 STORAGE_PATH=./storage
 ```
+
+Em **Admin → Configurações**: embedding Ollama + chave LLM (se quiser respostas enriquecidas no eval).
 
 1. Login admin → **Importar** → PDF de norma
 2. Aguarde **Concluído**; pílulas com `embedding ✓`
@@ -118,24 +118,17 @@ Swagger: `POST /knowledge/documents/{documentId}/reindex-embeddings`
 PARSER_SERVICE_URL=http://localhost:8000
 PARSER_SERVICE_TIMEOUT_MS=7200000
 
-# Embeddings — Ollama (grátis) ou OpenAI (pago)
-EMBEDDING_PROVIDER=ollama
+# Ollama (quando embedding = ollama no painel)
 OLLAMA_BASE_URL=http://localhost:11434
-EMBEDDING_MODEL=nomic-embed-text
-# OPENAI_API_KEY=sk-...           # se EMBEDDING_PROVIDER=openai
-# EMBEDDING_MODEL=text-embedding-3-small
 
-# LLM (opcional — respostas enriquecidas)
-LLM_PROVIDER=anthropic
-ANTHROPIC_API_KEY=
-LLM_MODEL=claude-haiku-4-5
-# LLM_PROVIDER=openai
-# OPENAI_API_KEY=sk-...
-# LLM_MODEL=gpt-4o-mini
+# Criptografia das chaves do painel
+API_CREDENTIALS_ENCRYPTION_KEY=
 
 STORAGE_PATH=./storage
 MAX_UPLOAD_SIZE_MB=150
 ```
+
+LLM e embeddings: **admin → Configurações** (`/settings`).
 
 ## Importação web em lote (Fase 2b)
 

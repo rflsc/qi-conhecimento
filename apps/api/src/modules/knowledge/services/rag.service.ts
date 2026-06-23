@@ -59,7 +59,7 @@ export class RagService {
     let vectorIds: string[] = [];
     let tEmbed = tText;
     let tVector = tText;
-    if (this.embeddingService.isAvailable) {
+    if (await this.embeddingService.isAvailable()) {
       const queryEmbedding = await this.embeddingService.embed(query);
       tEmbed = performance.now();
       if (queryEmbedding) {
@@ -272,7 +272,7 @@ export class RagService {
       return `Não encontrei referência técnica para "${query}". Verifique a especialidade ou consulte o administrador.`;
     }
 
-    if (!this.llmService.isAvailable) {
+    if (!(await this.llmService.isAvailable())) {
       return this.fallbackAnswer(chunks);
     }
 

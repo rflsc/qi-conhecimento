@@ -18,7 +18,9 @@ ConfigModule.forRoot({
 }),
 ```
 
-Isso garante que `MONGODB_URI`, `REDIS_URL`, `JWT_SECRET`, `PARSER_SERVICE_URL`, `EMBEDDING_PROVIDER` e `SEED_*` sejam encontrados quando o Turbo executa a API com cwd em `apps/api`.
+Isso garante que `MONGODB_URI`, `REDIS_URL`, `JWT_SECRET`, `PARSER_SERVICE_URL`, `API_CREDENTIALS_ENCRYPTION_KEY` e `SEED_*` sejam encontrados quando o Turbo executa a API com cwd em `apps/api`.
+
+LLM e embeddings configuram-se no **admin → Configurações** (`llm_configs` no MongoDB), não no `.env`.
 
 > Após alterar `packages/shared-types`, rode `pnpm --filter @qi-conhecimento/shared-types build`.
 
@@ -172,7 +174,8 @@ Ver [web-import.md](./web-import.md).
 
 | Método | Path | Descrição |
 | --- | --- | --- |
-| GET/PATCH | `/knowledge/web-imports/settings` | Configurações globais (admin UI) |
+| GET/PATCH | `/knowledge/web-imports/settings` | Configurações globais de importação web (admin UI) |
+| GET/PATCH | `/llm-config` | Provedor LLM, chaves e embeddings (admin UI — **Configurações**) |
 | POST | `/knowledge/web-imports` | Cria job de importação em lote |
 | GET | `/knowledge/web-imports` | Lista jobs |
 | GET | `/knowledge/web-imports/{jobId}` | Detalhe do job |

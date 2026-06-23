@@ -15,7 +15,8 @@
     "manualContent": "CMS interno",
     "search": "Busca",
     "specialties": "Especialidades",
-    "queries": "Consultas de campo"
+    "queries": "Consultas de campo",
+    "settings": "Configurações"
   },
   "hub": {
     "title": "Hub de Entrada Multimodal",
@@ -191,7 +192,7 @@
     "next": "Próximo",
     "page": "Página"
   },
-  "actions": { "save": "Salvar", "logout": "Sair" },
+  "actions": { "save": "Salvar", "saving": "Salvando...", "loading": "Carregando...", "logout": "Sair" },
   "webImport": {
     "title": "Importar site",
     "subtitle": "Descubra e importe páginas de help centers, bases de suporte e documentação online.",
@@ -259,11 +260,32 @@
     }
   },
   "errors": {
-    "generic": "E-mail ou senha inválidos.",
+    "generic": "Ocorreu um erro. Tente novamente.",
     "apiUnreachable": "Não foi possível conectar à API. Verifique se ela está rodando na porta 3100.",
     "loadFailed": "Falha ao carregar dados da API.",
     "saveFailed": "Falha ao salvar procedimento.",
     "searchFailed": "Falha na busca. Verifique se há conteúdo indexado.",
     "queryFailed": "Falha ao consultar o assistente. Verifique a API e a chave do LLM."
+  },
+  "settings": {
+    "title": "Configurações",
+    "subtitle": "Provedor LLM, chaves de API e embeddings para busca híbrida.",
+    "saved": "Configurações salvas!",
+    "llm": {
+      "title": "Provedor LLM",
+      "provider": "Provedor ativo",
+      "dualKeyHint": "Configure as chaves Anthropic e OpenAI. O provedor ativo define qual usar nas respostas RAG.",
+      "anthropicApiKey": "Chave Anthropic (Claude)",
+      "openaiApiKey": "Chave OpenAI",
+      "apiKeyPlaceholder": "Deixe em branco para manter a chave atual",
+      "model": "Modelo de chat",
+      "currentKey": "Chave atual"
+    },
+    "embedding": {
+      "title": "Embeddings (busca vetorial)",
+      "provider": "Provedor de embedding",
+      "model": "Modelo de embedding",
+      "openaiKeyHint": "Requer chave OpenAI configurada acima."
+    }
   }
 }

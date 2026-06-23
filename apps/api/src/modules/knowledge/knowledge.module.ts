@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { LlmConfigModule } from '@modules/llm-config/llm-config.module';
 import { MessagingModule } from '@modules/messaging/messaging.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BullModule } from '@nestjs/bullmq';
@@ -19,6 +20,7 @@ import { KnowledgeChunkModel, KnowledgeChunkSchema } from './schemas/knowledge-c
 
 @Module({
   imports: [
+    LlmConfigModule,
     MongooseModule.forFeature([
       { name: KnowledgeDocumentModel.name, schema: KnowledgeDocumentSchema },
       { name: KnowledgeChunkModel.name, schema: KnowledgeChunkSchema },

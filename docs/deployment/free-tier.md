@@ -137,10 +137,7 @@ Anote as URLs geradas (ex: `https://qi-conhecimento-web.vercel.app`).
 | `JWT_SECRET` | string aleatória longa (32+ chars) |
 | `SEED_ADMIN_ENABLED` | `false` |
 | `SEED_KNOWLEDGE_ENABLED` | `false` |
-| `EMBEDDING_PROVIDER` | `openai` |
-| `OPENAI_API_KEY` | sua key *(ou deixe vazio — busca texto funciona, embeddings não)* |
-| `LLM_PROVIDER` | `anthropic` |
-| `ANTHROPIC_API_KEY` | sua key *(ou vazio — RAG usa fallback sem LLM)* |
+| `API_CREDENTIALS_ENCRYPTION_KEY` | gerada automaticamente no Blueprint *(ou `openssl rand -base64 32`)* |
 | `STORAGE_PATH` | `./storage` |
 | `CORS_ORIGINS` | URLs Vercel separadas por vírgula |
 
@@ -168,7 +165,7 @@ curl -X POST https://SUA-API.onrender.com/auth/register \
   -d "{\"email\":\"admin@empresa.com\",\"password\":\"SenhaForte123!\",\"name\":\"Admin\"}"
 ```
 
-Acesse o admin Vercel → `/login`.
+Acesse o admin Vercel → `/login` → **Configurações** para cadastrar chaves LLM e embedding (OpenAI em produção — Ollama não roda no Render).
 
 ---
 

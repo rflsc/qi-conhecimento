@@ -86,12 +86,10 @@ O repositório inclui:
 | --- | --- |
 | `MONGODB_URI` | Connection string do Atlas |
 | `REDIS_URL` | URL **Upstash** ([upstash.com](https://upstash.com) — grátis) |
-| `OPENAI_API_KEY` | Para embeddings |
-| `LLM_PROVIDER` | `anthropic` (recomendado) ou `openai` |
-| `ANTHROPIC_API_KEY` | Para respostas RAG (se `LLM_PROVIDER=anthropic`) |
+| `API_CREDENTIALS_ENCRYPTION_KEY` | Gerada automaticamente no Blueprint *(ou `openssl rand -base64 32`)* |
 | `CORS_ORIGINS` | URLs Vercel |
 
-`JWT_SECRET` é gerado automaticamente.
+`JWT_SECRET` é gerado automaticamente. **LLM e embeddings** — configure em **Admin → Configurações** após o deploy.
 
 > Se o Blueprint pedir cartão, cancele e use a **Opção B** ou [free-tier.md](./free-tier.md).
 
@@ -238,7 +236,7 @@ Atualize `CORS_ORIGINS`, `NEXT_PUBLIC_API_URL` e `NEXT_PUBLIC_ADMIN_URL` com os 
 ## 9. Limitações conhecidas
 
 - **Uploads** ficam no disco Render — sobrevivem redeploys, mas não a troca de região. Para escala, migre para S3/R2.
-- **Ollama** não roda no Render — use `EMBEDDING_PROVIDER=openai`.
+- **Ollama** não roda no Render — use embedding **OpenAI** em **Admin → Configurações**.
 - **Parser Docling** é pesado (~2 GB RAM) — deploy separado no Render (Docker) ou omita.
 - **Swagger** desabilitado em `NODE_ENV=production`.
 - Endpoints públicos (`/knowledge/public-ask`) não têm rate limit — considere adicionar antes de tráfego alto.
@@ -251,7 +249,7 @@ Atualize `CORS_ORIGINS`, `NEXT_PUBLIC_API_URL` e `NEXT_PUBLIC_ADMIN_URL` com os 
 | --- | --- | --- |
 | CORS error no browser | `CORS_ORIGINS` incompleto | Adicione URL exata da Vercel |
 | 503 em `/health` | Mongo ou Redis down | Verifique URIs e Network Access Atlas |
-| Busca RAG sem resposta LLM | Keys ausentes | Configure `ANTHROPIC_API_KEY` ou `OPENAI_API_KEY` |
+| Busca RAG sem resposta LLM | Chaves ausentes no painel | **Admin → Configurações** — provedor LLM + chave |
 | Upload some após redeploy | Disco não montado | Confirme `STORAGE_PATH=/var/data/storage` + disco no Render |
 | Build Vercel falha | Workspace packages | Confirme Root Directory `apps/web` ou `apps/admin` |
 | Admin login OK mas API 401 | `NEXT_PUBLIC_API_URL` errada | Verifique env na Vercel (rebuild necessário) |

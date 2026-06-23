@@ -88,20 +88,15 @@ Valida qualidade das respostas antes de expor no canal.
 
 ## Variáveis relevantes
 
-No **qi-conhecimento** (`.env`):
+No **qi-conhecimento** (`.env` — infraestrutura):
 
 ```env
-# LLM — respostas enriquecidas no /messaging/query
-LLM_PROVIDER=anthropic
-ANTHROPIC_API_KEY=
-
-# Embeddings — busca híbrida
-EMBEDDING_PROVIDER=ollama
+API_CREDENTIALS_ENCRYPTION_KEY=   # openssl rand -base64 32
 OLLAMA_BASE_URL=http://localhost:11434
-EMBEDDING_MODEL=nomic-embed-text
-
 MONGODB_URI=.../qi-conhecimento
 ```
+
+**LLM e embeddings:** admin → **Configurações** (`/settings`), não no `.env`.
 
 No **qi-agents**: URL da API de conhecimento + credenciais do canal (Meta, Telegram) — **não** misturar com variáveis WhatsApp do qi-conhecimento.
 

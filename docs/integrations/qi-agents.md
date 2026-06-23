@@ -233,13 +233,9 @@ Campos úteis para citação: `normReference`, `normItem`, `pageStart`, `tableCa
 
 Para respostas enriquecidas (não só template):
 
-```env
-LLM_PROVIDER=anthropic          # ou openai
-ANTHROPIC_API_KEY=sk-ant-...
-# ou OPENAI_API_KEY=sk-...
-
-EMBEDDING_PROVIDER=ollama         # ou openai — busca híbrida
-```
+1. **Admin → Configurações** (`http://localhost:3102/settings`)
+2. Defina o **provedor LLM** (`anthropic` ou `openai`) e a chave correspondente
+3. Para busca híbrida: provedor de embedding **Ollama** (dev) ou **OpenAI** (prod)
 
 Sem LLM configurado, a API usa fallback template (`"Conforme NBR X: excerpt..."`).
 
@@ -291,6 +287,67 @@ Confirme no admin qi-agents → Integrações → endpoint `consultar_norma_camp
 ```
 
 **Mitigação (qi-conhecimento):** se `channel` / `externalUserId` forem omitidos, a API aceita a request com defaults (`admin` / `qi-agents`) — útil para destravar testes, mas **sem rastreio correto** por canal/usuário. Reconfigure o `contextInject` para auditoria em `/queries`.
+
+### Tool assíncrona: proposta criada mas bot não avisa quando pronta
+
+**Sintoma:** `criar_proposta` retorna `pending`, a API externa completa o job, mas o usuário no Telegram/WhatsApp nunca recebe o resultado.
+
+**Causa comum:** callback genérico mal configurado ou **deploy desatualizado** do qi-agent (rota ausente).
+
+O Qi Agents **não conhece** Qi Proposta (ou qualquer API externa). Callbacks usam o mecanismo genérico de **API Source**:
+
+| Peça | Onde | Valor |
+| --- | --- | --- |
+| `callbackToken` | API Source (admin / Mongo) | UUID por integração |
+| `callbackMapping` | API Source | Campos genéricos (`id`, `status`, `completed`/`failed`) |
+| `asyncRegistration` | Endpoint `criar_*` | `correlationExtractPath`, `followUpTool`, `followUpParam` |
+| `contextInject.callbackUrl` | Endpoint | `"$ctx.apiCallbackUrl"` — **servidor injeta** |
+| `APP_URL` | `.env` Render **qi-agent** | `https://qi-agent.onrender.com` |
+
+**URL de callback (genérica, somente leitura):**
+
+```
+{APP_URL}/api/v1/webhooks/api-callback/{callbackToken}
+```
+
+Exemplo: `https://qi-agent.onrender.com/api/v1/webhooks/api-callback/b733bd14-9adb-4c8e-aad5-09a76b035b18`
+
+**Não use** paths acoplados (`/webhooks/proposta`) nem URL no prompt/schema da tool — o Claude envia só os parâmetros de negócio (ex.: `descricao`).
+
+**Endpoint `criar_proposta` (correto):**
+
+```json
+{
+  "parametersSchema": {
+    "type": "object",
+    "properties": {
+      "descricao": { "type": "string", "description": "..." }
+    },
+    "required": ["descricao"]
+  },
+  "parameterMapping": { "bodyParams": ["descricao", "callbackUrl"] },
+  "contextInject": { "callbackUrl": "$ctx.apiCallbackUrl" },
+  "staticDefaults": {},
+  "asyncRegistration": {
+    "correlationExtractPath": "id",
+    "followUpTool": "consultar_proposta",
+    "followUpParam": "id"
+  }
+}
+```
+
+**Checklist:**
+
+1. `APP_URL` configurado no Render do **qi-agent** (não no Qi Proposta).
+2. `GET` ou `POST` em `/api/v1/webhooks/api-callback/{callbackToken}` **não** retorna 404 — se retornar, **redeploy** do qi-agent (código em `api-callback.controller.ts`).
+3. Endpoint com `contextInject` acima; schema **sem** `callbackUrl`.
+4. Proposta `completed` no Mongo da API externa confirma que o job rodou; audit log do qi-agent deve registrar callback recebido.
+
+**Workaround:** usuário pergunta *"A proposta já ficou pronta?"* → agente chama `consultar_proposta` com o `id`.
+
+**Script de correção (Mongo qi-agents):** `node scripts/fix-qi-agents-callback-generic.mjs` (a partir deste repo, usa `MONGODB_URI` do `.env`).
+
+Documentação completa no qi-agent: `docs/architecture/api-tools.md` (seção *Callbacks assíncronos*).
 
 ## Segurança (serviço-a-serviço)
 

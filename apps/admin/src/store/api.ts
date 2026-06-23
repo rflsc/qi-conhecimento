@@ -62,6 +62,7 @@ export interface SearchResultRow {
   specialty: EngineeringSpecialty;
   excerpt: string;
   tags: string[];
+  sourceUrl?: string;
 }
 
 export interface FieldQueryRow {
@@ -89,6 +90,34 @@ export interface ParserStatus {
   engine?: string;
 }
 
+export type LlmProviderSetting = 'anthropic' | 'openai';
+export type EmbeddingProviderSetting = 'ollama' | 'openai';
+export type ConfigSource = 'environment' | 'database' | 'mixed';
+
+export interface ProviderKeyStatus {
+  hasApiKey: boolean;
+  apiKeyMasked: string;
+  source: ConfigSource;
+}
+
+export interface AiConfigResponse {
+  llmProvider: LlmProviderSetting;
+  llmModel: string;
+  embeddingProvider: EmbeddingProviderSetting;
+  embeddingModel: string;
+  anthropic: ProviderKeyStatus;
+  openai: ProviderKeyStatus;
+}
+
+export interface UpdateAiConfigInput {
+  llmProvider?: LlmProviderSetting;
+  anthropicApiKey?: string;
+  openaiApiKey?: string;
+  llmModel?: string;
+  embeddingProvider?: EmbeddingProviderSetting;
+  embeddingModel?: string;
+}
+
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_URL,
   prepareHeaders: (headers) => {
@@ -114,7 +143,7 @@ const baseQueryWithAuth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQuery
 export const knowledgeApi = createApi({
   reducerPath: 'knowledgeApi',
   baseQuery: baseQueryWithAuth,
-  tagTypes: ['Documents', 'Chunks', 'Stats', 'FieldQueries', 'WebImports', 'WebImportSettings'],
+  tagTypes: ['Documents', 'Chunks', 'Stats', 'FieldQueries', 'WebImports', 'WebImportSettings', 'LlmConfig'],
   endpoints: (builder) => ({
     getStats: builder.query<KnowledgeStats, void>({
       query: () => '/knowledge/stats',
@@ -288,6 +317,14 @@ export const knowledgeApi = createApi({
       query: (body) => ({ url: '/knowledge/web-imports/settings', method: 'PATCH', body }),
       invalidatesTags: ['WebImportSettings'],
     }),
+    getLlmConfig: builder.query<AiConfigResponse, void>({
+      query: () => '/llm-config',
+      providesTags: ['LlmConfig'],
+    }),
+    updateLlmConfig: builder.mutation<AiConfigResponse, UpdateAiConfigInput>({
+      query: (body) => ({ url: '/llm-config', method: 'PATCH', body }),
+      invalidatesTags: ['LlmConfig'],
+    }),
   }),
 });
 
@@ -317,4 +354,6 @@ export const {
   useRetryWebImportFailedMutation,
   useGetWebImportSettingsQuery,
   useUpdateWebImportSettingsMutation,
+  useGetLlmConfigQuery,
+  useUpdateLlmConfigMutation,
 } = knowledgeApi;

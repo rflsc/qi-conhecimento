@@ -15,7 +15,8 @@
     "manualContent": "Internal CMS",
     "search": "Search",
     "specialties": "Specialties",
-    "queries": "Field queries"
+    "queries": "Field queries",
+    "settings": "Settings"
   },
   "hub": {
     "title": "Multimodal Input Hub",
@@ -182,7 +183,7 @@
     "next": "Next",
     "page": "Page"
   },
-  "actions": { "save": "Save", "logout": "Logout" },
+  "actions": { "save": "Save", "saving": "Saving...", "loading": "Loading...", "logout": "Logout" },
   "webImport": {
     "title": "Import site",
     "subtitle": "Discover and import pages from help centers and online documentation.",
@@ -250,11 +251,32 @@
     }
   },
   "errors": {
-    "generic": "Invalid email or password.",
+    "generic": "Something went wrong. Please try again.",
     "apiUnreachable": "Could not connect to the API. Make sure it is running on port 3100.",
     "loadFailed": "Failed to load data from the API.",
     "saveFailed": "Failed to save procedure.",
     "searchFailed": "Search failed. Check if content is indexed.",
     "queryFailed": "Assistant query failed. Check the API and LLM key."
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "LLM provider, API keys and embeddings for hybrid search.",
+    "saved": "Settings saved!",
+    "llm": {
+      "title": "LLM provider",
+      "provider": "Active provider",
+      "dualKeyHint": "Configure Anthropic and OpenAI keys. The active provider is used for RAG answers.",
+      "anthropicApiKey": "Anthropic key (Claude)",
+      "openaiApiKey": "OpenAI key",
+      "apiKeyPlaceholder": "Leave blank to keep current key",
+      "model": "Chat model",
+      "currentKey": "Current key"
+    },
+    "embedding": {
+      "title": "Embeddings (vector search)",
+      "provider": "Embedding provider",
+      "model": "Embedding model",
+      "openaiKeyHint": "Requires OpenAI key configured above."
+    }
   }
 }

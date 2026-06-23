@@ -21,6 +21,7 @@
 | **Fase 2 — ingestão multimodal + RAG** | [development/phase-2.md](./development/phase-2.md) |
 | **Fase 3 — assistente de campo (Qi Agents)** | [development/phase-3.md](./development/phase-3.md) |
 | **Integração Qi Agents ↔ API** | [integrations/qi-agents.md](./integrations/qi-agents.md) |
+| **Configuração de IA (LLM + embeddings)** | [architecture/knowledge-rag.md](./architecture/knowledge-rag.md) · admin `/settings` · `GET/PATCH /llm-config` |
 | **Histórico consultas de campo (`/queries`)** | [architecture/messaging.md](./architecture/messaging.md) · `GET /messaging/queries` · alimentado por `public-ask`, `/messaging/query` e admin |
 | Entender o produto e escopo de negócio | [scope/product-vision.md](./scope/product-vision.md) |
 | Arquitetura da API e módulos NestJS | [architecture/api.md](./architecture/api.md) |
@@ -47,6 +48,7 @@
 | Web (landing) | http://localhost:3101 |
 | Admin (login) | http://localhost:3102/login |
 | Admin (importar) | http://localhost:3102/import |
+| Admin (configurações IA) | http://localhost:3102/settings |
 | Health check | http://localhost:3100/health |
 
 ## Pilares do produto

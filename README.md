@@ -26,7 +26,7 @@ Ecossistema de Conhecimento Técnico para Engenharia Civil e Instalações — H
 - Docker Desktop (MongoDB + Redis)
 - Python 3.12 *(opcional — parser Docling local)*
 - [Ollama](https://ollama.com) *(opcional — embeddings locais gratuitos)*
-- Chave OpenAI *(opcional — LLM e OCR sem Docling)*
+- Chaves de IA *(opcional — configure no admin → **Configurações** após o primeiro login)*
 
 ## Setup rápido
 
@@ -63,6 +63,7 @@ Criado automaticamente pelo seed (`SEED_ADMIN_ENABLED=true`). Detalhes em [docs/
 | Admin | http://localhost:3102/login |
 | Importar | http://localhost:3102/import |
 | Importar site | http://localhost:3102/web-import |
+| Configurações (IA) | http://localhost:3102/settings |
 
 | Parser (Docling) | http://localhost:8000/docs |
 

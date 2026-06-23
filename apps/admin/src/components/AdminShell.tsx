@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: '/search', key: 'search' },
   { href: '/specialties', key: 'specialties' },
   { href: '/queries', key: 'queries' },
+  { href: '/settings', key: 'settings' },
 ] as const;
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
