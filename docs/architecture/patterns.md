@@ -21,6 +21,15 @@
 - Cancelamento: remove jobs da fila, soft-delete de pílulas parciais, workers respeitam flag
 - Arquivos em `STORAGE_PATH/{documentId}/source.{ext}` — diretório gitignored
 
+## Filas BullMQ (Upstash)
+
+- Redis via `REDIS_URL`; conexão TLS em `createBullRedisConnection()`
+- Filas ativas: `ingestion`, `embedding`, `web-import`
+- `BULLMQ_WORKER_SETTINGS`: `drainDelay: 30s`, `stalledInterval: 5min` — menos polling ocioso
+- `removeOnComplete: true` — jobs concluídos não acumulam metadados no Redis
+- `/health` público **não** consulta Redis (health do Render)
+- Dev: `pnpm infra:up` — Redis local sem limite de comandos
+
 ## RAG
 
 - Plain text derivado de Markdown via `stripMarkdownToPlain()` (`shared-utils`)

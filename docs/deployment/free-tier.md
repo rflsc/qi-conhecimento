@@ -5,7 +5,7 @@ Sem cartão de crédito. Ideal para MVP e validação.
 | Serviço | Plataforma | Custo |
 | --- | --- | --- |
 | MongoDB | Atlas M0 | Grátis |
-| Redis (filas BullMQ) | **Upstash** | Grátis (10k cmds/dia) |
+| Redis (filas BullMQ) | **Upstash** | Grátis (~500k cmds/mês) |
 | API | **Render Free** | Grátis |
 | Web + Admin | Vercel Hobby | Grátis |
 
@@ -46,7 +46,7 @@ Variáveis **obrigatórias** no Render:
 - API **hiberna** após ~15 min sem uso — 1ª requisição demora ~30–60s (cold start)
 - `POST /knowledge/public-ask` pode levar **~45–90s** no Render free (CPU + LLM); com índice vetorial Atlas e ack no Qi Agents, o usuário vê feedback imediato enquanto processa
 - **Uploads de PDF** não persistem entre redeploys (sem disco pago)
-- Upstash free tem limite diário de comandos — suficiente para testes
+- Upstash free tem limite de **~500k comandos/mês** — BullMQ ocioso consome rápido; use Redis local em dev (`pnpm infra:up`) e veja otimizações em `docs/architecture/patterns.md`
 - OpenAI/Anthropic são pay-as-you-go *(só paga se usar as keys)*
 
 ---

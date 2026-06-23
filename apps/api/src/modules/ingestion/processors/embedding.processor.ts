@@ -4,7 +4,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PinoLogger } from 'nestjs-pino';
 import { DomainEvents } from '@events/domain-events';
-import { JOB_NAMES, QUEUE_NAMES } from '@queues/queues.constants';
+import { JOB_NAMES, QUEUE_NAMES, BULLMQ_WORKER_SETTINGS } from '@queues/queues.constants';
 import { IngestionStatus } from '@qi-conhecimento/shared-types';
 import { getEmbeddingWorkerConcurrency } from '../../../config/embedding.config';
 import { EmbeddingService } from '@modules/knowledge/services/embedding.service';
@@ -14,6 +14,7 @@ import { IngestionProgressService } from '../services/ingestion-progress.service
 @Injectable()
 @Processor(QUEUE_NAMES.EMBEDDING, {
   concurrency: getEmbeddingWorkerConcurrency(),
+  ...BULLMQ_WORKER_SETTINGS,
 })
 export class EmbeddingProcessor extends WorkerHost implements OnModuleInit {
   constructor(
