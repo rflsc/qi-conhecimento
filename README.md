@@ -66,6 +66,12 @@ Criado automaticamente pelo seed (`SEED_ADMIN_ENABLED=true`). Detalhes em [docs/
 
 | Parser (Docling) | http://localhost:8000/docs |
 
+### Redis / BullMQ
+
+- **Dev:** `pnpm infra:up` → `REDIS_URL=redis://localhost:6379` (não use Upstash em desenvolvimento)
+- **Prod:** database Upstash **dedicado** (`rediss://...`) — free ~500k cmds/mês; 3 workers ativos
+- `/health` valida só MongoDB — detalhes em [docs/architecture/patterns.md](./docs/architecture/patterns.md#filas-bullmq-upstash)
+
 ## Comandos
 
 ```bash
@@ -102,6 +108,7 @@ Mapa completo: [docs/index.md](./docs/index.md)
 | Conhecimento e RAG | [docs/architecture/knowledge-rag.md](./docs/architecture/knowledge-rag.md) |
 | Importação web | [docs/architecture/web-import.md](./docs/architecture/web-import.md) |
 | API (módulos e endpoints) | [docs/architecture/api.md](./docs/architecture/api.md) |
+| Redis / Upstash (filas BullMQ) | [docs/architecture/patterns.md](./docs/architecture/patterns.md#filas-bullmq-upstash) |
 | Autenticação e seed | [docs/architecture/auth.md](./docs/architecture/auth.md) |
 | Frontends | [docs/architecture/frontend.md](./docs/architecture/frontend.md) |
 | Mensageria / RAG de campo | [docs/architecture/messaging.md](./docs/architecture/messaging.md) |

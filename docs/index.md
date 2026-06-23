@@ -29,6 +29,7 @@
 | Hub de conhecimento e RAG | [architecture/knowledge-rag.md](./architecture/knowledge-rag.md) |
 | **Importação web em lote** | [architecture/web-import.md](./architecture/web-import.md) |
 | **Parar filas BullMQ** | `pnpm purge:queues` — ver [web-import.md#operação-e-troubleshooting](./architecture/web-import.md#operação-e-troubleshooting) |
+| **Redis / Upstash (filas BullMQ)** | [patterns.md#filas-bullmq-upstash](./architecture/patterns.md#filas-bullmq-upstash) |
 | **Índice vetorial Atlas (M0)** | [knowledge-rag.md#atlas-vector-search](./architecture/knowledge-rag.md#atlas-vector-search) · `node scripts/create-vector-index.mjs` |
 | **Eval RAG (regressão)** | `pnpm --filter @qi-conhecimento/api eval:rag` — [knowledge-rag.md#suite-de-eval-rag](./architecture/knowledge-rag.md#suite-de-eval-rag) |
 | **Docling — evolução e roadmap** | [architecture/docling.md](./architecture/docling.md) |

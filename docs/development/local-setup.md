@@ -372,7 +372,7 @@ Ver `.env.example` na raiz.
 | --- | --- |
 | `PORT` | Porta da API (default: 3100) |
 | `MONGODB_URI` | Conexão MongoDB |
-| `REDIS_URL` | Conexão Redis / BullMQ |
+| `REDIS_URL` | Redis / BullMQ — dev: `redis://localhost:6379`; prod Upstash: `rediss://...` (use database **separado** do qi-agent) |
 | `JWT_SECRET` | Assinatura dos tokens JWT |
 | `NEXT_PUBLIC_API_URL` | URL da API consumida pelo admin/web |
 | `SEED_ADMIN_*` | Usuário admin inicial (dev) |
