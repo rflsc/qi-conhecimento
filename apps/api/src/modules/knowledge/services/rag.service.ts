@@ -272,7 +272,13 @@ export class RagService {
       return `Não encontrei referência técnica para "${query}". Verifique a especialidade ou consulte o administrador.`;
     }
 
-    if (!(await this.llmService.isAvailable())) {
+    let llmAvailable = false;
+    try {
+      llmAvailable = await this.llmService.isAvailable();
+    } catch (error) {
+      this.logger.warn({ error }, 'LLM runtime indisponível — usando resposta template');
+    }
+    if (!llmAvailable) {
       return this.fallbackAnswer(chunks);
     }
 

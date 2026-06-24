@@ -177,10 +177,12 @@ export class LlmConfigService {
     const resolvedDoc = doc ?? (await this.repository.findGlobal());
 
     if (provider === 'anthropic' && resolvedDoc?.encryptedAnthropicApiKey) {
-      return this.decryptSecret(resolvedDoc.encryptedAnthropicApiKey);
+      const dbKey = this.decryptSecret(resolvedDoc.encryptedAnthropicApiKey);
+      if (dbKey) return dbKey;
     }
     if (provider === 'openai' && resolvedDoc?.encryptedOpenaiApiKey) {
-      return this.decryptSecret(resolvedDoc.encryptedOpenaiApiKey);
+      const dbKey = this.decryptSecret(resolvedDoc.encryptedOpenaiApiKey);
+      if (dbKey) return dbKey;
     }
 
     return provider === 'anthropic'
@@ -237,6 +239,10 @@ export class LlmConfigService {
   }
 
   private decryptSecret(encrypted: string): string {
-    return this.encryption.decrypt(encrypted).apiKey || '';
+    try {
+      return this.encryption.decrypt(encrypted).apiKey || '';
+    } catch {
+      return '';
+    }
   }
 }
