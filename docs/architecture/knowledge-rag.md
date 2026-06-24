@@ -241,8 +241,16 @@ flowchart LR
 | --- | --- | --- |
 | Retrieval | `retrieveChunksForAnswer()` | 1–2 `hybridSearch` (expansão K) → até 10 chunks |
 | Rerank | `rankChunksForAnswer()` | Tabelas e Tabela H.1 sobem em perguntas sobre K |
-| Resposta | `generateAnswer()` | LLM com system prompt enriquecido (Tabela H.1) |
+| Resposta | `generateAnswer()` | LLM com system prompt enriquecido (Tabela H.1); fallback template se LLM indisponível |
 | Citações | `selectCitationsForDisplay()` | Filtra, deduplica e limita cards na UI e em `field_queries` (todos os endpoints RAG) |
+
+**Resolução de credenciais LLM** (`LlmConfigService.resolveApiKeyForProvider`):
+
+1. Tenta chave criptografada no MongoDB (`llm_configs`) para o provedor ativo.
+2. Se a descriptografia falhar ou retornar vazio → fallback para `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` no ambiente.
+3. Se nenhuma chave estiver disponível → `generateAnswer()` usa **template** (`fallbackAnswer`) com citação do chunk principal — **não retorna 500**.
+
+> **Produção:** `API_CREDENTIALS_ENCRYPTION_KEY` deve permanecer estável entre deploys. Se for regenerada no Render, re-salve as chaves em **Admin → Configurações**. Ver [integrations/qi-agents.md](../integrations/qi-agents.md#500-internal-server-error-em-consultar_norma_campo-busca-ok-resposta-falha).
 
 **System prompt** (`RAG_SYSTEM_PROMPT` em `rag.service.ts`):
 

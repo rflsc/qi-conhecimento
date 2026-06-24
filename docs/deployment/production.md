@@ -86,10 +86,10 @@ O repositório inclui:
 | --- | --- |
 | `MONGODB_URI` | Connection string do Atlas |
 | `REDIS_URL` | URL **Upstash** ([upstash.com](https://upstash.com) — grátis) |
-| `API_CREDENTIALS_ENCRYPTION_KEY` | Gerada automaticamente no Blueprint *(ou `openssl rand -base64 32`)* |
+| `API_CREDENTIALS_ENCRYPTION_KEY` | Gerada automaticamente no Blueprint *(ou `openssl rand -base64 32`)* — **não regenere** sem re-salvar as chaves LLM no admin |
 | `CORS_ORIGINS` | URLs Vercel |
 
-`JWT_SECRET` é gerado automaticamente. **LLM e embeddings** — configure em **Admin → Configurações** após o deploy.
+`JWT_SECRET` é gerado automaticamente. **LLM e embeddings** — configure em **Admin → Configurações** após o deploy (ou defina `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` no Render como fallback).
 
 > Se o Blueprint pedir cartão, cancele e use a **Opção B** ou [free-tier.md](./free-tier.md).
 

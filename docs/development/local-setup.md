@@ -132,7 +132,7 @@ Configure no **admin → Configurações** (`/settings`):
 
 Sem chave LLM, busca e ingestão funcionam; respostas usam template com citação do chunk principal.
 
-**Produção:** defina `API_CREDENTIALS_ENCRYPTION_KEY` no `.env` da API (gere com `openssl rand -base64 32`) — criptografa as chaves salvas no MongoDB.
+**Produção:** defina `API_CREDENTIALS_ENCRYPTION_KEY` no `.env` da API (gere com `openssl rand -base64 32`) — criptografa as chaves salvas no MongoDB. Mantenha o mesmo valor entre deploys; se mudar, re-salve as chaves no painel. Opcional: `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` no ambiente como fallback.
 
 ## 4. Primeiro acesso (admin)
 

@@ -288,6 +288,34 @@ Confirme no admin qi-agents → Integrações → endpoint `consultar_norma_camp
 
 **Mitigação (qi-conhecimento):** se `channel` / `externalUserId` forem omitidos, a API aceita a request com defaults (`admin` / `qi-agents`) — útil para destravar testes, mas **sem rastreio correto** por canal/usuário. Reconfigure o `contextInject` para auditoria em `/queries`.
 
+### 500: `Internal server error` em `consultar_norma_campo` (busca ok, resposta falha)
+
+**Sintoma:** a tool retorna `API Qi Conhecimento API returned 500`; `POST /knowledge/public-search` com o mesmo `queryText` / `specialtyFilter` / `tagFilter` devolve chunks, mas `public-ask` ou `/messaging/query` falham.
+
+**Causa comum:** chave LLM salva no admin (MongoDB criptografado) não descriptografa com o `API_CREDENTIALS_ENCRYPTION_KEY` atual do Render — por exemplo após redeploy com chave de criptografia nova, ou chaves gravadas em outro ambiente.
+
+**Como confirmar:**
+
+```bash
+# Busca ok (só retrieval)
+curl -s -X POST https://<api>/knowledge/public-search \
+  -H "Content-Type: application/json" \
+  -d '{"query":"dimensão mínima de um pilar","specialty":"civil","tagFilter":["nbr 6118"]}'
+
+# Resposta falha quando há chunks (pipeline LLM)
+curl -s -X POST https://<api>/knowledge/public-ask \
+  -H "Content-Type: application/json" \
+  -d '{"query":"dimensão mínima de um pilar","specialty":"civil","tagFilter":["nbr 6118"]}'
+```
+
+**Correção:**
+
+1. No Render do qi-conhecimento, confirme que `API_CREDENTIALS_ENCRYPTION_KEY` é **estável** (não regenere sem re-salvar as chaves no painel).
+2. **Admin → Configurações** — re-salve a chave Anthropic ou OpenAI do provedor ativo.
+3. Alternativa: defina `ANTHROPIC_API_KEY` ou `OPENAI_API_KEY` nas env vars do Render (fallback quando a chave do banco não descriptografa).
+
+**Comportamento após o fix (API ≥ jun/2026):** falha de descriptografia não derruba mais a rota — a API tenta env vars e, se o LLM continuar indisponível, responde com **template** citando o chunk principal (HTTP 200/201, não 500). Para respostas completas do LLM, corrija as credenciais acima.
+
 ### Tool assíncrona: proposta criada mas bot não avisa quando pronta
 
 **Sintoma:** `criar_proposta` retorna `pending`, a API externa completa o job, mas o usuário no Telegram/WhatsApp nunca recebe o resultado.

@@ -203,12 +203,15 @@ Resposta inclui `answer` e `citations[]` com `documentTitle`, `normReference`, `
 
 | Variável | Uso |
 | --- | --- |
-| `API_CREDENTIALS_ENCRYPTION_KEY` | Criptografia das chaves salvas no painel (obrigatório em produção) |
+| `API_CREDENTIALS_ENCRYPTION_KEY` | Criptografia das chaves salvas no painel (**obrigatório e estável em produção** — se mudar, re-salve as chaves em Admin → Configurações) |
+| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | Fallback opcional quando a chave do MongoDB não descriptografa ou não foi salva no painel |
 | `OLLAMA_BASE_URL` | URL do Ollama quando embedding = ollama (default: `http://localhost:11434`) |
 | `EMBEDDING_CONCURRENCY` | Jobs paralelos de embedding no BullMQ |
 | `SERVICE_API_KEY` | Service key da integração Qi Agents (`X-Service-Key`). Vazio em dev = rota aberta |
 
 **LLM, embeddings e chaves de API** — configure em **Admin → Configurações** (`GET/PATCH /llm-config`, role `admin`). Persistido em `llm_configs` no MongoDB.
+
+**Fallback sem LLM:** se nenhuma chave válida estiver disponível (ou descriptografia falhar), `handleFieldQuery` ainda responde com template citando o chunk principal — útil para destravar canais, mas a resposta não passa pelo modelo. Troubleshooting de 500 histórico: [qi-agents.md](../integrations/qi-agents.md#500-internal-server-error-em-consultar_norma_campo-busca-ok-resposta-falha).
 
 Credenciais WhatsApp/Telegram (`WHATSAPP_*`, `TELEGRAM_*`) configuram-se no **Qi Agents**, não neste projeto.
 
