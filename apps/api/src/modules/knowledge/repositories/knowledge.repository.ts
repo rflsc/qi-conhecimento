@@ -257,18 +257,33 @@ export class KnowledgeRepository {
       .exec();
   }
 
-  searchByText(query: string, scope?: KnowledgeRetrievalScope, limit = 5) {
-    const filter: Record<string, unknown> = {
-      ...buildChunkRetrievalFilter(scope),
-      $text: { $search: query },
-    };
+  async searchByText(query: string, scope?: KnowledgeRetrievalScope, limit = 5) {
+    const baseFilter = buildChunkRetrievalFilter(scope);
 
-    return this.chunkModel
-      .find(filter, { score: { $meta: 'textScore' } })
-      .sort({ score: { $meta: 'textScore' } })
-      .limit(limit)
-      .populate('documentId')
-      .exec();
+    try {
+      const filter: Record<string, unknown> = {
+        ...baseFilter,
+        $text: { $search: query },
+      };
+
+      return await this.chunkModel
+        .find(filter, { score: { $meta: 'textScore' } })
+        .sort({ score: { $meta: 'textScore' } })
+        .limit(limit)
+        .populate('documentId')
+        .exec();
+    } catch {
+      const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const filter: Record<string, unknown> = {
+        ...baseFilter,
+        $or: [
+          { markdownContent: { $regex: escaped, $options: 'i' } },
+          { content: { $regex: escaped, $options: 'i' } },
+        ],
+      };
+
+      return this.chunkModel.find(filter).limit(limit).populate('documentId').exec();
+    }
   }
 
   /** @deprecated Use RagService.hybridSearch */

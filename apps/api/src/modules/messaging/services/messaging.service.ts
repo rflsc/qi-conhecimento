@@ -106,8 +106,12 @@ export class MessagingService {
 
   private toCitation(chunk: KnowledgeChunkDocument) {
     const document = chunk.documentId as unknown as KnowledgeDocumentEntity;
+    const documentId =
+      document && typeof document === 'object' && '_id' in document
+        ? document._id.toString()
+        : String(chunk.documentId);
     return {
-      documentId: document._id.toString(),
+      documentId,
       documentTitle: document.title,
       normReference: document.normReference,
       normItem: chunk.normItem,

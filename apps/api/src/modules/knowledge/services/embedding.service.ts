@@ -54,9 +54,15 @@ export class EmbeddingService {
   ): Promise<number[] | null> {
     if (!apiKey) return null;
 
-    const openai = new OpenAI({ apiKey });
-    const response = await openai.embeddings.create({ model, input: text });
-    return response.data[0]?.embedding ?? null;
+    try {
+      const openai = new OpenAI({ apiKey });
+      const response = await openai.embeddings.create({ model, input: text });
+      return response.data[0]?.embedding ?? null;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'erro desconhecido';
+      this.logger.warn({ error: message, model }, 'OpenAI embedding falhou');
+      return null;
+    }
   }
 
   private async embedWithOllama(
