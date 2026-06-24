@@ -250,6 +250,8 @@ flowchart LR
 2. Se a descriptografia falhar ou retornar vazio → fallback para `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` no ambiente.
 3. Se nenhuma chave estiver disponível → `generateAnswer()` usa **template** (`fallbackAnswer`) com citação do chunk principal — **não retorna 500**.
 
+**Correção aplicada (jun/2026):** incidente em produção com `consultar_norma_campo` retornando 500 quando o retrieval encontrava chunks (ex.: NBR 6118). Código passou a não propagar erro de descriptografia e a fazer fallback para env vars antes do template. Registro completo: [integrations/qi-agents.md](../integrations/qi-agents.md#registro-da-correção-jun2026--produção).
+
 > **Produção:** `API_CREDENTIALS_ENCRYPTION_KEY` deve permanecer estável entre deploys. Se for regenerada no Render, re-salve as chaves em **Admin → Configurações**. Ver [integrations/qi-agents.md](../integrations/qi-agents.md#500-internal-server-error-em-consultar_norma_campo-busca-ok-resposta-falha).
 
 **System prompt** (`RAG_SYSTEM_PROMPT` em `rag.service.ts`):

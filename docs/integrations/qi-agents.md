@@ -316,6 +316,19 @@ curl -s -X POST https://<api>/knowledge/public-ask \
 
 **Comportamento após o fix (API ≥ jun/2026):** falha de descriptografia não derruba mais a rota — a API tenta env vars e, se o LLM continuar indisponível, responde com **template** citando o chunk principal (HTTP 200/201, não 500). Para respostas completas do LLM, corrija as credenciais acima.
 
+#### Registro da correção (jun/2026 — produção)
+
+| Item | Detalhe |
+| --- | --- |
+| **Sintoma reportado** | Tool `consultar_norma_campo` no qi-agents retornava `500 Internal server error` para perguntas como *"dimensão mínima de um pilar"* (`specialtyFilter: civil`, `tagFilter: ["nbr 6118"]`) |
+| **API afetada** | `https://qi-conhecimento.onrender.com` — `POST /messaging/query` e `POST /knowledge/public-ask` |
+| **Diagnóstico** | `public-search` devolvia chunks (retrieval ok); o 500 ocorria **somente quando havia chunks** e o fluxo entrava na geração de resposta (LLM) |
+| **Causa raiz** | Chaves LLM salvas no admin (`llm_configs`, criptografadas) não descriptografavam com o `API_CREDENTIALS_ENCRYPTION_KEY` do Render. `decrypt()` lançava exceção em `isAvailable()` **fora** do `try/catch` do LLM → HTTP 500 em vez de fallback |
+| **Alterações no código** | `apps/api/src/modules/llm-config/services/llm-config.service.ts` — `decryptSecret` com try/catch; `resolveApiKeyForProvider` faz fallback para env vars. `apps/api/src/modules/knowledge/services/rag.service.ts` — `generateAnswer` trata falha em `isAvailable()` e usa `fallbackAnswer` |
+| **Commits** | `0942809` (fix) · `5ff3707` (docs iniciais de troubleshooting) |
+| **Deploy** | Push em `main` → Render `autoDeploy` |
+| **Resultado** | Canal voltou a responder; `consultar_norma_campo` operacional após deploy. Recomendado manter `API_CREDENTIALS_ENCRYPTION_KEY` estável e re-salvar chaves no admin se regenerar a env |
+
 ### Tool assíncrona: proposta criada mas bot não avisa quando pronta
 
 **Sintoma:** `criar_proposta` retorna `pending`, a API externa completa o job, mas o usuário no Telegram/WhatsApp nunca recebe o resultado.

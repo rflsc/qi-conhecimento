@@ -100,6 +100,14 @@ MONGODB_URI=.../qi-conhecimento
 
 No **qi-agents**: URL da API de conhecimento + credenciais do canal (Meta, Telegram) — **não** misturar com variáveis WhatsApp do qi-conhecimento.
 
+## Incidente resolvido — RAG 500 em produção (jun/2026)
+
+A tool `consultar_norma_campo` falhava com HTTP 500 quando o retrieval encontrava chunks, embora `public-search` respondesse normalmente. Causa: descriptografia das chaves LLM do painel com `API_CREDENTIALS_ENCRYPTION_KEY` incompatível no Render.
+
+**O que foi feito:** fallback seguro de credenciais (`llm-config.service.ts`) + tratamento de erro em `generateAnswer` (`rag.service.ts`); deploy em produção; canal validado operacional.
+
+Detalhes, commits e checklist operacional: [integrations/qi-agents.md](../integrations/qi-agents.md#registro-da-correção-jun2026--produção).
+
 ## Fases anteriores
 
 - [phase-1.md](./phase-1.md) — admin + CMS + busca
