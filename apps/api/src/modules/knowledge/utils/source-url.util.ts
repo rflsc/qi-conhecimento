@@ -6,13 +6,25 @@ export function isHttpUrl(value?: string | null): value is string {
   return /^https?:\/\//i.test(value.trim());
 }
 
+export function asPopulatedDocument(
+  documentId: unknown,
+): Pick<KnowledgeDocumentEntity, '_id' | 'title' | 'normReference' | 'sourceReference'> | null {
+  if (!documentId || typeof documentId !== 'object' || !('_id' in documentId)) {
+    return null;
+  }
+  return documentId as Pick<
+    KnowledgeDocumentEntity,
+    '_id' | 'title' | 'normReference' | 'sourceReference'
+  >;
+}
+
 /** URL da página/fonte — prefer chunk.sourceUrl (web-import) sobre document.sourceReference (seed). */
 export function resolveChunkSourceUrl(
   chunk: Pick<KnowledgeChunkDocument, 'sourceUrl'>,
-  document: Pick<KnowledgeDocumentEntity, 'sourceReference'>,
+  document: Pick<KnowledgeDocumentEntity, 'sourceReference'> | null | undefined,
 ): string | undefined {
   if (isHttpUrl(chunk.sourceUrl)) return chunk.sourceUrl.trim();
-  if (isHttpUrl(document.sourceReference)) return document.sourceReference.trim();
+  if (document && isHttpUrl(document.sourceReference)) return document.sourceReference.trim();
   return undefined;
 }
 

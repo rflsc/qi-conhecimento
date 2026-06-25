@@ -9,12 +9,12 @@ import {
   buildPdfAttachmentsFromCitations,
   enrichAnswerWithSourceLinks,
   resolveChunkSourceUrl,
+  asPopulatedDocument,
 } from '@modules/knowledge/utils/source-url.util';
 import { FieldQueryDto } from '../dtos/messaging.dto';
 import { MessagingRepository } from '../repositories/messaging.repository';
 import { FieldQueryDocument } from '../schemas/field-query.schema';
 import { KnowledgeChunkDocument } from '@modules/knowledge/schemas/knowledge-chunk.schema';
-import { KnowledgeDocumentEntity } from '@modules/knowledge/schemas/knowledge-document.schema';
 
 @Injectable()
 export class MessagingService {
@@ -105,15 +105,14 @@ export class MessagingService {
   }
 
   private toCitation(chunk: KnowledgeChunkDocument) {
-    const document = chunk.documentId as unknown as KnowledgeDocumentEntity;
-    const documentId =
-      document && typeof document === 'object' && '_id' in document
-        ? document._id.toString()
-        : String(chunk.documentId);
+    const document = asPopulatedDocument(chunk.documentId);
+    const documentId = document?._id
+      ? String(document._id)
+      : String(chunk.documentId);
     return {
       documentId,
-      documentTitle: document.title,
-      normReference: document.normReference,
+      documentTitle: document?.title ?? 'Documento',
+      normReference: document?.normReference,
       normItem: chunk.normItem,
       chunkId: chunk._id.toString(),
       excerpt: chunk.markdownContent.slice(0, 280),

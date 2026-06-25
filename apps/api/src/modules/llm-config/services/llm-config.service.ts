@@ -145,7 +145,11 @@ export class LlmConfigService {
   }
 
   private resolveEmbeddingProvider(doc: LlmConfigDocument | null): EmbeddingProviderSetting {
-    return doc?.embeddingProvider ?? 'ollama';
+    if (doc?.embeddingProvider) return doc.embeddingProvider;
+    const env = this.configService.get<string>('EMBEDDING_PROVIDER')?.toLowerCase();
+    if (env === 'openai' || env === 'ollama') return env;
+    if (this.getEnvOpenaiApiKey()) return 'openai';
+    return 'ollama';
   }
 
   private resolveLlmModel(

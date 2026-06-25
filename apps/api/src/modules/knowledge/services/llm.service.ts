@@ -42,18 +42,24 @@ export class LlmService {
     systemPrompt: string,
     userPrompt: string,
   ): Promise<string | null> {
-    const openai = new OpenAI({ apiKey });
-    const response = await openai.chat.completions.create({
-      model,
-      temperature: 0.2,
-      max_tokens: 500,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    });
+    try {
+      const openai = new OpenAI({ apiKey });
+      const response = await openai.chat.completions.create({
+        model,
+        temperature: 0.2,
+        max_tokens: 500,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      });
 
-    return response.choices[0]?.message?.content?.trim() ?? null;
+      return response.choices[0]?.message?.content?.trim() ?? null;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'erro desconhecido';
+      this.logger.warn({ error: message, model }, 'OpenAI completion falhou');
+      return null;
+    }
   }
 
   private async completeWithAnthropic(
@@ -62,16 +68,22 @@ export class LlmService {
     systemPrompt: string,
     userPrompt: string,
   ): Promise<string | null> {
-    const anthropic = new Anthropic({ apiKey });
-    const response = await anthropic.messages.create({
-      model,
-      max_tokens: 500,
-      temperature: 0.2,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
+    try {
+      const anthropic = new Anthropic({ apiKey });
+      const response = await anthropic.messages.create({
+        model,
+        max_tokens: 500,
+        temperature: 0.2,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      });
 
-    const textBlock = response.content.find((block) => block.type === 'text');
-    return textBlock?.type === 'text' ? textBlock.text.trim() : null;
+      const textBlock = response.content.find((block) => block.type === 'text');
+      return textBlock?.type === 'text' ? textBlock.text.trim() : null;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'erro desconhecido';
+      this.logger.warn({ error: message, model }, 'Anthropic completion falhou');
+      return null;
+    }
   }
 }

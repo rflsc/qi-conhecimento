@@ -104,6 +104,7 @@ export enum MessagingChannel {
   TELEGRAM = 'telegram',
   WEB = 'web',
   ADMIN = 'admin',
+  NATIVE = 'native',
 }
 
 export interface User {

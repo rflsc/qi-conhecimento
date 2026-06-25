@@ -119,7 +119,7 @@ export class KnowledgeRepository {
   findChunksWithEmbeddings(scope?: KnowledgeRetrievalScope): Promise<KnowledgeChunkDocument[]> {
     const filter: Record<string, unknown> = {
       ...buildChunkRetrievalFilter(scope),
-      embedding: { $exists: true, $not: { $size: 0 } },
+      embeddingId: { $exists: true, $ne: null },
     };
 
     return this.chunkModel.find(filter).populate('documentId').select('+embedding').exec();

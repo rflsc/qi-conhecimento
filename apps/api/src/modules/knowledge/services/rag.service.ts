@@ -4,13 +4,12 @@ import { buildCitationLabel, cosineSimilarity } from '@qi-conhecimento/shared-ut
 import { PinoLogger } from 'nestjs-pino';
 import { KnowledgeRepository } from '../repositories/knowledge.repository';
 import { KnowledgeChunkDocument } from '../schemas/knowledge-chunk.schema';
-import { KnowledgeDocumentEntity } from '../schemas/knowledge-document.schema';
 import { mapSearchResult } from '../interfaces/knowledge.mapper';
 import {
   chunkMatchesScopeTags,
   isRetrievalScopeRestricted,
 } from '../utils/retrieval-scope.util';
-import { resolveChunkSourceUrl } from '../utils/source-url.util';
+import { resolveChunkSourceUrl, asPopulatedDocument } from '../utils/source-url.util';
 import { EmbeddingService } from './embedding.service';
 import { LlmService } from './llm.service';
 
@@ -283,24 +282,30 @@ export class RagService {
     }
 
     const tCtx = performance.now();
-    const context = chunks
-      .map((chunk, i) => {
-        const doc = chunk.documentId as unknown as KnowledgeDocumentEntity;
-        const label = buildCitationLabel(
-          doc.normReference,
-          chunk.normItem,
-          chunk.pageStart,
-          chunk.tableCaption,
-        );
-        const sourceUrl = resolveChunkSourceUrl(chunk, doc);
-        const sourceHint = sourceUrl ? `\nFonte: ${sourceUrl}` : '';
-        const tableHint =
-          chunk.contentType === 'table' && chunk.tableSource === 'text_recovery'
-            ? '\n[Nota: tabela recuperada da camada de texto do PDF — confira o original.]'
-            : '';
-        return `[${i + 1}] ${doc.title ?? 'Documento'} (${label})${sourceHint}${tableHint}\n${chunk.markdownContent.slice(0, RAG_CONTEXT_CHARS_PER_CHUNK)}`;
-      })
-      .join('\n\n---\n\n');
+    let context = '';
+    try {
+      context = chunks
+        .map((chunk, i) => {
+          const doc = asPopulatedDocument(chunk.documentId);
+          const label = buildCitationLabel(
+            doc?.normReference,
+            chunk.normItem,
+            chunk.pageStart,
+            chunk.tableCaption,
+          );
+          const sourceUrl = resolveChunkSourceUrl(chunk, doc);
+          const sourceHint = sourceUrl ? `\nFonte: ${sourceUrl}` : '';
+          const tableHint =
+            chunk.contentType === 'table' && chunk.tableSource === 'text_recovery'
+              ? '\n[Nota: tabela recuperada da camada de texto do PDF — confira o original.]'
+              : '';
+          return `[${i + 1}] ${doc?.title ?? 'Documento'} (${label})${sourceHint}${tableHint}\n${chunk.markdownContent.slice(0, RAG_CONTEXT_CHARS_PER_CHUNK)}`;
+        })
+        .join('\n\n---\n\n');
+    } catch (error) {
+      this.logger.warn({ error }, 'Falha ao montar contexto RAG — usando resposta template');
+      return this.fallbackAnswer(chunks);
+    }
     const tContextBuilt = performance.now();
 
     try {
@@ -328,9 +333,9 @@ export class RagService {
 
   private fallbackAnswer(chunks: KnowledgeChunkDocument[]): string {
     const primary = chunks[0]!;
-    const doc = primary.documentId as unknown as KnowledgeDocumentEntity;
+    const doc = asPopulatedDocument(primary.documentId);
     const label = buildCitationLabel(
-      doc.normReference,
+      doc?.normReference,
       primary.normItem,
       primary.pageStart,
       primary.tableCaption,

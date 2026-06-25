@@ -156,7 +156,7 @@ Documentação no qi-agent: `docs/architecture/api-tools.md` (seção **Modo RAG
 | Campo | Obrigatório | Descrição |
 | --- | --- | --- |
 | `queryText` | Sim | Pergunta (3–2000 caracteres) |
-| `channel` | Sim | `whatsapp`, `telegram`, `web`, `admin` |
+| `channel` | Sim | `whatsapp`, `telegram`, `web`, `admin`, `native` (`native` = app mobile QiAgents) |
 | `externalUserId` | Sim | ID do usuário no canal (telefone, chat id) |
 | `specialtyFilter` | Não | `civil`, `hidraulica`, `eletrica`, `seguranca_trabalho` |
 | `tagFilter` | Não | Tags para restringir chunks (ex.: `["eberick"]` para manual AltoQi) |
