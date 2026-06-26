@@ -49,6 +49,12 @@ Variáveis **obrigatórias** no Render:
 - Upstash free tem limite de **~500k comandos/mês** — BullMQ ocioso consome rápido; use Redis local em dev (`pnpm infra:up`) e veja otimizações em `docs/architecture/patterns.md`
 - OpenAI/Anthropic são pay-as-you-go *(só paga se usar as keys)*
 
+### Mitigar o cold start (keep-alive grátis)
+
+O workflow [`.github/workflows/keep-alive.yml`](../../.github/workflows/keep-alive.yml) pinga `GET /health` a cada 10 min (cron `*/10`), mantendo o serviço acordado e evitando o cold start de ~30–60s (e os ~45–90s da 1ª consulta RAG). A URL pode ser sobrescrita em **Settings → Secrets and variables → Actions → Variables** (`HEALTH_URL`).
+
+Mesmo padrão existe nos repos `qi-agent` e `qi-proposta`. Para a solução definitiva (sem dormir), veja o upgrade pago abaixo.
+
 ---
 
 ## Passo 1 — MongoDB Atlas (grátis)
